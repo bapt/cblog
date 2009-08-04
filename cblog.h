@@ -64,17 +64,17 @@
 #define TYPE_TAG 2
 
 /* Here are the getter */
-#define get_posts_per_pages(hdf) hdf_get_int_value(hdf,"posts_per_pages",0)
-#define get_query_int(hdf,name) hdf_get_int_value(hdf,"Query."name,1)
-#define get_theme(hdf) hdf_get_value(hdf, "theme",NULL)
+#define get_posts_per_pages(hdf) hdf_get_int_value(hdf, "posts_per_pages", 0)
+#define get_query_int(hdf, name) hdf_get_int_value(hdf, "Query."name, 1)
+#define get_theme(hdf) hdf_get_value(hdf, "theme", NULL)
 #define get_cache_dir(hdf) hdf_get_value(hdf, "cache.dir", NULL)
 #define get_data_dir(hdf) hdf_get_value(hdf, "data.dir", NULL)
-#define get_query_str(hdf,name) hdf_get_value(hdf,"Query."name,NULL)
-#define get_nb_feed_entries(hdf) hdf_get_int_value(hdf,"feed.nb_posts",0)
-#define get_feed_tpl(hdf,name) hdf_get_valuef(hdf,"feed.%s",name)
+#define get_query_str(hdf, name) hdf_get_value(hdf, "Query."name, NULL)
+#define get_nb_feed_entries(hdf) hdf_get_int_value(hdf, "feed.nb_posts", 0)
+#define get_feed_tpl(hdf, name) hdf_get_valuef(hdf, "feed.%s", name)
 
 /* Here are the setter */
-#define set_nb_pages(hdf,pages) hdf_set_valuef(hdf,"nbpages=%i",pages);
+#define set_nb_pages(hdf, pages) hdf_set_valuef(hdf, "nbpages=%i", pages);
 
 
 extern const char *template_dir;
