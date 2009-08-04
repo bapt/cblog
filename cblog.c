@@ -74,7 +74,7 @@ parse_file(HDF *hdf,Posts *post, char *str, int type)
 	STRING post_mkd;
 	string_init(&post_mkd);
 	FILE *post_txt;
-	char *buf, *linebuf, *lbuf;
+	char *buf, *linebuf, *lbuf, *post_title=NULL;
 	bool headers=true;
 	size_t len;
 	bool on_page=false;
@@ -101,7 +101,6 @@ parse_file(HDF *hdf,Posts *post, char *str, int type)
 	post_txt = fopen(buf,"r");
 	
 	lbuf=NULL;
-	char *post_title=NULL;
 	while (feof(post_txt) == 0) {
 		while ((linebuf = fgetln(post_txt,&len))) {
 			if (linebuf[len - 1] == '\n') 
@@ -139,6 +138,7 @@ parse_file(HDF *hdf,Posts *post, char *str, int type)
 					for(int i=0; tags[i]!=NULL; i++) {
 						Tags *tag;
 						bool found=false;
+
 						SLIST_FOREACH(tag,&tagshead,next) {
 							if(strcmp(tag->name,tags[i]) == 0) {
 								tag->count++;
@@ -164,15 +164,17 @@ parse_file(HDF *hdf,Posts *post, char *str, int type)
 				break;
 		}
 	}
-	if(on_page)
+	if(on_page && (post_title != NULL)) {
 		hdf_set_valuef(hdf,POST_TITLE,post->order,post_title);
+		XFREE(post_title);
+	}
 	XFREE(lbuf);
 	fclose(post_txt);
 
 	if(on_page) {
 		/* convert markdown to html */
 		MMIOT *doc;
-		char *mkdbuf, *html;
+		char *mkdbuf, *html, *date_format;
 
 		doc = mkd_string(post_mkd.buf,post_mkd.len,MKD_NOHEADER);
 		mkd_compile(doc, 0);
@@ -186,7 +188,7 @@ parse_file(HDF *hdf,Posts *post, char *str, int type)
 
 		/* set the filename for link */
 		hdf_set_valuef(hdf,"Posts.%i.filename=%s",post->order,post->filename);
-		char *date_format = hdf_get_value(hdf,"dateformat","%d/%m/%Y");
+		date_format = hdf_get_value(hdf,"dateformat","%d/%m/%Y");
 		if(feed != NULL) {
 			date_format="%a, %d %b %Y %H:%M:%S %z";
 		}
@@ -228,8 +230,8 @@ str_to_time_t(char *s, char *format)
 {
 	struct tm date;
 	time_t t;
-	errno = 0;
 	char *pos = strptime(s, format, &date);
+	errno = 0;
 	if (pos == NULL) {
 		errno = EINVAL;
 		err(1, "Convert '%s' to struct tm failed", s);
@@ -271,6 +273,8 @@ set_posts_dates()
 
 	while (feof(cache) == 0) {
 		while ((linebuf = fgetln(cache,&len))) {
+			char **fields;
+			time_t cached_date;
 			if (linebuf[len - 1] == '\n') 
 				linebuf[len - 1 ]='\0';
 			else {
@@ -282,8 +286,9 @@ set_posts_dates()
 			}
 			
 			/* split field[0]: filename; field[1]: timestamp */
-			char **fields = splitstr(linebuf,"|");
-			time_t cached_date = str_to_time_t(fields[1],"%s");		
+			fields = splitstr(linebuf,"|");
+			cached_date = str_to_time_t(fields[1],"%s");		
+
 			SLIST_FOREACH(current_post,&posthead,next) {
 				if (strcmp(fields[0],current_post->filename) == 0) {
 					if ( current_post->date >= cached_date) {
@@ -328,9 +333,10 @@ void
 sort_posts_by_date()
 {
 	Posts *current_post;
+	int i=0;
+
 	total_posts=get_total_posts();
 	XMALLOC(post_sorted, total_posts * sizeof(Posts *));
-	int i=0;
 	SLIST_FOREACH(current_post,&posthead,next) {
 		post_sorted[i++] = current_post;
 	}
@@ -360,10 +366,10 @@ get_all_posts()
 
 	fts = fts_open(path, FTS_LOGICAL, NULL);
 	while((ent = fts_read(fts)) != NULL) {
-		/* Only take files */
+		 char *name;
+		 /* Only take files */
 		 if(ent->fts_info != FTS_F)
 			 continue;
-		 char *name;
 		 XSTRDUP(name,ent->fts_name);
 		 name+=strlen(ent->fts_name) -4 ;
 		 if(strcasecmp(name,".txt") == 0) {
@@ -420,11 +426,12 @@ main()
 
 	feed = get_query_str(cgi->hdf,"feed");
 	if (feed != NULL) {
-		posts_per_pages = get_nb_feed_entries(cgi->hdf);
-		theme = get_feed_tpl(cgi->hdf,feed);
 		char genDate[256];
 		struct tm *ptr;
 		time_t lt;
+
+		posts_per_pages = get_nb_feed_entries(cgi->hdf);
+		theme = get_feed_tpl(cgi->hdf,feed);
 		lt = time(NULL);
 		ptr = localtime(&lt);
 		strftime(genDate, 256, DATE_FEED, ptr);
