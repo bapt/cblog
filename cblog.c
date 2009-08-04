@@ -78,6 +78,7 @@ parse_file(HDF *hdf,Posts *post, char *str, int type)
 	bool headers=true;
 	size_t len;
 	bool on_page=false;
+	int i;
 	int post_min=(page * posts_per_pages) - posts_per_pages;
 
 	if ( type == TYPE_DATE ) { 
@@ -122,20 +123,21 @@ parse_file(HDF *hdf,Posts *post, char *str, int type)
 					XSTRDUP(post_title,linebuf+strlen("Title: "));
 				} else if ( STARTS_WITH(linebuf,"Tags: ")) {
 					char **tags=splitstr(linebuf + strlen("Tags: "),", ");
+
 					if (tags == NULL) 
 						return;
-					if (type == TYPE_TAG) {
-						for (int j=0; tags[j]!=NULL; j++) {
-							if(!strcmp(tags[j],str)) {
+
+					if (type == TYPE_TAG)
+						for (i=0; tags[i]!=NULL; i++) 
+							if(!strcmp(tags[i],str)) {
 								post_matching++;
 								if( (nb_posts < posts_per_pages) && (post_matching >= post_min)) {
 									on_page=true;
 									nb_posts++;
 								}
 							}
-						}
-					}
-					for(int i=0; tags[i]!=NULL; i++) {
+
+					for(i=0; tags[i]!=NULL; i++) {
 						Tags *tag;
 						bool found=false;
 
@@ -190,7 +192,7 @@ parse_file(HDF *hdf,Posts *post, char *str, int type)
 		hdf_set_valuef(hdf,"Posts.%i.filename=%s",post->order,post->filename);
 		date_format = hdf_get_value(hdf,"dateformat","%d/%m/%Y");
 		if(feed != NULL) {
-			date_format="%a, %d %b %Y %H:%M:%S %z";
+			date_format=DATE_FEED;
 		}
 		if (date_format != NULL) {
 			char formated_date[256];
@@ -216,7 +218,8 @@ sort_obj_by_order(const void *a, const void *b)
 void
 convert_to_hdf(HDF *hdf, char *str, int type)
 {
-	for (int i=0; i<total_posts; i++) {
+	int i;
+	for (i=0; i<total_posts; i++) {
 		post_sorted[i]->order=i;
 		parse_file(hdf, post_sorted[i], str, type);
 	}
