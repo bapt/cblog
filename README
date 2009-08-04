@@ -1,0 +1,11 @@
+CBlog is a blog engine written
+
+it is licensed under the new BSD license.
+it features : 
+	- clearsilver template engine,
+	- markdown text format for posts,
+	- tags support,
+	- no SQL engine,
+	- plain text format
+
+it uses software developped by iMil : see tools.h and tools.c	
