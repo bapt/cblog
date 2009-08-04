@@ -211,6 +211,7 @@ sort_obj_by_order(const void *a, const void *b)
 {
 	HDF **ha = (HDF **)a;
 	HDF **hb = (HDF **)b;
+
 	return strcasecmp(hdf_obj_name(*ha), hdf_obj_name(*hb));
 }
 
@@ -219,11 +220,13 @@ void
 convert_to_hdf(HDF *hdf, char *str, int type)
 {
 	int i;
+
 	for (i = 0; i < total_posts; i++) {
 		post_sorted[i]->order = i;
 		parse_file(hdf, post_sorted[i], str, type);
 	}
 	hdf_sort_obj(hdf_get_obj(hdf, "Posts"), sort_obj_by_order);
+
 	return;
 }
 
@@ -234,6 +237,7 @@ str_to_time_t(char *s, char *format)
 	struct tm date;
 	time_t t;
 	char *pos = strptime(s, format, &date);
+
 	errno = 0;
 	if (pos == NULL) {
 		errno = EINVAL;
@@ -244,6 +248,7 @@ str_to_time_t(char *s, char *format)
 		errno = EINVAL;
 		err(1, "Convert struct tm (from '%s') to time_t failed", s);
 	}
+
 	return t;
 }
 
@@ -297,6 +302,7 @@ set_posts_dates()
 					if (current_post->date >= cached_date) {
 						current_post->mdate = current_post->date;
 						current_post->date = cached_date;
+						current_post->cached = true;
 						break;
 					} else {
 						current_post->cached = false;
@@ -310,6 +316,16 @@ set_posts_dates()
 		XFREE(linebuf);
 	}
 	fclose(cache);
+	/* append new entries in cache file */
+	cache=fopen(buf,"a");
+	if (cache == NULL) {
+		errx(1,"Unable to open index cache file %s, in write mode",buf);
+	}
+	SLIST_FOREACH(current_post, &posthead, next) {
+		if ( ! current_post->cached )
+			fprintf( cache, "%s|%lld\n", current_post->filename, (long long int)current_post->date);
+	}
+	fclose(cache);
 	XFREE(buf);
 }
 
@@ -318,9 +334,11 @@ get_total_posts(void)
 {
 	struct Posts *post;
 	int count = 0;
+
 	SLIST_FOREACH(post, &posthead, next) {
 		count++;
 	}
+
 	return count;
 }
 
@@ -329,6 +347,7 @@ compare_posts_by_dates(const void *a, const void *b)
 {
 	Posts *pa = *((Posts **)a);
 	Posts *pb = *((Posts **)b);
+
 	return pb->date - pa->date;
 }
 
