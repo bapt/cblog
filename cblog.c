@@ -27,15 +27,8 @@
 
 
 #include "cblog.h"
+#include "comments.h"
 
-typedef struct Posts {
-	char *filename;
-	int order;
-	time_t date;
-	time_t mdate;
-	bool cached;
-	SLIST_ENTRY(Posts) next;
-} Posts;
 
 typedef struct Tags {
 	char *name;
@@ -174,6 +167,14 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 	fclose(post_txt);
 
 	if (on_page) {
+		/* get the number of comments */
+		get_comments_count(hdf,post);
+		
+		/* if the type is show only a post, the fill the hdf with the comments */
+
+		if(type == TYPE_POST)
+			get_comments(hdf,post);
+
 		/* convert markdown to html */
 		MMIOT *doc;
 		char *mkdbuf, *html, *date_format;
@@ -203,7 +204,6 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 			hdf_set_valuef(hdf, "Posts.%i.date=%s", post->order, formated_date);
 		}
 	}
-
 }
 
 int
@@ -412,12 +412,14 @@ main()
 	char *theme;
 	char *str;
 	int type;
+	char *submit;
 	CGI *cgi;
 
 	type = TYPE_DATE;
 	post_matching = 0;
 
 	cgi_init(&cgi, NULL);
+	cgi_parse(cgi);
 
 	neoerr = hdf_read_file(cgi->hdf, CONFFILE);
 	if (neoerr != STATUS_OK)
@@ -445,6 +447,12 @@ main()
 		if (str != NULL)
 			type = TYPE_TAG;
 	}
+
+	submit = get_query_str(cgi->hdf,"submit");
+	if ( submit != NULL &&
+			!strcmp(submit,"Post") 
+			&& type == TYPE_POST)
+		set_comments(cgi->hdf, str);
 
 	feed = get_query_str(cgi->hdf, "feed");
 	if (feed != NULL) {

@@ -1,5 +1,5 @@
 PROG=	cblog.cgi
-SRCS+=	cblog.c tools.c
+SRCS+=	cblog.c tools.c comments.c
 PREFIX?=	/usr/local
 DEFINE=-DETCDIR=\"${PREFIX}/etc\"
 INCLUDE=-I/usr/local/include -I/usr/local/include/ClearSilver

@@ -74,8 +74,16 @@
 #define get_feed_tpl(hdf, name) hdf_get_valuef(hdf, "feed.%s", name)
 
 /* Here are the setter */
-#define set_nb_pages(hdf, pages) hdf_set_valuef(hdf, "nbpages=%i", pages);
+#define set_nb_pages(hdf, pages) hdf_set_valuef(hdf, "nbpages=%i", pages)
 
+typedef struct Posts {
+	char *filename;
+	int order;
+	time_t date;
+	time_t mdate;
+	bool cached;
+	SLIST_ENTRY(Posts) next;
+} Posts;
 
 extern const char *template_dir;
 extern const char *data_dir;
