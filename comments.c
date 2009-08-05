@@ -112,13 +112,13 @@ set_comments(HDF *hdf, char *filename)
 		return;
 
 	XMALLOC(basename, sizeof(filename));
-	cgi_url_escape( get_query_str(hdf,"comment"), &comment);
+	cgi_url_escape( get_query_str(hdf, "comment"), &comment);
 	strlcpy(basename,filename,strlen(filename) - 3);
 	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), basename);  
 
 	fprintf(cfd, "comment: %s\n", comment);
-	fprintf(cfd, "name: %s\n", hdf_get_value(hdf,"Query.name",NULL));
-	fprintf(cfd, "url: %s\n", hdf_get_value(hdf,"Query.url",NULL));
+	fprintf(cfd, "name: %s\n", get_query_str(hdf, "name"));
+	fprintf(cfd, "url: %s\n", get_query_str(hdf, "url"));
 	fprintf(cfd, "date: %lld\n", (long long int) time(NULL));
 	fprintf(cfd, "ip: %s\n", hdf_get_value(hdf,"CGI.RemoteAddress", NULL));
 	fprintf(cfd, "-----\n");
