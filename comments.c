@@ -106,7 +106,9 @@ set_comments(HDF *hdf, char *filename)
 	/* very simple antispam */
 	if (strlen(get_query_str(hdf,"test1"))!=0)
 		return;
-
+	/* prevent empty name and empty comment */
+	if ((strlen(get_query_str(hdf,"name")) == 0) || (strlen(get_query_str(hdf,"comment")) == 0))
+		return;
 
 	XMALLOC(basename, sizeof(filename));
 	cgi_url_escape( get_query_str(hdf,"comment"), &comment);
