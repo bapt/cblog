@@ -104,24 +104,32 @@ set_comments(HDF *hdf, char *filename)
 	FILE *cfd;
 
 	/* very simple antispam */
-	if (get_query_str(hdf,"test1") != NULL)
+	if (strlen(get_query_str(hdf,"test1"))!=0)
 		return;
 
-	cfd=fopen(comment_file,"a");      
-	if (cfd == NULL)
-		return;
 
 	XMALLOC(basename, sizeof(filename));
-	cgi_url_escape( get_query_str(hdf, "comment"), &comment);
+	cgi_url_escape( get_query_str(hdf,"comment"), &comment);
 	strlcpy(basename,filename,strlen(filename) - 3);
 	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), basename);  
 
+	cfd=fopen(comment_file,"a");      
+	if (cfd == NULL) {
+		XFREE(basename);
+		return;
+	}
+
 	fprintf(cfd, "comment: %s\n", comment);
-	fprintf(cfd, "name: %s\n", get_query_str(hdf, "name"));
-	fprintf(cfd, "url: %s\n", get_query_str(hdf, "url"));
+	fprintf(cfd, "name: %s\n", get_query_str(hdf,"name"));
+	fprintf(cfd, "url: %s\n", get_query_str(hdf,"url"));
 	fprintf(cfd, "date: %lld\n", (long long int) time(NULL));
 	fprintf(cfd, "ip: %s\n", hdf_get_value(hdf,"CGI.RemoteAddress", NULL));
 	fprintf(cfd, "-----\n");
+
+	/* Some cleanup on the hdf */
+	hdf_remove_tree(hdf,"Query.name");
+	hdf_remove_tree(hdf,"Query.url");
+	hdf_remove_tree(hdf,"Query.comment");
 
 	fclose(cfd);
 	XFREE(basename);
