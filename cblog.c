@@ -49,6 +49,15 @@ Posts **post_sorted;
 SLIST_HEAD(, Posts) posthead;
 SLIST_HEAD(, Tags) tagshead;
 
+int
+sort_obj_by_name(const void *a, const void *b)
+{
+	HDF **ha = (HDF **)a;
+	HDF **hb = (HDF **)b;
+
+	return strcasecmp(hdf_get_valuef(*ha,"name"), hdf_get_valuef(*hb,"name"));
+}
+
 void
 hdf_set_tags(HDF *hdf)
 {
@@ -59,6 +68,7 @@ hdf_set_tags(HDF *hdf)
 		hdf_set_valuef(hdf, "Tags.%i.count=%i", i, tag->count);
 		i++;
 	}
+	hdf_sort_obj(hdf_get_obj(hdf, "Tags"), sort_obj_by_name);
 }
 
 void
@@ -91,6 +101,7 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 			}
 		}
 	}
+
 	asprintf(&buf, "%s/%s", data_dir, post->filename);
 	post_txt = fopen(buf, "r");
 	
