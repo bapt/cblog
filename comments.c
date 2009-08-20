@@ -11,6 +11,7 @@ get_comments_count(HDF *hdf, Posts *post)
 	char *buf, *lbuf;
 	FILE *comment;
 
+	XMALLOC(basename,strlen(post->filename) - 3); 
 	strlcpy(basename,post->filename,strlen(post->filename) - 3);
 	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), basename);
 	
@@ -36,6 +37,7 @@ get_comments_count(HDF *hdf, Posts *post)
 	/* the comments file begins and ends with -- so remove the last counted one */
 	fclose(comment);
 	XFREE(lbuf);
+	XFREE(basename);
 	set_nb_comments(hdf, post, count);
 }
 
@@ -107,7 +109,7 @@ set_comments(HDF *hdf, char *filename)
 	if (strlen(get_query_str(hdf,"test1"))!=0)
 		return;
 	/* prevent empty name and empty comment */
-	if ((strlen(get_query_str(hdf,"name")) == 0) || (strlen(get_query_str(hdf,"comment")) == 0))
+	if ((strlen(get_query_str(hdf,"name")) == 0) || (strlen(get_query_str(hdf,"comment")) == 1))
 		return;
 
 	XMALLOC(basename, sizeof(filename));

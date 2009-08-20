@@ -46,16 +46,15 @@ int total_posts;
 int nb_posts;
 int post_matching;
 Posts **post_sorted;
-SLIST_HEAD(, Posts) posthead;
-SLIST_HEAD(, Tags) tagshead;
+
+SLIST_HEAD(Posthead, Posts) posthead; 
+SLIST_HEAD(Tagshead, Tags) tagshead;
+
 
 int
-sort_obj_by_name(const void *a, const void *b)
+sort_tags_by_name(Tags *a, Tags *b)
 {
-	HDF **ha = (HDF **)a;
-	HDF **hb = (HDF **)b;
-
-	return strcasecmp(hdf_get_valuef(*ha,"name"), hdf_get_valuef(*hb,"name"));
+	return strcasecmp(a->name, b->name);
 }
 
 void
@@ -63,12 +62,12 @@ hdf_set_tags(HDF *hdf)
 {
 	Tags *tag;
 	int i = 0;
+	SLIST_MSORT(Tags, &tagshead, next, sort_tags_by_name);
 	SLIST_FOREACH(tag, &tagshead, next) {
 		hdf_set_valuef(hdf, "Tags.%i.name=%s", i, tag->name);
 		hdf_set_valuef(hdf, "Tags.%i.count=%i", i, tag->count);
 		i++;
 	}
-	hdf_sort_obj(hdf_get_obj(hdf, "Tags"), sort_obj_by_name);
 }
 
 void
@@ -217,27 +216,17 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 	}
 }
 
-int
-sort_obj_by_order(const void *a, const void *b)
-{
-	HDF **ha = (HDF **)a;
-	HDF **hb = (HDF **)b;
-
-	return strcasecmp(hdf_obj_name(*ha), hdf_obj_name(*hb));
-}
-
 /* convert posts to hdf */
 void
 convert_to_hdf(HDF *hdf, char *str, int type)
 {
-	int i;
-
-	for (i = 0; i < total_posts; i++) {
-		post_sorted[i]->order = i;
-		parse_file(hdf, post_sorted[i], str, type);
+	Posts *current_post;
+	int i=0;
+	SLIST_FOREACH(current_post,&posthead,next){
+		current_post->order=i;
+		parse_file(hdf, current_post, str, type);
+		i++;
 	}
-	hdf_sort_obj(hdf_get_obj(hdf, "Posts"), sort_obj_by_order);
-
 	return;
 }
 
@@ -341,39 +330,16 @@ set_posts_dates()
 }
 
 static int
-get_total_posts(void)
+compare_posts_by_dates(Posts *a, Posts *b)
 {
-	struct Posts *post;
-	int count = 0;
-
-	SLIST_FOREACH(post, &posthead, next) {
-		count++;
-	}
-
-	return count;
-}
-
-static int
-compare_posts_by_dates(const void *a, const void *b)
-{
-	Posts *pa = *((Posts **)a);
-	Posts *pb = *((Posts **)b);
-
-	return pb->date - pa->date;
+	return b->date - a->date;
 }
 
 void
 sort_posts_by_date()
 {
-	Posts *current_post;
-	int i = 0;
-
-	total_posts = get_total_posts();
-	XMALLOC(post_sorted, total_posts * sizeof(Posts *));
-	SLIST_FOREACH(current_post, &posthead, next) {
-		post_sorted[i++] = current_post;
-	}
-	qsort(post_sorted, total_posts, sizeof(Posts *),compare_posts_by_dates);
+	SLIST_MSORT(Posts, &posthead, next, compare_posts_by_dates);
+	/* SLIST_BUBBLE_SORT(Posts, &posthead, next, compare_posts_by_dates); */
 }
 
 void

@@ -93,6 +93,96 @@ extern int post_per_pages;
 extern int nb_post;
 extern int total_posts;
 
+#define SLIST_BUBBLE_SORT(type, head, field, cmp) do { \
+	int nelt; \
+	type *prev, *elt, *next; \
+	nelt=0; \
+	SLIST_FOREACH(elt,(head),field) \
+		nelt++; \
+	\
+	prev = NULL; \
+	while (nelt--) { \
+		SLIST_FOREACH(elt,(head),field) { \
+			next = SLIST_NEXT(elt, field); \
+			if (next && cmp(elt,next) > 0) { \
+				if (elt == SLIST_FIRST((head))) { \
+					SLIST_REMOVE_HEAD((head),field); \
+					SLIST_INSERT_AFTER(next, elt, field); \
+				} else { \
+					SLIST_NEXT(prev, field) = next; \
+					SLIST_NEXT(elt, field) = SLIST_NEXT(next, field); \
+					SLIST_NEXT(next, field) = elt; \
+				} \
+				elt = next; \
+			} \
+			prev=elt;\
+		} \
+	} \
+} while (0)
+
+#define TAKE_LEFT 0
+#define TAKE_RIGHT 1
+
+#define SLIST_MSORT( type, head, field, cmp) do { \
+	type *first, *tail;		/* head / tail of the sorted list */ \
+	type *e;			/* element taken to add to the sorted list */ \
+	size_t partsz;			/* size of one partition */ \
+	size_t nmerges;		/* # of merge performed of partsz */ \
+	type *left, *right;		/* current left / right pointers */ \
+	size_t nleft, nright;		/* # of elt to merge starting from left / right pointers */ \
+ \
+	first = SLIST_FIRST(head); \
+	if (first == NULL || SLIST_NEXT(first, field) == NULL) \
+		/* 0 or 1 element */ \
+		break; \
+ \
+	nmerges = 42; /* just to enter the for loop */ \
+	for (partsz = 1; nmerges > 1; partsz *= 2) { \
+		nmerges = 0; /* number of merge performed of partsz */ \
+		left    = first; \
+		tail    = NULL; \
+		while (left) { \
+			/* divide into [???][left][right][???] */ \
+			right  = left; \
+			for (nleft = 0; right && nleft < partsz; nleft++) \
+				right = SLIST_NEXT(right, field); \
+			nright = partsz; /* we merge at most partsz from right */ \
+			while (nleft > 0 || (nright > 0 && right)) { \
+				int takefrom; \
+				if (nleft == 0) \
+					takefrom = TAKE_RIGHT; \
+				else if (nright == 0 || right == NULL) \
+					takefrom = TAKE_LEFT; \
+				else if (cmp(left, right) > 0) \
+					takefrom = TAKE_RIGHT; \
+				else \
+					takefrom = TAKE_LEFT; \
+ \
+				/* pick e from the right list */ \
+				if (takefrom == TAKE_RIGHT) { \
+					e = right; \
+					right = SLIST_NEXT(right, field); \
+					nright--; \
+				} else { \
+					e = left; \
+					left = SLIST_NEXT(left, field); \
+					nleft--; \
+				} \
+ \
+				if (tail == NULL) \
+					first = e; \
+				else \
+					SLIST_NEXT(tail, field) = e; \
+				tail = e; \
+			} \
+			left = right; \
+			nmerges++; \
+		} \
+		SLIST_NEXT(tail, field) = NULL; \
+	} \
+	SLIST_FIRST(head) = first; \
+ \
+} while (0)
 
 #endif
 
