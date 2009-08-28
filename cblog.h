@@ -75,9 +75,17 @@
 #define get_nb_feed_entries(hdf) hdf_get_int_value(hdf, "feed.nb_posts", 0)
 #define get_feed_tpl(hdf, name) hdf_get_valuef(hdf, "feed.%s", name)
 #define get_root(hdf) hdf_get_value(hdf,"root","")
+#define get_dateformat(hdf)  hdf_get_value(hdf, "dateformat", "%d/%m/%Y")
 
 /* Here are the setter */
 #define set_nb_pages(hdf, pages) hdf_set_valuef(hdf, "nbpages=%i", pages)
+#define set_post_date(hdf, pos, date) hdf_set_valuef(hdf, "Posts.%i.date=%s", pos, date)
+#define set_post_filename(hdf, pos, name) hdf_set_valuef(hdf, "Posts.%i.filename=%s", pos, name)
+#define set_post_content(hdf, pos, content) hdf_set_valuef(hdf, POST_CONTENT, pos, content)
+
+#define set_tag_name(hdf, pos, name)  hdf_set_valuef(hdf, "Tags.%i.name=%s", pos, name)
+#define set_tag_count(hdf, pos, count) hdf_set_valuef(hdf, "Tags.%i.count=%i", pos, count)
+
 
 typedef struct Posts {
 	char *filename;

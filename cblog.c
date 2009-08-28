@@ -45,7 +45,6 @@ int posts_per_pages;
 int total_posts;
 int nb_posts;
 int post_matching;
-Posts **post_sorted;
 
 SLIST_HEAD(Posthead, Posts) posthead; 
 SLIST_HEAD(Tagshead, Tags) tagshead;
@@ -64,8 +63,8 @@ hdf_set_tags(HDF *hdf)
 	int i = 0;
 	SLIST_MSORT(Tags, &tagshead, next, sort_tags_by_name);
 	SLIST_FOREACH(tag, &tagshead, next) {
-		hdf_set_valuef(hdf, "Tags.%i.name=%s", i, tag->name);
-		hdf_set_valuef(hdf, "Tags.%i.count=%i", i, tag->count);
+		set_tag_name(hdf, i, tag->name);
+		set_tag_count(hdf, i, tag->count);
 		i++;
 	}
 }
@@ -195,19 +194,20 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 		XMALLOC(html, len + 1);
 		memmove(html, mkdbuf, len);
 		html[len] = '\0';
-		hdf_set_valuef(hdf, POST_CONTENT, post->order, html);
+
+		set_post_content(hdf, post->order, html);
 		XFREE(html);
 		string_clear(&post_mkd);
 
 		/* set the filename for link */
-		hdf_set_valuef(hdf, "Posts.%i.filename=%s", post->order, post->filename);
-		date_format = hdf_get_value(hdf, "dateformat", "%d/%m/%Y");
+		set_post_filename(hdf, post->order, post->filename);
+		date_format = get_dateformat(hdf);
+
 		if (feed != NULL)
 			date_format = DATE_FEED;
 		
 		if (date_format != NULL)
-			/*		cp_set_formated_date(hdf_dest, pos, formated_date); */
-			hdf_set_valuef(hdf, "Posts.%i.date=%s", post->order, time_to_str(post->date, date_format));
+			set_post_date(hdf, post->order, time_to_str(post->date, date_format));
 	}
 }
 
