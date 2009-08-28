@@ -73,6 +73,7 @@
 #define get_cgi_str(hdf,name) hdf_get_value(hdf, "CGI."name, NULL)
 #define get_nb_feed_entries(hdf) hdf_get_int_value(hdf, "feed.nb_posts", 0)
 #define get_feed_tpl(hdf, name) hdf_get_valuef(hdf, "feed.%s", name)
+#define get_root(hdf) hdf_get_value(hdf,"root","")
 
 /* Here are the setter */
 #define set_nb_pages(hdf, pages) hdf_set_valuef(hdf, "nbpages=%i", pages)

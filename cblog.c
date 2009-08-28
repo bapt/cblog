@@ -428,19 +428,25 @@ main()
 	
 	query=get_cgi_str(cgi->hdf,"RequestURI");
 	/* check if there is /... in the query URI */
-	if (strcmp(query,get_cgi_str(cgi->hdf,"ScriptName"))) {
-		query+=strlen(get_cgi_str(cgi->hdf,"ScriptName"));
+	if (query != NULL) {
+		if (STARTS_WITH(query,get_cgi_str(cgi->hdf,"ScriptName")))
+			query+=strlen(get_cgi_str(cgi->hdf,"ScriptName"));
+
+		if (STARTS_WITH(query,get_root(cgi->hdf)))
+			query+=strlen(get_root(cgi->hdf));
+
 		if (query[0] == '/') {
-			if (STARTS_WITH(query,"/tags/")) {
+			if (STARTS_WITH(query,"/tag/")) {
 				size_t len;
 				type=TYPE_TAG;
-				str=query+6;
+				str=query+5;
 				/* search for the begining of query string */
 				for (len = 0; len < strlen(str); len++)
 					if (str[len] == '?') {
 						str[len] = '\0';
 						break;
 					}
+				hdf_set_valuef(cgi->hdf,"Query.tag=%s",str);
 
 			}
 			if (STARTS_WITH(query,"/post/")) {
@@ -453,6 +459,7 @@ main()
 						str[len] = '\0';
 						break;
 					}
+				hdf_set_valuef(cgi->hdf,"Query.post=%s",str);
 			}
 		}
 	}
