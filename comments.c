@@ -19,6 +19,7 @@ get_comments_count(HDF *hdf, Posts *post)
 	if (comment == NULL)
 		return;
 
+	lbuf=NULL;
 	while (feof(comment) == 0) {
 		while ((lbuf = fgetln(comment, &len))) {
 			if (lbuf[len - 1 ] == '\n')
@@ -51,13 +52,15 @@ get_comments(HDF *hdf, Posts *post)
 	char *buf, *lbuf;
 	FILE *comment;
 
+	XMALLOC(basename,strlen(post->filename) - 3);
 	strlcpy(basename,post->filename,strlen(post->filename) - 3);
 	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), basename);
-
+	XFREE(basename);
 	comment=fopen(comment_file,"r");
 	if (comment == NULL)
 		return;
 
+	lbuf=NULL;
 	while (feof(comment) == 0) {
 		while ((lbuf = fgetln(comment, &len))) {
 			if (lbuf[len - 1 ] == '\n')
