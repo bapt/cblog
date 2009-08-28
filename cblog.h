@@ -77,6 +77,7 @@
 
 /* Here are the setter */
 #define set_nb_pages(hdf, pages) hdf_set_valuef(hdf, "nbpages=%i", pages)
+time_t str_to_time_t(char *s, char *format);
 
 typedef struct Posts {
 	char *filename;

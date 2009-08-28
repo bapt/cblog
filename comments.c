@@ -50,6 +50,7 @@ get_comments(HDF *hdf, Posts *post)
 	char *comment_file;
 	char *basename;
 	char *buf, *lbuf;
+	char *date_format;
 	FILE *comment;
 
 	XMALLOC(basename,strlen(post->filename) - 3);
@@ -86,7 +87,14 @@ get_comments(HDF *hdf, Posts *post)
 			} else if (STARTS_WITH(lbuf, "date: ")) {
 				if (lbuf[strlen("date: ")] == '\0')
 					continue;
-				set_comments_date(hdf,post,count,lbuf + strlen("date: "));
+				date_format = hdf_get_value(hdf, "dateformat", "%d/%m/%Y");
+				char formated_date[256];
+				struct tm *ptr;
+				time_t date;
+				date = str_to_time_t(lbuf + strlen("date: "),"%s");
+				ptr = localtime(&date);
+				strftime(formated_date, 256, date_format, ptr);
+				set_comments_date(hdf,post,count,formated_date);
 			} else if (STARTS_WITH(lbuf, "ip: ")) {
 				if (lbuf[strlen("ip: ")] == '\0')
 					continue;
