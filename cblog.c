@@ -202,17 +202,12 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 		/* set the filename for link */
 		hdf_set_valuef(hdf, "Posts.%i.filename=%s", post->order, post->filename);
 		date_format = hdf_get_value(hdf, "dateformat", "%d/%m/%Y");
-		if (feed != NULL) {
+		if (feed != NULL)
 			date_format = DATE_FEED;
-		}
-		if (date_format != NULL) {
-			char formated_date[256];
-			struct tm *ptr;
-			ptr = localtime(&(post->date));
-			strftime(formated_date, 256, date_format, ptr);
+		
+		if (date_format != NULL)
 			/*		cp_set_formated_date(hdf_dest, pos, formated_date); */
-			hdf_set_valuef(hdf, "Posts.%i.date=%s", post->order, formated_date);
-		}
+			hdf_set_valuef(hdf, "Posts.%i.date=%s", post->order, time_to_str(post->date, date_format));
 	}
 }
 
@@ -229,29 +224,6 @@ convert_to_hdf(HDF *hdf, char *str, int type)
 	}
 	return;
 }
-
-/* convert any string info time_t */
-time_t
-str_to_time_t(char *s, char *format)
-{
-	struct tm date;
-	time_t t;
-	char *pos = strptime(s, format, &date);
-
-	errno = 0;
-	if (pos == NULL) {
-		errno = EINVAL;
-		err(1, "Convert '%s' to struct tm failed", s);
-	}
-	t = mktime(&date);
-	if (t == (time_t)-1) {
-		errno = EINVAL;
-		err(1, "Convert struct tm (from '%s') to time_t failed", s);
-	}
-
-	return t;
-}
-
 
 void 
 set_posts_dates()
@@ -471,16 +443,12 @@ main()
 
 	feed = get_query_str(cgi->hdf, "feed");
 	if (feed != NULL) {
-		char genDate[256];
-		struct tm *ptr;
 		time_t lt;
 
 		posts_per_pages = get_nb_feed_entries(cgi->hdf);
 		theme = get_feed_tpl(cgi->hdf, feed);
 		lt = time(NULL);
-		ptr = localtime(&lt);
-		strftime(genDate, 256, DATE_FEED, ptr);
-		hdf_set_valuef(cgi->hdf, GEN_DATE, genDate);
+		hdf_set_valuef(cgi->hdf, GEN_DATE, time_to_str(lt, DATE_FEED));
 	}
 	get_all_posts();
 	set_posts_dates();

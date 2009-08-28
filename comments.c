@@ -88,13 +88,9 @@ get_comments(HDF *hdf, Posts *post)
 				if (lbuf[strlen("date: ")] == '\0')
 					continue;
 				date_format = hdf_get_value(hdf, "dateformat", "%d/%m/%Y");
-				char formated_date[256];
-				struct tm *ptr;
 				time_t date;
 				date = str_to_time_t(lbuf + strlen("date: "),"%s");
-				ptr = localtime(&date);
-				strftime(formated_date, 256, date_format, ptr);
-				set_comments_date(hdf,post,count,formated_date);
+				set_comments_date(hdf, post, count, time_to_str(date, date_format));
 			} else if (STARTS_WITH(lbuf, "ip: ")) {
 				if (lbuf[strlen("ip: ")] == '\0')
 					continue;
