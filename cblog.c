@@ -390,6 +390,7 @@ main()
 	char *str;
 	int type;
 	char *submit;
+	char *query;
 	CGI *cgi;
 
 	type = TYPE_DATE;
@@ -424,7 +425,37 @@ main()
 		if (str != NULL)
 			type = TYPE_TAG;
 	}
+	
+	query=get_cgi_str(cgi->hdf,"RequestURI");
+	/* check if there is /... in the query URI */
+	if (strcmp(query,get_cgi_str(cgi->hdf,"ScriptName"))) {
+		query+=strlen(get_cgi_str(cgi->hdf,"ScriptName"));
+		if (query[0] == '/') {
+			if (STARTS_WITH(query,"/tags/")) {
+				size_t len;
+				type=TYPE_TAG;
+				str=query+6;
+				/* search for the begining of query string */
+				for (len = 0; len < strlen(str); len++)
+					if (str[len] == '?') {
+						str[len] = '\0';
+						break;
+					}
 
+			}
+			if (STARTS_WITH(query,"/post/")) {
+				size_t len;
+				type=TYPE_POST;
+				str=query+6;
+				/* search for the begining of query string */
+				for (len = 0; len < strlen(str); len++)
+					if (str[len] == '?') {
+						str[len] = '\0';
+						break;
+					}
+			}
+		}
+	}
 	submit = get_query_str(cgi->hdf,"submit");
 	if ( submit != NULL &&
 			!strcmp(submit,"Post") 

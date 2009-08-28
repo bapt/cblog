@@ -70,6 +70,7 @@
 #define get_cache_dir(hdf) hdf_get_value(hdf, "cache.dir", NULL)
 #define get_data_dir(hdf) hdf_get_value(hdf, "data.dir", NULL)
 #define get_query_str(hdf, name) hdf_get_value(hdf, "Query."name, NULL)
+#define get_cgi_str(hdf,name) hdf_get_value(hdf, "CGI."name, NULL)
 #define get_nb_feed_entries(hdf) hdf_get_int_value(hdf, "feed.nb_posts", 0)
 #define get_feed_tpl(hdf, name) hdf_get_valuef(hdf, "feed.%s", name)
 
