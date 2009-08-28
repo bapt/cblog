@@ -16,7 +16,7 @@
 		<?cs each:tag = post.tags ?><category term="<?cs var:tag.name ?>" /><?cs /each ?>
 		<id><?cs var:post.filename ?></id>
 		<link rel="alternate" href="<?cs var:url ?>?post=<?cs var:post.filename ?>" />
-		<published><?cs var:post.Date ?></published>
+		<published><?cs var:post.date ?></published>
 	</entry>
 	<?cs /each ?>
 </feed>

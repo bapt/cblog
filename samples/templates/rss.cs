@@ -16,7 +16,7 @@
 			 <?cs each:tag = post.tags ?>
 			 <category><?cs var:tag.name ?></category>
 			 <?cs /each ?>
-			 <pubDate><?cs var:post.Date ?></pubDate>
+			 <pubDate><?cs var:post.date ?></pubDate>
 		 </item>
 		 <?cs /each ?>
 	</channel>
