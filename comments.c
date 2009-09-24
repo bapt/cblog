@@ -115,6 +115,13 @@ set_comments(HDF *hdf, char *filename)
 	/* very simple antispam */
 	if (strlen(get_query_str(hdf,"test1"))!=0)
 		return;
+	/* second one just in case */
+	if (hdf_get_value(hdf, "antispamres", NULL)  == NULL)
+		return;
+	if (get_query_str(hdf,"antispam") == NULL)
+		return;
+	if (strcmp(hdf_get_value(hdf, "antispamres", NULL),get_query_str(hdf,"antispam"))!=0)
+		return;
 	/* prevent empty name and empty comment */
 	if ((strlen(get_query_str(hdf,"name")) == 0) || (strlen(get_query_str(hdf,"comment")) == 1))
 		return;

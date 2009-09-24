@@ -62,6 +62,7 @@
 <table>
 <tr><td>Nom :</td><td><input name="name" size="35" value="<?cs var:Query.name ?>" /></td></tr>
 <tr><td>URL (optionel) :</td><td><input name="url" size="35" value="<?cs var:Query.url ?>" /></td></tr>
+<tr><td>Écrire écrire: "<?cs var:antispamres ?>" <input name="antispam" value="" /></td></tr>
 <tr><td>Commentaires :</td><td><textarea name="comment" rows="5" cols="60"><?cs var:Query.comment ?></textarea></td></tr>
 <tr><td><input type="hidden" name="test1" value="" /><input type="submit" name="submit" value="Preview" /></td><td><input type="submit" name="submit" value="Post" /></td></tr>
 </table>
