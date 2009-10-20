@@ -57,6 +57,7 @@
 #define POST_TAGS "Posts.%i.tags.%i.name=%s"
 #define POST_CONTENT "Posts.%i.content=%s"
 #define GEN_DATE "gendate=%s"
+#define POST_ALLOW_COMMENTS "Posts.%i.allow_comments=%s"
 
 #define DATE_FEED "%a, %d %b %Y %H:%M:%S %z"
 

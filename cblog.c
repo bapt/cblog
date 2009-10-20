@@ -60,7 +60,7 @@ void
 hdf_set_tags(HDF *hdf)
 {
 	Tags *tag;
-	int i = 0;
+	int i = 1;
 	SLIST_MSORT(Tags, &tagshead, next, sort_tags_by_name);
 	SLIST_FOREACH(tag, &tagshead, next) {
 		set_tag_name(hdf, i, tag->name);
@@ -75,7 +75,7 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 	STRING post_mkd;
 	string_init(&post_mkd);
 	FILE *post_txt;
-	char *buf, *linebuf, *lbuf, *post_title = NULL;
+	char *buf, *linebuf, *lbuf, *post_title = NULL, *post_allow_comments = NULL;
 	bool headers = true;
 	size_t len;
 	bool on_page = false;
@@ -123,6 +123,8 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 				/* Parse the headers */
 				if (STARTS_WITH(linebuf, "Title: ")) {
 					XSTRDUP(post_title, linebuf + strlen("Title: "));
+				} else if (STARTS_WITH(linebuf, "Comments:")) {
+					XSTRDUP(post_allow_comments, linebuf + strlen("Comments: "));
 				} else if (STARTS_WITH(linebuf, "Tags: ")) {
 					char **tags = splitstr(linebuf + strlen("Tags: "), ", ");
 
@@ -181,8 +183,11 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 		
 		/* if the type is show only a post, the fill the hdf with the comments */
 
-		if(type == TYPE_POST)
+		if(type == TYPE_POST) {
+			if (post_allow_comments != NULL)
+				hdf_set_valuef(hdf, POST_ALLOW_COMMENTS, post->order, post_allow_comments);
 			get_comments(hdf,post);
+		}
 
 		/* convert markdown to html */
 		MMIOT *doc;
