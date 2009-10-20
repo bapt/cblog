@@ -58,15 +58,19 @@
 <?cs if:Query.url ?><a href="<?cs var:Query.url ?>"><?cs /if ?><?cs var:Query.name ?><?cs if:Query.url ?></a><?cs /if ?> a écrit le <?cs var:Query.date ?> : <br />
 <blockquote><p><?cs var:html_strip(Query.comment) ?></p></blockquote>
 <?cs /if ?>
+<?cs if:( post.allow_comments != "false") ?>
 <form method="post" action="<?cs var:CGI.RequestURI ?>" >
 <table>
 <tr><td>Nom :</td><td><input name="name" size="35" value="<?cs var:Query.name ?>" /></td></tr>
 <tr><td>URL (optionel) :</td><td><input name="url" size="35" value="<?cs var:Query.url ?>" /></td></tr>
-<tr><td>Écrire écrire: "<?cs var:antispamres ?>" <input name="antispam" value="" /></td></tr>
+<tr><td>Écrire ici: "je chie sur les spams"</td><td><input name="antispam" size="35" value="" /></td></tr>
 <tr><td>Commentaires :</td><td><textarea name="comment" rows="5" cols="60"><?cs var:Query.comment ?></textarea></td></tr>
-<tr><td><input type="hidden" name="test1" value="" /><input type="submit" name="submit" value="Preview" /></td><td><input type="submit" name="submit" value="Post" /></td></tr>
+<tr><td><input type="hidden" name="test1" value="" /><input type="hidden" name="test2" value="cblog!powa" /><input type="submit" name="submit" value="Preview" /></td><td><input type="submit" name="submit" value="Post" /></td></tr>
 </table>
 </form>
+<?cs else ?>
+No comments allowed
+<?cs /if ?>
 <?cs /if ?>
 <p class="separator-story" />
 <?cs /each ?>
