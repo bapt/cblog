@@ -126,9 +126,9 @@ set_comments(HDF *hdf, char *filename)
 	if ((strlen(get_query_str(hdf,"name")) == 0) || (strlen(get_query_str(hdf,"comment")) == 1))
 		return;
 
-	XMALLOC(basename, sizeof(filename));
 	cgi_url_escape( get_query_str(hdf,"comment"), &comment);
-	strlcpy(basename,filename,strlen(filename) - 3);
+	XSTRDUP(basename, filename);
+	basename[strlen(basename) - 4 ]='\0';
 	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), basename);  
 
 	cfd=fopen(comment_file,"a");      
