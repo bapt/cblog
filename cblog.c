@@ -198,7 +198,8 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 		ob = bufnew(OUTPUT_UNIT);
 		markdown(ob, ib, &mkd_xhtml);
 		
-		set_post_content(hdf, post->order, strndup(ob->data, ob->size));
+		bufnullterm(ob);
+		set_post_content(hdf, post->order, ob->data);
 		/* cleanup */
 		bufrelease(ib);
 		bufrelease(ob);

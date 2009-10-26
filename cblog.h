@@ -53,7 +53,7 @@
 
 
 #define READ_UNIT 1024
-#define OUTPUT_UNIT 64
+#define OUTPUT_UNIT 1024
 
 #define CONFFILE ETCDIR"/cblog.conf"
 
