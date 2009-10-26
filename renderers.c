@@ -21,6 +21,32 @@
 #include <strings.h>
 
 
+/*****************************
+ * EXPORTED HELPER FUNCTIONS *
+ *****************************/
+
+/* lus_attr_escape • copy the buffer entity-escaping '<', '>', '&' and '"' */
+void
+lus_attr_escape(struct buf *ob, char *src, size_t size) {
+	size_t  i = 0, org;
+	while (i < size) {
+		/* copying directly unescaped characters */
+		org = i;
+		while (i < size && src[i] != '<' && src[i] != '>'
+		&& src[i] != '&' && src[i] != '"')
+			i += 1;
+		if (i > org) bufput(ob, src + org, i - org);
+
+		/* escaping */
+		if (i >= size) break;
+		else if (src[i] == '<') BUFPUTSL(ob, "&lt;");
+		else if (src[i] == '>') BUFPUTSL(ob, "&gt;");
+		else if (src[i] == '&') BUFPUTSL(ob, "&amp;");
+		else if (src[i] == '"') BUFPUTSL(ob, "&quot;");
+		i += 1; } }
+
+
+
 /********************
  * GENERIC RENDERER *
  ********************/
@@ -31,11 +57,11 @@ rndr_autolink(struct buf *ob, struct buf *link, enum mkd_autolink type,
 	if (!link || !link->size) return 0;
 	BUFPUTSL(ob, "<a href=\"");
 	if (type == MKDA_IMPLICIT_EMAIL) BUFPUTSL(ob, "mailto:");
-	bufput(ob, link->data, link->size);
+	lus_attr_escape(ob, link->data, link->size);
 	BUFPUTSL(ob, "\">");
 	if (type == MKDA_EXPLICIT_EMAIL && link->size > 7)
-		bufput(ob, link->data + 7, link->size - 7);
-	else	bufput(ob, link->data, link->size);
+		lus_attr_escape(ob, link->data + 7, link->size - 7);
+	else	lus_attr_escape(ob, link->data, link->size);
 	BUFPUTSL(ob, "</a>");
 	return 1; }
 
@@ -43,7 +69,7 @@ static void
 rndr_blockcode(struct buf *ob, struct buf *text, void *opaque) {
 	if (ob->size) bufputc(ob, '\n');
 	BUFPUTSL(ob, "<pre><code>");
-	if (text) bufput(ob, text->data, text->size);
+	if (text) lus_attr_escape(ob, text->data, text->size);
 	BUFPUTSL(ob, "</code></pre>\n"); }
 
 static void
@@ -56,7 +82,7 @@ rndr_blockquote(struct buf *ob, struct buf *text, void *opaque) {
 static int
 rndr_codespan(struct buf *ob, struct buf *text, void *opaque) {
 	BUFPUTSL(ob, "<code>");
-	if (text) bufput(ob, text->data, text->size);
+	if (text) lus_attr_escape(ob, text->data, text->size);
 	BUFPUTSL(ob, "</code>");
 	return 1; }
 
@@ -67,6 +93,13 @@ rndr_double_emphasis(struct buf *ob, struct buf *text, char c, void *opaque) {
 	bufput(ob, text->data, text->size);
 	BUFPUTSL(ob, "</strong>");
 	return 1; }
+
+static void
+rndr_entity(struct buf *ob, struct buf *entity, void *opaque) {
+	/* called with "&" when matching something that isn't an entity */
+	if (!entity || entity->size < 1)
+		BUFPUTSL(ob, "&amp;");
+	else bufput(ob, entity->data, entity->size); }
 
 static int
 rndr_emphasis(struct buf *ob, struct buf *text, char c, void *opaque) {
@@ -87,10 +120,10 @@ static int
 rndr_link(struct buf *ob, struct buf *link, struct buf *title,
 			struct buf *content, void *opaque) {
 	BUFPUTSL(ob, "<a href=\"");
-	if (link && link->size) bufput(ob, link->data, link->size);
+	if (link && link->size) lus_attr_escape(ob, link->data, link->size);
 	if (title && title->size) {
 		BUFPUTSL(ob, "\" title=\"");
-		bufput(ob, title->data, title->size); }
+		lus_attr_escape(ob, title->data, title->size); }
 	BUFPUTSL(ob, "\">");
 	if (content && content->size) bufput(ob, content->data, content->size);
 	BUFPUTSL(ob, "</a>");
@@ -111,6 +144,10 @@ rndr_listitem(struct buf *ob, struct buf *text, int flags, void *opaque) {
 			text->size -= 1;
 		bufput(ob, text->data, text->size); }
 	BUFPUTSL(ob, "</li>\n"); }
+
+static void
+rndr_normal_text(struct buf *ob, struct buf *text, void *opaque) {
+	if (text) lus_attr_escape(ob, text->data, text->size); }
 
 static void
 rndr_paragraph(struct buf *ob, struct buf *text, void *opaque) {
@@ -161,13 +198,13 @@ html_image(struct buf *ob, struct buf *link, struct buf *title,
 			struct buf *alt, void *opaque) {
 	if (!link || !link->size) return 0;
 	BUFPUTSL(ob, "<img src=\"");
-	bufput(ob, link->data, link->size);
+	lus_attr_escape(ob, link->data, link->size);
 	BUFPUTSL(ob, "\" alt=\"");
 	if (alt && alt->size)
-		bufput(ob, alt->data, alt->size);
+		lus_attr_escape(ob, alt->data, alt->size);
 	if (title && title->size) {
 		BUFPUTSL(ob, "\" title=\"");
-		bufput(ob, title->data, title->size); }
+		lus_attr_escape(ob, title->data, title->size); }
 	BUFPUTSL(ob, "\">");
 	return 1; }
 
@@ -198,6 +235,9 @@ const struct mkd_renderer mkd_html = {
 	rndr_raw_inline,
 	rndr_triple_emphasis,
 
+	rndr_entity,
+	rndr_normal_text,
+
 	"*_",
 	NULL };
 
@@ -217,13 +257,13 @@ xhtml_image(struct buf *ob, struct buf *link, struct buf *title,
 			struct buf *alt, void *opaque) {
 	if (!link || !link->size) return 0;
 	BUFPUTSL(ob, "<img src=\"");
-	bufput(ob, link->data, link->size);
+	lus_attr_escape(ob, link->data, link->size);
 	BUFPUTSL(ob, "\" alt=\"");
 	if (alt && alt->size)
-		bufput(ob, alt->data, alt->size);
+		lus_attr_escape(ob, alt->data, alt->size);
 	if (title && title->size) {
 		BUFPUTSL(ob, "\" title=\"");
-		bufput(ob, title->data, title->size); }
+		lus_attr_escape(ob, title->data, title->size); }
 	BUFPUTSL(ob, "\" />");
 	return 1; }
 
@@ -254,6 +294,9 @@ const struct mkd_renderer mkd_xhtml = {
 	rndr_raw_inline,
 	rndr_triple_emphasis,
 
+	rndr_entity,
+	rndr_normal_text,
+
 	"*_",
 	NULL };
 
@@ -281,7 +324,7 @@ print_link_wxh(struct buf *ob, struct buf *link) {
 		end += 1;
 	if (end == ex + 1) return 0;
 	/* everything is fine, proceeding to actual printing */
-	bufput(ob, link->data, eq - 1);
+	lus_attr_escape(ob, link->data, eq - 1);
 	BUFPUTSL(ob, "\" width=");
 	bufput(ob, link->data + eq + 1, ex - eq - 1);
 	BUFPUTSL(ob, " height=");
@@ -294,14 +337,14 @@ discount_image(struct buf *ob, struct buf *link, struct buf *title,
 	if (!link || !link->size) return 0;
 	BUFPUTSL(ob, "<img src=\"");
 	if (!print_link_wxh(ob, link)) {
-		bufput(ob, link->data, link->size);
+		lus_attr_escape(ob, link->data, link->size);
 		bufputc(ob, '"'); }
 	BUFPUTSL(ob, " alt=\"");
 	if (alt && alt->size)
-		bufput(ob, alt->data, alt->size);
+		lus_attr_escape(ob, alt->data, alt->size);
 	if (title && title->size) {
 		BUFPUTSL(ob, "\" title=\"");
-		bufput(ob, title->data, title->size); }
+		lus_attr_escape(ob, title->data, title->size); }
 	bufputs(ob, xhtml ? "\" />" : "\">");
 	return 1; }
 
@@ -321,27 +364,27 @@ discount_link(struct buf *ob, struct buf *link, struct buf *title,
 	if (!link) return rndr_link(ob, link, title, content, opaque);
 	else if (link->size > 5 && !strncasecmp(link->data, "abbr:", 5)) {
 		BUFPUTSL(ob, "<abbr title=\"");
-		bufput(ob, link->data + 5, link->size - 5);
+		lus_attr_escape(ob, link->data + 5, link->size - 5);
 		BUFPUTSL(ob, "\">");
 		bufput(ob, content->data, content->size);
 		BUFPUTSL(ob, "</abbr>");
 		return 1; }
 	else if (link->size > 6 && !strncasecmp(link->data, "class:", 6)) {
 		BUFPUTSL(ob, "<span class=\"");
-		bufput(ob, link->data + 6, link->size - 6);
+		lus_attr_escape(ob, link->data + 6, link->size - 6);
 		BUFPUTSL(ob, "\">");
 		bufput(ob, content->data, content->size);
 		BUFPUTSL(ob, "</span>");
 		return 1; }
 	else if (link->size > 3 && !strncasecmp(link->data, "id:", 3)) {
 		BUFPUTSL(ob, "<a id=\"");
-		bufput(ob, link->data + 3, link->size - 3);
+		lus_attr_escape(ob, link->data + 3, link->size - 3);
 		BUFPUTSL(ob, "\">");
 		bufput(ob, content->data, content->size);
 		BUFPUTSL(ob, "</span>");
 		return 1; }
 	else if (link->size > 4 && !strncasecmp(link->data, "raw:", 4)) {
-		bufput(ob, link->data + 4, link->size - 4);
+		lus_attr_escape(ob, link->data + 4, link->size - 4);
 		return 1; }
 	return rndr_link(ob, link, title, content, opaque); }
 
@@ -391,6 +434,9 @@ const struct mkd_renderer discount_html = {
 	rndr_raw_inline,
 	rndr_triple_emphasis,
 
+	rndr_entity,
+	rndr_normal_text,
+
 	"*_",
 	NULL };
 const struct mkd_renderer discount_xhtml = {
@@ -412,6 +458,9 @@ const struct mkd_renderer discount_xhtml = {
 	discount_link,
 	rndr_raw_inline,
 	rndr_triple_emphasis,
+
+	rndr_entity,
+	rndr_normal_text,
 
 	"*_",
 	NULL };
@@ -515,6 +564,9 @@ const struct mkd_renderer nat_html = {
 	rndr_raw_inline,
 	nat_triple_emphasis,
 
+	rndr_entity,
+	rndr_normal_text,
+
 	"*_-+|",
 	NULL };
 const struct mkd_renderer nat_xhtml = {
@@ -536,6 +588,9 @@ const struct mkd_renderer nat_xhtml = {
 	discount_link,
 	rndr_raw_inline,
 	nat_triple_emphasis,
+
+	rndr_entity,
+	rndr_normal_text,
 
 	"*_-+|",
 	NULL };

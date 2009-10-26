@@ -104,29 +104,6 @@ static struct html_tag block_tags[] = {
  * STATIC HELPER FUNCTIONS *
  ***************************/
 
-/* attr_escape • copy data into a buffer, escaping '"', '<' '&' and '>' */
-static void
-attr_escape(struct buf *ob, char *data, size_t size) {
-	size_t i;
-	for (i = 0; i < size; i += 1)
-		if (data[i] == '&') BUFPUTSL(ob, "&amp;");
-		else if (data[i] == '<') BUFPUTSL(ob, "&lt;");
-		else if (data[i] == '>') BUFPUTSL(ob, "&gt;");
-		else if (data[i] == '"') BUFPUTSL(ob, "&quot;");
-		else bufputc(ob, data[i]); }
-
-
-/* html_escape • copy data into a buffer, escaping '<' '&' and '>' */
-static void
-html_escape(struct buf *ob, char *data, size_t size) {
-	size_t i;
-	for (i = 0; i < size; i += 1)
-		if (data[i] == '&') BUFPUTSL(ob, "&amp;");
-		else if (data[i] == '<') BUFPUTSL(ob, "&lt;");
-		else if (data[i] == '>') BUFPUTSL(ob, "&gt;");
-		else bufputc(ob, data[i]); }
-
-
 /* cmp_link_ref • comparison function for link_ref sorted arrays */
 static int
 cmp_link_ref(void *array_entry, void *key) {
@@ -240,16 +217,21 @@ tag_length(char *data, size_t size, enum mkd_autolink *autolink) {
 /* parse_inline • parses inline markdown elements */
 static void
 parse_inline(struct buf *ob, struct render *rndr, char *data, size_t size) {
-	size_t i = 0, end;
+	size_t i = 0, end = 0;
 	char_trigger action;
+	struct buf work = { 0, 0, 0, 0, 0 };
 
 	while (i < size) {
 		/* copying inactive chars into the output */
-		end = i;
 		while (end < size
 		&& (action = rndr->active_char[(unsigned char)data[end]]) == 0)
 			end += 1;
-		bufput(ob, data + i, end - i);
+		if (rndr->make.normal_text) {
+			work.data = data + i;
+			work.size = end - i;
+			rndr->make.normal_text(ob, &work, rndr->make.opaque); }
+		else
+			bufput(ob, data + i, end - i);
 		if (end >= size) break;
 		i = end;
 
@@ -258,7 +240,8 @@ parse_inline(struct buf *ob, struct render *rndr, char *data, size_t size) {
 		if (!end) { /* no action from the callback */
 			bufputc(ob, data[i]);
 			i += 1; }
-		else i += end; } }
+		else i += end;
+		end = i; } }
 
 
 /* find_emph_char • looks for the next emph char, skipping other constructs */
@@ -467,7 +450,6 @@ static size_t
 char_codespan(struct buf *ob, struct render *rndr,
 				char *data, size_t offset, size_t size) {
 	size_t end, nb = 0, i, f_begin, f_end;
-	struct buf *work = 0;
 
 	/* counting the number of backticks in the delimiter */
 	while (nb < size && data[nb] == '`') nb += 1;
@@ -489,16 +471,9 @@ char_codespan(struct buf *ob, struct render *rndr,
 
 	/* real code span */
 	if (f_begin < f_end) {
-		if (rndr->work.size < rndr->work.asize) {
-			work = rndr->work.item[rndr->work.size ++];
-			work->size = 0; }
-		else {
-			work = bufnew(WORK_UNIT);
-			parr_push(&rndr->work, work); }
-		html_escape(work, data + f_begin, f_end - f_begin);
-		if (!rndr->make.codespan(ob, work, rndr->make.opaque))
-			end = 0;
-		rndr->work.size -= 1; }
+		struct buf work = { data + f_begin, f_end - f_begin, 0, 0, 0 };
+		if (!rndr->make.codespan(ob, &work, rndr->make.opaque))
+			end = 0; }
 	else {
 		if (!rndr->make.codespan(ob, 0, rndr->make.opaque))
 			end = 0; }
@@ -509,7 +484,13 @@ char_codespan(struct buf *ob, struct render *rndr,
 static size_t
 char_escape(struct buf *ob, struct render *rndr,
 				char *data, size_t offset, size_t size) {
-	if (size > 1) html_escape(ob, data + 1, 1);
+	struct buf work = { 0, 0, 0, 0 };
+	if (size > 1) {
+		if (rndr->make.normal_text) {
+			work.data = data + 1;
+			work.size = 1;
+			rndr->make.normal_text(ob, &work, rndr->make.opaque); }
+		else bufputc(ob, data[1]); }
 	return 2; }
 
 
@@ -519,26 +500,23 @@ static size_t
 char_entity(struct buf *ob, struct render *rndr,
 				char *data, size_t offset, size_t size) {
 	size_t end = 1;
+	struct buf work;
 	if (end < size && data[end] == '#') end += 1;
 	while (end < size
 	&& ((data[end] >= '0' && data[end] <= '9')
 	||  (data[end] >= 'a' && data[end] <= 'z')
 	||  (data[end] >= 'A' && data[end] <= 'Z')))
 		end += 1;
-	/* an '&' will always be put */
-	bufputc(ob, '&');
-	/* adding the "amp;" part if needed */
-	if (end >= size || data[end] != ';')
-		BUFPUTSL(ob, "amp;");
-	return 1; }
-
-
-/* char_langle_esc • '<' always escaped (no tag processing) */
-static size_t
-char_langle_esc(struct buf *ob, struct render *rndr,
-				char *data, size_t offset, size_t size) {
-	BUFPUTSL(ob, "&lt;");
-	return 1; }
+	if (end < size && data[end] == ';') {
+		/* real entity */
+		end += 1; }
+	else {
+		/* lone '&' */
+		end = 1; }
+	work.data = data;
+	work.size = end;
+	rndr->make.entity(ob, &work, rndr->make.opaque);
+	return end; }
 
 
 /* char_langle_tag • '<' when tags or autolinks are allowed */
@@ -551,32 +529,15 @@ char_langle_tag(struct buf *ob, struct render *rndr,
 	int ret = 0;
 	if (end) {
 		if (rndr->make.autolink && altype != MKDA_NOT_AUTOLINK) {
-			struct buf *wk = 0;
-			if (rndr->work.size < rndr->work.asize) {
-				wk = rndr->work.item[rndr->work.size ++];
-				wk->size = 0; }
-			else {
-				wk = bufnew(WORK_UNIT);
-				parr_push(&rndr->work, wk); }
-			attr_escape(wk, data + 1, end - 2);
-			ret = rndr->make.autolink(ob, wk, altype,
-							rndr->make.opaque);
-			rndr->work.size -= 1; }
+			work.data = data + 1;
+			work.size = end - 2;
+			ret = rndr->make.autolink(ob, &work, altype,
+							rndr->make.opaque); }
 		else if (rndr->make.raw_html_tag)
 			ret = rndr->make.raw_html_tag(ob, &work,
 							rndr->make.opaque); }
-	if (!ret) {
-		BUFPUTSL(ob, "&lt;");
-		return 1; }
+	if (!ret) return 0;
 	else return end; }
-
-
-/* char_rangle • '>': always escaped when encountered outside of a tag */
-static size_t
-char_rangle(struct buf *ob, struct render *rndr,
-				char *data, size_t offset, size_t size) {
-	BUFPUTSL(ob, "&gt;");
-	return 1; }
 
 
 /* char_link • '[': parsing a link or an image */
@@ -663,7 +624,7 @@ char_link(struct buf *ob, struct render *rndr,
 			else {
 				link = bufnew(WORK_UNIT);
 				parr_push(&rndr->work, link); }
-			attr_escape(link, data + link_b, link_e - link_b); }
+			bufput(link, data + link_b, link_e - link_b); }
 		if (title_e > title_b) {
 			if (rndr->work.size < rndr->work.asize) {
 				title = rndr->work.item[rndr->work.size ++];
@@ -671,7 +632,7 @@ char_link(struct buf *ob, struct render *rndr,
 			else {
 				title = bufnew(WORK_UNIT);
 				parr_push(&rndr->work, title); }
-			attr_escape(title, data + title_b, title_e - title_b);}
+			bufput(title, data + title_b, title_e - title_b);}
 
 		i += 1; }
 
@@ -764,7 +725,7 @@ char_link(struct buf *ob, struct render *rndr,
 		else {
 			content = bufnew(WORK_UNIT);
 			parr_push(&rndr->work, content); }
-		if (is_img) attr_escape(content, data + 1, txt_e - 1);
+		if (is_img) bufput(content, data + 1, txt_e - 1);
 		else parse_inline(content, rndr, data + 1, txt_e - 1); }
 
 	/* calling the relevant rendering function */
@@ -1034,7 +995,7 @@ parse_blockcode(struct buf *ob, struct render *rndr,
 				escaping entities */
 			if (is_empty(data + beg, end - beg))
 				bufputc(work, '\n');
-			else html_escape(work, data + beg, end - beg); }
+			else bufput(work, data + beg, end - beg); }
 		beg = end; }
 
 	while (work->size && work->data[work->size - 1] == '\n')
@@ -1455,18 +1416,15 @@ is_ref(char *data, size_t beg, size_t end, size_t *last, struct array *refs) {
 	id.size = id_end - id_offset;
 	n = arr_sorted_find_i(refs, &id, cmp_link_ref);
 	if (arr_insert(refs, 1, n) && (lr = arr_item(refs, n)) != 0) {
-		struct buf *work = bufnew(WORK_UNIT);
 		lr->id = bufnew(id_end - id_offset);
 		bufput(lr->id, data + id_offset, id_end - id_offset);
-		attr_escape(work, data + link_offset, link_end - link_offset);
-		lr->link = bufdup(work, 1);
+		lr->link = bufnew(link_end - link_offset);
+		bufput(lr->link, data + link_offset, link_end - link_offset);
 		if (title_end > title_offset) {
-			work->size = 0;
-			attr_escape(work, data + title_offset,
-						title_end - title_offset);
-			lr->title = bufdup(work, 1); }
-		else lr->title = 0;
-		bufrelease(work); }
+			lr->title = bufnew(title_end - title_offset);
+			bufput(lr->title, data + title_offset,
+						title_end - title_offset); }
+		else lr->title = 0; }
 	return 1; }
 
 
@@ -1497,12 +1455,10 @@ markdown(struct buf *ob, struct buf *ib, const struct mkd_renderer *rndrer) {
 				= char_emphasis;
 	if (rndr.make.codespan) rndr.active_char['`'] = char_codespan;
 	if (rndr.make.linebreak) rndr.active_char['\n'] = char_linebreak;
+	if (rndr.make.entity) rndr.active_char['&'] = char_entity;
 	if (rndr.make.image || rndr.make.link)
 		rndr.active_char['['] = char_link;
-	rndr.active_char['<'] = (rndr.make.raw_html_tag || rndr.make.autolink)
-				? char_langle_tag : char_langle_esc;
-	rndr.active_char['>'] = char_rangle;
-	rndr.active_char['&'] = char_entity;
+	rndr.active_char['<'] = char_langle_tag;
 	rndr.active_char['\\'] = char_escape;
 
 	/* first pass: looking for references, copying everything else */
