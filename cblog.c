@@ -72,8 +72,6 @@ hdf_set_tags(HDF *hdf)
 void
 parse_file(HDF *hdf, Posts *post, char *str, int type)
 {
-	STRING post_mkd;
-	string_init(&post_mkd);
 	FILE *post_txt;
 	char *buf, *linebuf, *lbuf, *post_title = NULL, *post_allow_comments = NULL;
 	bool headers = true;
@@ -82,6 +80,9 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 	int i;
 	int post_min = (page * posts_per_pages) - posts_per_pages;
 
+	struct buf *ib;
+
+	ib = bufnew(READ_UNIT);
 	if (type == TYPE_DATE) { 
 		post_matching++;
 		if ((post->order >= post_min) && (nb_posts < posts_per_pages)) {
@@ -164,8 +165,8 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 					}
 				}
 			} else if (on_page){
-				string_append(&post_mkd, linebuf);
-				string_append(&post_mkd, "\n");
+				bufputs(ib,linebuf);
+				bufputs(ib,"\n");
 			} else
 				break;
 		}
@@ -189,20 +190,18 @@ parse_file(HDF *hdf, Posts *post, char *str, int type)
 			get_comments(hdf,post);
 		}
 
-		/* convert markdown to html */
-		MMIOT *doc;
-		char *mkdbuf, *html, *date_format;
+		/* convert markdown to html using libupskirt */
+		struct buf *ob;
+		char *date_format;
 
-		doc = mkd_string(post_mkd.buf, post_mkd.len, MKD_NOHEADER);
-		mkd_compile(doc, 0);
-		len = mkd_document(doc, &mkdbuf);
-		XMALLOC(html, len + 1);
-		memmove(html, mkdbuf, len);
-		html[len] = '\0';
-
-		set_post_content(hdf, post->order, html);
-		XFREE(html);
-		string_clear(&post_mkd);
+		/* performing markdown parsing */
+		ob = bufnew(OUTPUT_UNIT);
+		markdown(ob, ib, &mkd_xhtml);
+		
+		set_post_content(hdf, post->order, strndup(ob->data, ob->size));
+		/* cleanup */
+		bufrelease(ib);
+		bufrelease(ob);
 
 		/* set the filename for link */
 		set_post_filename(hdf, post->order, post->filename);

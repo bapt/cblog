@@ -45,10 +45,15 @@
 /* include Markdown and clearsilver */
 
 #include <ClearSilver.h>
-#include <mkdio.h>
+#include "markdown.h"
+#include "renderers.h"
 
 #include "tools.h"
 #include "utils.h"
+
+
+#define READ_UNIT 1024
+#define OUTPUT_UNIT 64
 
 #define CONFFILE ETCDIR"/cblog.conf"
 
