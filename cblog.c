@@ -272,7 +272,7 @@ set_posts_dates()
 			
 			/* split field[0]: filename; field[1]: timestamp */
 			fields = splitstr(linebuf, "|");
-			cached_date = str_to_time_t(fields[1], "%s");		
+			cached_date = (time_t) strtol(fields[1],NULL, 0)
 
 			SLIST_FOREACH(current_post, &posthead, next) {
 				if (strcmp(fields[0], current_post->filename) == 0) {
