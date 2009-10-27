@@ -218,7 +218,7 @@ tag_length(char *data, size_t size, enum mkd_autolink *autolink) {
 static void
 parse_inline(struct buf *ob, struct render *rndr, char *data, size_t size) {
 	size_t i = 0, end = 0;
-	char_trigger action;
+	char_trigger action = NULL;
 	struct buf work = { 0, 0, 0, 0, 0 };
 
 	while (i < size) {
