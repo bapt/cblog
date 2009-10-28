@@ -5,7 +5,7 @@
 
 #define CBLOG_LOG_SYSLOG 0
 #define CBLOG_LOG_SYSLOG_ONLY 1
-#define CBLOG_LOG_STDOUT 3
+#define CBLOG_LOG_STDOUT 2
 
 int syslog_flag;
 void cblog_err(int eval, const char * messages, ...);

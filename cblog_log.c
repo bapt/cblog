@@ -13,7 +13,8 @@ cblog_err(int eval, const char * message, ...)
 			exit(eval);
 	}
 	printf("Content-Type : text/HTML\n\n");
-	asprintf(&output,"<HTML><HEAD><TITLE>CBlog : ERROR</TITLE></HEAD><BODY><H1>Cblog : ERROR</H1><H2>%s</BODY></HTML>\n",message);
-	printf(output,args);
+	asprintf(&output,message, args);
+	printf("<HTML><HEAD><TITLE>CBlog : ERROR</TITLE></HEAD><BODY><H1>Cblog : ERROR</H1><H2>%s</BODY></HTML>\n",output);
+	free(output);
 	exit(EXIT_SUCCESS);
 }
