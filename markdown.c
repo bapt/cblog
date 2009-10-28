@@ -20,7 +20,7 @@
 
 #include "array.h"
 
-#include <stdio.h> /* only used for debug output */
+#include <assert.h>
 #include <string.h>
 #include <strings.h> /* for strncasecmp */
 
@@ -218,7 +218,7 @@ tag_length(char *data, size_t size, enum mkd_autolink *autolink) {
 static void
 parse_inline(struct buf *ob, struct render *rndr, char *data, size_t size) {
 	size_t i = 0, end = 0;
-	char_trigger action = NULL;
+	char_trigger action = 0;
 	struct buf work = { 0, 0, 0, 0, 0 };
 
 	while (i < size) {
@@ -237,11 +237,11 @@ parse_inline(struct buf *ob, struct render *rndr, char *data, size_t size) {
 
 		/* calling the trigger */
 		end = action(ob, rndr, data + i, i, size - i);
-		if (!end) { /* no action from the callback */
-			bufputc(ob, data[i]);
-			i += 1; }
-		else i += end;
-		end = i; } }
+		if (!end) /* no action from the callback */
+			end = i + 1;
+		else { 
+			i += end;
+			end = i; } } }
 
 
 /* find_emph_char • looks for the next emph char, skipping other constructs */
@@ -484,7 +484,7 @@ char_codespan(struct buf *ob, struct render *rndr,
 static size_t
 char_escape(struct buf *ob, struct render *rndr,
 				char *data, size_t offset, size_t size) {
-	struct buf work = { 0, 0, 0, 0 };
+	struct buf work = { 0, 0, 0, 0, 0 };
 	if (size > 1) {
 		if (rndr->make.normal_text) {
 			work.data = data + 1;
@@ -512,10 +512,12 @@ char_entity(struct buf *ob, struct render *rndr,
 		end += 1; }
 	else {
 		/* lone '&' */
-		end = 1; }
-	work.data = data;
-	work.size = end;
-	rndr->make.entity(ob, &work, rndr->make.opaque);
+		return 0; }
+	if (rndr->make.entity) {
+		work.data = data;
+		work.size = end;
+		rndr->make.entity(ob, &work, rndr->make.opaque); }
+	else bufput(ob, data, end);
 	return end; }
 
 
@@ -1455,11 +1457,11 @@ markdown(struct buf *ob, struct buf *ib, const struct mkd_renderer *rndrer) {
 				= char_emphasis;
 	if (rndr.make.codespan) rndr.active_char['`'] = char_codespan;
 	if (rndr.make.linebreak) rndr.active_char['\n'] = char_linebreak;
-	if (rndr.make.entity) rndr.active_char['&'] = char_entity;
 	if (rndr.make.image || rndr.make.link)
 		rndr.active_char['['] = char_link;
 	rndr.active_char['<'] = char_langle_tag;
 	rndr.active_char['\\'] = char_escape;
+	rndr.active_char['&'] = char_entity;
 
 	/* first pass: looking for references, copying everything else */
 	beg = 0;
@@ -1492,22 +1494,6 @@ markdown(struct buf *ob, struct buf *ib, const struct mkd_renderer *rndrer) {
 	/* second pass: actual rendering */
 	parse_block(ob, &rndr, text->data, text->size);
 
-#if 0
-/* debug: printing the reference list */
-BUFPUTSL(ob, "(refs");
-lr = rndr.refs.base;
-for (i = 0; i < rndr.refs.size; i += 1) {
-	BUFPUTSL(ob, "\n\t(\"");
-	bufput(ob, lr[i].id->data, lr[i].id->size);
-	BUFPUTSL(ob, "\" \"");
-	bufput(ob, lr[i].link->data, lr[i].link->size);
-	if (lr[i].title) {
-		BUFPUTSL(ob, "\" \"");
-		bufput(ob, lr[i].title->data, lr[i].title->size); }
-	BUFPUTSL(ob, "\")"); }
-BUFPUTSL(ob, ")\n");
-#endif
-
 	/* clean-up */
 	bufrelease(text);
 	lr = rndr.refs.base;
@@ -1516,8 +1502,7 @@ BUFPUTSL(ob, ")\n");
 		bufrelease(lr[i].link);
 		bufrelease(lr[i].title); }
 	arr_free(&rndr.refs);
-if (rndr.work.size)
-fprintf(stderr, "Warning: %i working buffers unfreed\n", rndr.work.size);
+	assert(rndr.work.size == 0);
 	for (i = 0; i < rndr.work.asize; i += 1)
 		bufrelease(rndr.work.item[i]);
 	parr_free(&rndr.work); }
