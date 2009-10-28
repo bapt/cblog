@@ -32,7 +32,6 @@
 #include <sys/queue.h>
 #include <sys/stat.h>
 
-#include <err.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <fts.h>
@@ -50,6 +49,7 @@
 
 #include "tools.h"
 #include "utils.h"
+#include "cblog_log.h"
 
 
 #define READ_UNIT 1024
@@ -73,6 +73,7 @@
 /* Here are the getter */
 #define get_posts_per_pages(hdf) hdf_get_int_value(hdf, "posts_per_pages", 0)
 #define get_query_int(hdf, name) hdf_get_int_value(hdf, "Query."name, 1)
+#define get_syslog_flag(hdf) hdf_get_int_value(hdf, "syslog", CBLOG_LOG_SYSLOG_ONLY)
 #define get_theme(hdf) hdf_get_value(hdf, "theme", NULL)
 #define get_cache_dir(hdf) hdf_get_value(hdf, "cache.dir", NULL)
 #define get_data_dir(hdf) hdf_get_value(hdf, "data.dir", NULL)

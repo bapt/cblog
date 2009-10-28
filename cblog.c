@@ -254,7 +254,7 @@ set_posts_dates()
 
 	/* open the index file */
 	if ((cache=fopen(buf,"r")) == NULL)
-		errx(1, "Unable to open the index cache file %s", buf);
+		cblog_err(1, "Unable to open the index cache file %s", buf);
 
 	while (feof(cache) == 0) {
 		while ((linebuf = fgetln(cache,&len))) {
@@ -296,7 +296,7 @@ set_posts_dates()
 	/* append new entries in cache file */
 	cache=fopen(buf,"a");
 	if (cache == NULL) {
-		errx(1,"Unable to open index cache file %s, in write mode",buf);
+		cblog_err(1,"Unable to open index cache file %s, in write mode",buf);
 	}
 	SLIST_FOREACH(current_post, &posthead, next) {
 		if ( ! current_post->cached )
@@ -363,6 +363,7 @@ int
 main()
 {
 	NEOERR *neoerr;
+	STRING neoerr_str;
 	char *theme;
 	char *str;
 	int type;
@@ -373,20 +374,29 @@ main()
 	type = TYPE_DATE;
 	post_matching = 0;
 
+	syslog_flag=CBLOG_LOG_STDOUT;
 	cgi_init(&cgi, NULL);
 	cgi_parse(cgi);
-
+	
 	neoerr = hdf_read_file(cgi->hdf, CONFFILE);
-	if (neoerr != STATUS_OK)
-		nerr_log_error(neoerr);
+	if (neoerr != STATUS_OK) {
+		nerr_error_string(neoerr, &neoerr_str);
+		cblog_err(-1, neoerr_str.buf);
+	}
+
+	syslog_flag = get_syslog_flag(cgi->hdf);
+
+	if (syslog_flag == CBLOG_LOG_SYSLOG ||
+			syslog_flag == CBLOG_LOG_SYSLOG_ONLY)
+		openlog("CBlog", LOG_CONS, LOG_USER);
 
 	data_dir = get_data_dir(cgi->hdf);
 	if (data_dir == NULL)
-		errx(1, "data.dir should be define in "CONFFILE);
+		cblog_err(1, "data.dir should be define in "CONFFILE);
 
 	cache_dir = get_cache_dir(cgi->hdf);
 	if (cache_dir == NULL)
-		errx(1, "cache.dir should be define in "CONFFILE);
+		cblog_err(1, "cache.dir should be define in "CONFFILE);
 
 	posts_per_pages = get_posts_per_pages(cgi->hdf);
 
@@ -464,9 +474,15 @@ main()
 	hdf_set_tags(cgi->hdf);
 
 	neoerr = cgi_display(cgi, theme);
-	if (neoerr != STATUS_OK)
-		nerr_log_error(neoerr);
-	cgi_destroy(&cgi);
+	if (neoerr != STATUS_OK) {
+		nerr_error_string(neoerr, &neoerr_str);
+		cblog_err(-1, neoerr_str.buf);
+	}
 
-	return 0;
+	cgi_destroy(&cgi);
+	if (syslog_flag == CBLOG_LOG_SYSLOG ||
+			syslog_flag == CBLOG_LOG_SYSLOG_ONLY)
+		closelog();
+
+	return EXIT_SUCCESS;
 }
