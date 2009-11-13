@@ -44,7 +44,7 @@ send_mail(const char *from, const char *to, const char *subject, HDF *hdf, const
 	fprintf(email, "To: %s\n", to);
 	fprintf(email, "From: %s\n", from);
 	fprintf(email, "Content-type: text/plain\n\n");
-	fprintf(email, "A new commen has been submited.\n");
+	fprintf(email, "A new comment has been submited.\n");
 	fprintf(email, "Name : %s\n", get_query_str(hdf,"name"));
 	fprintf(email, "URL : %s\n", get_query_str(hdf,"url"));
 	fprintf(email, "IP : %s\n", hdf_get_value(hdf,"CGI.RemoteAddress", NULL));
