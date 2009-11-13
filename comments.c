@@ -144,6 +144,19 @@ set_comments(HDF *hdf, char *filename)
 	fprintf(cfd, "ip: %s\n", hdf_get_value(hdf,"CGI.RemoteAddress", NULL));
 	fprintf(cfd, "-----\n");
 
+	/* All is good, send an email for the new comment */
+	if(hdf_get_int_value(hdf, "email.enable", 0) == 1)
+	{
+		char *from = hdf_get_value(hdf, "email.from", NULL);
+		char *to   = hdf_get_value(hdf, "email.to", NULL);
+
+		char *subject;
+		asprintf(&subject, "New comment by %s", get_query_str(hdf,"name"));
+
+		if(from && to)
+			send_mail(from, to, subject, hdf, comment);
+	}
+
 	/* Some cleanup on the hdf */
 	hdf_remove_tree(hdf,"Query.name");
 	hdf_remove_tree(hdf,"Query.url");
