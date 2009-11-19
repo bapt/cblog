@@ -4,6 +4,6 @@ PREFIX?=	/usr/local
 DEFINE=-DETCDIR=\"${PREFIX}/etc\"
 INCLUDE=-I${PREFIX}/include -I${PREFIX}/include/ClearSilver
 CFLAGS+=	-Wall -g ${INCLUDE} ${DEFINE}
-LDADD+=	-L${PREFIX}/lib -lz -lneo_cgi -lneo_cs -lneo_utl
+LDADD+=	-L${PREFIX}/lib -lz -lneo_cgi -lneo_cs -lneo_utl -lfcgi
 
 .include <bsd.prog.mk>

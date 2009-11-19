@@ -47,6 +47,9 @@
 #include "markdown.h"
 #include "renderers.h"
 
+/* fastcgi */
+#include <fcgi_stdio.h>
+
 #include "tools.h"
 #include "utils.h"
 #include "cblog_log.h"

@@ -28,6 +28,28 @@
 
 #include "cblog.h"
 #include "comments.h"
+#include <syslog.h>
+
+/* this are wrappers to have clearsilver to work in fastcgi */
+int
+read_cb(void *ptr, char *data, int size)
+{
+	return FCGI_fread(data, sizeof(char), size, FCGI_stdin);
+}
+
+int
+writef_cb(void *ptr, const char *format, va_list ap)
+{
+	return FCGI_vprintf(format, ap);
+}
+
+int
+write_cb(void *ptr, const char *data, int size)
+{
+	return FCGI_fwrite((void *)data, sizeof(char), size, FCGI_stdout);
+}
+
+/* end of fcgi wrappers */
 
 
 typedef struct Tags {
@@ -359,130 +381,140 @@ get_all_posts()
 	}
 }
 
-int 
+int
 main()
 {
+	CGI *cgi;
 	NEOERR *neoerr;
 	STRING neoerr_str;
-	char *theme;
-	char *str;
-	int type;
-	char *submit;
-	char *query;
-	CGI *cgi;
 
-	type = TYPE_DATE;
-	post_matching = 0;
+	openlog("CBlog", LOG_CONS|LOG_PID, LOG_DAEMON);
 
-	syslog_flag=CBLOG_LOG_STDOUT;
-	cgi_init(&cgi, NULL);
-	cgi_parse(cgi);
-	
-	neoerr = hdf_read_file(cgi->hdf, CONFFILE);
-	if (neoerr != STATUS_OK) {
-		nerr_error_string(neoerr, &neoerr_str);
-		cblog_err(-1, neoerr_str.buf);
-	}
+	/* Call the wrappers for fcgi */
+	cgiwrap_init_emu(NULL, &read_cb, &writef_cb, &write_cb,
+			NULL, NULL, NULL);
 
-	syslog_flag = get_syslog_flag(cgi->hdf);
+	while( FCGI_Accept() >= 0) {
+		char *theme;
+		char *str;
+		int type;
+		char *submit;
+		char *query;
 
-	if (syslog_flag == CBLOG_LOG_SYSLOG ||
-			syslog_flag == CBLOG_LOG_SYSLOG_ONLY)
-		openlog("CBlog", LOG_CONS, LOG_USER);
+		type = TYPE_DATE;
+		post_matching = 0;
 
-	data_dir = get_data_dir(cgi->hdf);
-	if (data_dir == NULL)
-		cblog_err(1, "data.dir should be define in "CONFFILE);
+		syslog_flag=CBLOG_LOG_STDOUT;
+		cgi_init(&cgi, NULL);
+		cgi_parse(cgi);
 
-	cache_dir = get_cache_dir(cgi->hdf);
-	if (cache_dir == NULL)
-		cblog_err(1, "cache.dir should be define in "CONFFILE);
+		neoerr = hdf_read_file(cgi->hdf, CONFFILE);
+		if (neoerr != STATUS_OK) {
+			nerr_error_string(neoerr, &neoerr_str);
+			cblog_err(-1, neoerr_str.buf);
+		}
 
-	posts_per_pages = get_posts_per_pages(cgi->hdf);
+		syslog_flag = get_syslog_flag(cgi->hdf);
 
-	page = get_query_int(cgi->hdf, "page");
+		if (syslog_flag == CBLOG_LOG_SYSLOG ||
+				syslog_flag == CBLOG_LOG_SYSLOG_ONLY)
+			openlog("CBlog", LOG_CONS, LOG_USER);
 
-	theme = get_theme(cgi->hdf);
+		data_dir = get_data_dir(cgi->hdf);
+		if (data_dir == NULL)
+			cblog_err(1, "data.dir should be define in "CONFFILE);
 
-	str = get_query_str(cgi->hdf, "post");
-	if (str != NULL) {
-		type = TYPE_POST;
-	} else {
-		str = get_query_str(cgi->hdf, "tag");
-		if (str != NULL)
-			type = TYPE_TAG;
-	}
-	
-	query=get_cgi_str(cgi->hdf,"RequestURI");
-	/* check if there is /... in the query URI */
-	if (query != NULL) {
-		if (STARTS_WITH(query,get_cgi_str(cgi->hdf,"ScriptName")))
-			query+=strlen(get_cgi_str(cgi->hdf,"ScriptName"));
+		cache_dir = get_cache_dir(cgi->hdf);
+		if (cache_dir == NULL)
+			cblog_err(1, "cache.dir should be define in "CONFFILE);
 
-		if (STARTS_WITH(query,get_root(cgi->hdf)))
-			query+=strlen(get_root(cgi->hdf));
+		posts_per_pages = get_posts_per_pages(cgi->hdf);
 
-		if (query[0] == '/') {
-			if (STARTS_WITH(query,"/tag/")) {
-				size_t len;
-				type=TYPE_TAG;
-				str=query+5;
-				/* search for the begining of query string */
-				for (len = 0; len < strlen(str); len++)
-					if (str[len] == '?') {
-						str[len] = '\0';
-						break;
-					}
-				hdf_set_valuef(cgi->hdf,"Query.tag=%s",str);
+		page = get_query_int(cgi->hdf, "page");
 
-			}
-			if (STARTS_WITH(query,"/post/")) {
-				size_t len;
-				type=TYPE_POST;
-				str=query+6;
-				/* search for the begining of query string */
-				for (len = 0; len < strlen(str); len++)
-					if (str[len] == '?') {
-						str[len] = '\0';
-						break;
-					}
-				hdf_set_valuef(cgi->hdf,"Query.post=%s",str);
+		theme = get_theme(cgi->hdf);
+
+		str = get_query_str(cgi->hdf, "post");
+		if (str != NULL) {
+			type = TYPE_POST;
+		} else {
+			str = get_query_str(cgi->hdf, "tag");
+			if (str != NULL)
+				type = TYPE_TAG;
+		}
+
+		query=get_cgi_str(cgi->hdf,"RequestURI");
+		/* check if there is /... in the query URI */
+		if (query != NULL) {
+			if (STARTS_WITH(query,get_cgi_str(cgi->hdf,"ScriptName")))
+				query+=strlen(get_cgi_str(cgi->hdf,"ScriptName"));
+
+			if (STARTS_WITH(query,get_root(cgi->hdf)))
+				query+=strlen(get_root(cgi->hdf));
+
+			if (query[0] == '/') {
+				if (STARTS_WITH(query,"/tag/")) {
+					size_t len;
+					type=TYPE_TAG;
+					str=query+5;
+					/* search for the begining of query string */
+					for (len = 0; len < strlen(str); len++)
+						if (str[len] == '?') {
+							str[len] = '\0';
+							break;
+						}
+					hdf_set_valuef(cgi->hdf,"Query.tag=%s",str);
+
+				}
+				if (STARTS_WITH(query,"/post/")) {
+					size_t len;
+					type=TYPE_POST;
+					str=query+6;
+					/* search for the begining of query string */
+					for (len = 0; len < strlen(str); len++)
+						if (str[len] == '?') {
+							str[len] = '\0';
+							break;
+						}
+					hdf_set_valuef(cgi->hdf,"Query.post=%s",str);
+				}
 			}
 		}
+		submit = get_query_str(cgi->hdf,"submit");
+		if ( submit != NULL &&
+				!strcmp(submit,"Post") 
+				&& type == TYPE_POST)
+			set_comments(cgi->hdf, str);
+
+		feed = get_query_str(cgi->hdf, "feed");
+		if (feed != NULL) {
+			time_t lt;
+
+			posts_per_pages = get_nb_feed_entries(cgi->hdf);
+			theme = get_feed_tpl(cgi->hdf, feed);
+			lt = time(NULL);
+			hdf_set_valuef(cgi->hdf, GEN_DATE, time_to_str(lt, DATE_FEED));
+		}
+		get_all_posts();
+		set_posts_dates();
+		sort_posts_by_date();
+		convert_to_hdf(cgi->hdf, str, type);
+		set_pages();
+		set_nb_pages(cgi->hdf, pages);
+		hdf_set_tags(cgi->hdf);
+
+		neoerr = cgi_display(cgi, theme);
+		if (neoerr != STATUS_OK) {
+			nerr_error_string(neoerr, &neoerr_str);
+			cblog_err(-1, neoerr_str.buf);
+		}
+
+		cgi_destroy(&cgi);
+		if (syslog_flag == CBLOG_LOG_SYSLOG ||
+				syslog_flag == CBLOG_LOG_SYSLOG_ONLY)
+			closelog();
+
 	}
-	submit = get_query_str(cgi->hdf,"submit");
-	if ( submit != NULL &&
-			!strcmp(submit,"Post") 
-			&& type == TYPE_POST)
-		set_comments(cgi->hdf, str);
-
-	feed = get_query_str(cgi->hdf, "feed");
-	if (feed != NULL) {
-		time_t lt;
-
-		posts_per_pages = get_nb_feed_entries(cgi->hdf);
-		theme = get_feed_tpl(cgi->hdf, feed);
-		lt = time(NULL);
-		hdf_set_valuef(cgi->hdf, GEN_DATE, time_to_str(lt, DATE_FEED));
-	}
-	get_all_posts();
-	set_posts_dates();
-	sort_posts_by_date();
-	convert_to_hdf(cgi->hdf, str, type);
-	set_pages();
-	set_nb_pages(cgi->hdf, pages);
-	hdf_set_tags(cgi->hdf);
-
-	neoerr = cgi_display(cgi, theme);
-	if (neoerr != STATUS_OK) {
-		nerr_error_string(neoerr, &neoerr_str);
-		cblog_err(-1, neoerr_str.buf);
-	}
-
-	cgi_destroy(&cgi);
-	if (syslog_flag == CBLOG_LOG_SYSLOG ||
-			syslog_flag == CBLOG_LOG_SYSLOG_ONLY)
-		closelog();
-
+	closelog();
 	return EXIT_SUCCESS;
 }

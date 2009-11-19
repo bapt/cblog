@@ -16,5 +16,5 @@ cblog_err(int eval, const char * message, ...)
 	asprintf(&output,message, args);
 	printf("<HTML><HEAD><TITLE>CBlog : ERROR</TITLE></HEAD><BODY><H1>Cblog : ERROR</H1><H2>%s</BODY></HTML>\n",output);
 	free(output);
-	exit(EXIT_SUCCESS);
+	return (EXIT_SUCCESS);
 }
