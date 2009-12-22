@@ -36,12 +36,27 @@ struct posts {
 	time_t ctime;
 };
 
+struct tags {
+	char *name;
+	int count;
+};
+
 int
-sort_tags_by_name(const void *a, const void *b)
+sort_by_name(const void *a, const void *b)
 {
-	HDF **ha = (HDF **)a;
-	HDF **hb = (HDF **)b;
-	return strcasecmp(hdf_get_valuef(*ha, "name"), hdf_get_valuef(*hb,"name"));
+	struct tags *ta = *((struct tags **)a);
+	struct tags *tb = *((struct tags **)b);
+
+	return strcasecmp(ta->name, tb->name);
+}
+
+int
+sort_by_ctime(const void *a, const void *b)
+{
+	struct posts *post_a = *((struct posts **)a);
+	struct posts *post_b = *((struct posts **)b);
+
+	return post_b->ctime - post_a->ctime;
 }
 
 long long
@@ -269,15 +284,6 @@ update_cache(HDF *hdf)
 	XFREE(postpath[0]);
 }
 
-int
-sort_by_ctime(const void *a, const void *b)
-{
-	struct posts *post_a = *((struct posts **)a);
-	struct posts *post_b = *((struct posts **)b);
-
-	return post_b->ctime - post_a->ctime;
-}
-
 void
 add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
 {
@@ -438,14 +444,15 @@ set_tags(HDF *hdf)
 	struct cdb cdb;
 	unsigned vlen, vpos;
 	char *key, *val;
-	int cache, i;
-	HDF *tags_hdf;
+	int cache, i, j;
 
 	asprintf(&cache_file, "%s/cblog.cdb", hdf_get_valuef(hdf, "cache.dir"));
 	cache = open(cache_file, O_RDONLY);
 	cdb_init(&cdb, cache);
 
 	struct cdb_find cdbf;
+	struct tags **taglist=NULL;
+
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
 	while (cdb_findnext(&cdbf) >0) {
 		vpos = cdb_datapos(&cdb);
@@ -467,22 +474,35 @@ set_tags(HDF *hdf)
 		char **tags = splitstr(val, ", ");
 		for (i=0; tags[i] != NULL; i++) {
 			found=false;
-			HDF_FOREACH(tags_hdf, hdf, "Tags") {
-				if (EQUALS(tags[i], hdf_get_valuef(tags_hdf, "name"))) {
+			for (j=0; j < nbtags; j++) {
+				if (EQUALS(tags[i], taglist[j]->name)) {
 					found=true;
-					hdf_set_valuef(tags_hdf, "count=%i", hdf_get_int_value(tags_hdf, "count",0) + 1);
+					taglist[j]->count++;
 				}
 			}
 			if (!found) {
 				nbtags++;
-				set_tag_name(hdf, nbtags, tags[i]);
-				set_tag_count(hdf, nbtags, 1);
+				XREALLOC(taglist, nbtags * sizeof(struct tags *));
+				struct tags *tag;
+				XMALLOC(tag, sizeof(struct tags));
+				XSTRDUP(tag->name, tags[i]);
+				tag->count=1;
+				taglist[nbtags - 1] = tag;
 			}
 		}
 		free_list(tags);
-		hdf_sort_obj(hdf_get_obj(hdf, "Tags"), sort_tags_by_name);
 		XFREE(val);
 	}
+
+	qsort(taglist, nbtags, sizeof(struct tags *), sort_by_name);
+
+	for (i=0; i<nbtags; i++) {
+		set_tag_name(hdf, i, taglist[i]->name);
+		set_tag_count(hdf, i, taglist[i]->count);
+		XFREE(taglist[i]->name);
+		XFREE(taglist[i]);
+	}
+	XFREE(taglist);
 	close(cache);
 	XFREE(cache_file);
 }
