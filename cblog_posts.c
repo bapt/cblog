@@ -474,6 +474,7 @@ set_tags(HDF *hdf)
 			}
 		}
 		free_list(tags);
+		hdf_sort_obj(hdf_get_obj(hdf, "Tags"), sort_tags_by_name);
 	}
 	close(cache);
 }
