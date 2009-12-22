@@ -31,7 +31,6 @@ static char *field[] = {
 };
 
 char *feed;
-char **lists_posts;
 
 struct posts {
 	char *name;
@@ -71,6 +70,7 @@ get_ctime_from_index(HDF *hdf, char * filename)
 		}
 	}
 	return ret;
+	XFREE(index);
 }
 
 void
@@ -265,10 +265,10 @@ update_cache(HDF *hdf)
 		close(cache_file);
 		
 		rename(tmpcache_path, cache_path);
+		XFREE(tmpcache_path);
 	}
-
-	/* This is compatibility to get the old entries.index */
-	/* recover_entries_index(hdf); */
+	XFREE(cache_path);
+	XFREE(postpath[0]);
 }
 
 int
@@ -403,6 +403,8 @@ hdf_fill(HDF *hdf, char *tag, char *name)
 						break;
 					}
 				}
+				free_list(tags);
+				XFREE(val);
 			}
 		} else {
 			/* global page */
@@ -419,7 +421,13 @@ hdf_fill(HDF *hdf, char *tag, char *name)
 		if (j % posts_per_pages > 0)
 			nb_pages++;
 		set_nb_pages(hdf, nb_pages);
+		for (i=0; i< nb_posts_total; i++) {
+			XFREE(posts[i]->name);
+			XFREE(posts[i]);
+		}
+		XFREE(posts);
 	}
+	XFREE(cache_file);
 	return;
 }
 
@@ -475,8 +483,10 @@ set_tags(HDF *hdf)
 		}
 		free_list(tags);
 		hdf_sort_obj(hdf_get_obj(hdf, "Tags"), sort_tags_by_name);
+		XFREE(val);
 	}
 	close(cache);
+	XFREE(cache_file);
 }
 
 void

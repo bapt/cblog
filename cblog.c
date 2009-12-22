@@ -198,7 +198,7 @@ cblog_main()
 	/* cleanup every thing */
 	for(i=0; path[i] != NULL; i++ )
 		free(path[i]);
-	free(path);
+	XFREE(path);
 	for(i=0; requesturi[i] != NULL; i++)
 		free(requesturi[i]);
 	hdf_destroy(&(cgi->hdf));
