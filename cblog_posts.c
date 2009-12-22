@@ -136,16 +136,12 @@ cache_post(struct cdb_make *cache, const char *path, const char *filename)
 	markdown(ob, ib, &mkd_xhtml);
 	bufnullterm(ob);
 	bufnullterm(ib);
-	char *html;
-	char *source;
-	html= ob->data;
-	source= ib->data;
 	asprintf(&key, "%s_source", filename);
-	cache_add(cache, key, source);
+	cache_add(cache, key, ob->data);
 	XFREE(key);
 
 	asprintf(&key, "%s_html", filename);
-	cache_add(cache, key, html);
+	cache_add(cache, key, ib->data);
 	XFREE(key);
 
 	bufrelease(ib);
@@ -508,10 +504,4 @@ get_posts(HDF *hdf, char *tag, char *name)
 	update_cache(hdf);
 	hdf_fill(hdf, tag, name);
 	set_tags(hdf);
-}
-
-void
-posts_cleanup()
-{
-	return;
 }

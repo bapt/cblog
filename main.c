@@ -39,6 +39,5 @@ main()
 	cblog_err(1, "bye");
 	closelog();
 	clean_conf();
-	posts_cleanup();
 	return EXIT_SUCCESS;
 }
