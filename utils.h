@@ -11,7 +11,6 @@
 
 time_t str_to_time_t(char *s, char *format);
 char *time_to_str(time_t source, char *format);
-char **splitstr(char *str, const char *sep);
 void send_mail(const char *from, const char *to, const char *subject, HDF *hdf, const char *comment);
 bool file_exists(const char *filename);
 

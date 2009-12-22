@@ -1,12 +1,6 @@
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <limits.h>
-#include <sys/queue.h>
 #include <fts.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <ClearSilver.h>
 #include <ctype.h>
 
@@ -99,20 +93,21 @@ cache_post(struct cdb_make *cache, const char *path, const char *filename)
 	post_txt = fopen(path, "r");
 	ib = bufnew(READ_UNIT);
 
-	cdb_make_add(cache, "posts", 5, filename, strlen(filename));
+	cache_add(cache, "posts", filename);
 	while(fgets(filebuf, LINE_MAX, post_txt) != NULL) {
 		/* The first empty line in the file is the end of the header */
 		if (filebuf[0] == '\n' && headers) {
 			headers=false;
 			continue;
 		}
-		if (filebuf[strlen(filebuf) - 1 ] == '\n')
-			filebuf[strlen(filebuf) - 1] = '\0';
+
+		trimcr(filebuf);
+
 		if (headers) {
 			if (STARTS_WITH(filebuf, "Title: "))  {
 				asprintf(&key, "%s_title", filename);
 				val = filebuf + strlen("Title ");
-				cdb_make_add(cache, key, strlen(key), val, strlen(val));
+				cache_add(cache, key, val);
 				XFREE(key);
 				continue;
 			} else if (STARTS_WITH(filebuf, "Comments: ")) {
@@ -127,7 +122,7 @@ cache_post(struct cdb_make *cache, const char *path, const char *filename)
 
 				val = filebuf + strlen("Tags: ");
 				asprintf(&key, "%s_tags", filename);
-				cdb_make_add(cache, key, strlen(key), val, strlen(val));
+				cache_add(cache, key, val);
 				XFREE(key);
 			}	
 		} else {
@@ -146,11 +141,11 @@ cache_post(struct cdb_make *cache, const char *path, const char *filename)
 	html= ob->data;
 	source= ib->data;
 	asprintf(&key, "%s_source", filename);
-	cdb_make_add(cache, key, strlen(key), source, strlen(source));
+	cache_add(cache, key, source);
 	XFREE(key);
 
 	asprintf(&key, "%s_html", filename);
-	cdb_make_add(cache, key, strlen(key), html, strlen(html));
+	cache_add(cache, key, html);
 	XFREE(key);
 
 	bufrelease(ib);
@@ -207,7 +202,7 @@ update_cache(HDF *hdf)
 		cdb_make_start(&newcache, new_cache);
 		
 		asprintf(&str_mtime, "%lld", (long long) datadirstat.st_mtime);
-		cdb_make_add(&newcache, "mtime", 5, str_mtime, strlen(str_mtime));
+		cache_add(&newcache, "mtime", str_mtime);
 		XFREE(str_mtime);
 
 		fts = fts_open(postpath, FTS_LOGICAL, NULL);
@@ -237,9 +232,9 @@ update_cache(HDF *hdf)
 
 				if (filestat.st_mtime > (time_t) strtol(str_mtime, (char **)NULL, 10) ) {
 					cache_post(&newcache, ent->fts_accpath, filename);
-					cdb_make_add(&newcache, filename, strlen(filename), str_mtime, strlen(str_mtime));
+					cache_add(&newcache, filename, str_mtime);
 				} else {
-					cdb_make_add(&newcache, filename, strlen(filename), str_mtime, strlen(str_mtime));
+					cache_add(&newcache, filename, str_mtime);
 
 					for (i=0; field[i] != NULL; i++) {
 						char *key, *tmp;
@@ -250,7 +245,7 @@ update_cache(HDF *hdf)
 							XMALLOC(tmp, vlen);
 							cdb_read(&oldcache, tmp, vlen, vpos);
 							tmp[vlen]='\0';
-							cdb_make_add(&newcache, key, strlen(key), tmp, strlen(tmp));
+							cache_add(&newcache, key, tmp);
 						}
 						XFREE(tmp);
 						XFREE(key);
@@ -266,8 +261,8 @@ update_cache(HDF *hdf)
 					asprintf(&str_mtime, "%lld", (long long) filestat.st_mtime);
 				else 
 					asprintf(&str_mtime, "%lld", ctime);
-				cdb_make_add(&newcache, key, strlen(key), str_mtime, strlen(str_mtime));
-				cdb_make_add(&newcache, filename, strlen(filename), str_mtime, strlen(str_mtime));
+				cache_add(&newcache, key, str_mtime);
+				cache_add(&newcache, filename, str_mtime);
 				XFREE(key);
 				XFREE(str_mtime);
 			}

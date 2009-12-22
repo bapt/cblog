@@ -153,7 +153,6 @@ cblog_main()
 	char **requesturi;
 	char **path;
 
-	int i;
 	int type;
 	char *theme;
 	char *req;
@@ -196,12 +195,8 @@ cblog_main()
 		string_clear(&neoerr_str);
 	}
 	/* cleanup every thing */
-	for(i=0; path[i] != NULL; i++ )
-		free(path[i]);
-	XFREE(path);
-	for(i=0; requesturi[i] != NULL; i++)
-		free(requesturi[i]);
-	XFREE(requesturi);
+	free_list(path);
+	free_list(requesturi);
 	XFREE(req);
 	XFREE(theme);
 	return 0;
