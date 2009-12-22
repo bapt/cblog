@@ -9,3 +9,5 @@
 
 int syslog_flag;
 void cblog_err(int eval, const char * messages, ...);
+void cblog_warn(const char * messages, ...);
+void cblog_info(const char * messages, ...);

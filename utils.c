@@ -1,4 +1,9 @@
+#include <errno.h>
+#include <string.h>
+#include <syslog.h>
+#include <stdbool.h>
 #include "utils.h"
+#include "cblog_log.h"
 
 /* convert any string info time_t */
 time_t
@@ -11,12 +16,12 @@ str_to_time_t(char *s, char *format)
 	errno = 0;
 	if (pos == NULL) {
 		errno = EINVAL;
-		err(1, "Convert '%s' to struct tm failed", s);
+		cblog_err(1, "Convert '%s' to struct tm failed", s);
 	}
 	t = mktime(&date);
 	if (t == (time_t)-1) {
 		errno = EINVAL;
-		err(1, "Convert struct tm (from '%s') to time_t failed", s);
+		cblog_err(1, "Convert struct tm (from '%s') to time_t failed", s);
 	}
 
 	return t;
@@ -53,4 +58,16 @@ send_mail(const char *from, const char *to, const char *subject, HDF *hdf, const
 	pclose(email);
 	return;
 
+}
+
+bool
+file_exists(const char *filename)
+{
+	FILE *file;
+	if ( (file = fopen(filename, "r")) != NULL)
+{
+		fclose(file);
+		return true;
+	}
+	return false;
 }

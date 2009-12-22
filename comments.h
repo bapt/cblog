@@ -1,6 +1,7 @@
 #ifndef COMMENTS_H
 #define COMMENTS_H
 
+#include "cblog_posts.h" 
 
 #define set_nb_comments(hdf, post, count) hdf_set_valuef(hdf, "Posts.%i.nb_comments=%i", post->order, count)
 #define set_comments_author(hdf, post, count, author) hdf_set_valuef(hdf, "Posts.%i.comments.%i.author=%s", post->order, count, author)

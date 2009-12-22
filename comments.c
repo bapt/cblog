@@ -5,40 +5,25 @@ void
 get_comments_count(HDF *hdf, Posts *post)
 {
 	int count=0;
-	size_t len;
 	char *comment_file;
-	char *basename;
-	char *buf, *lbuf;
+	char buf[LINE_MAX];
 	FILE *comment;
 
-	XMALLOC(basename,strlen(post->filename) - 3); 
-	strlcpy(basename,post->filename,strlen(post->filename) - 3);
-	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), basename);
+	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), post->filename);
 	
 	comment=fopen(comment_file,"r");
-	if (comment == NULL)
+	if (comment == NULL) {
+		free(comment_file);
 		return;
+	}
 
-	lbuf=NULL;
-	while (feof(comment) == 0) {
-		while ((lbuf = fgetln(comment, &len))) {
-			if (lbuf[len - 1 ] == '\n')
-				lbuf[len - 1 ] = '\0';
-			else {
-				XMALLOC(buf,len + 1);
-				memcpy(buf, lbuf, len);
-				buf[len] = '\0';
-				lbuf = buf;
-			}
-
-			if (STARTS_WITH(lbuf, "--" ))
-				count++;
-		}
-	}	
+	while (fgets(buf, LINE_MAX, comment) != NULL ) {
+		if (STARTS_WITH(buf, "--" ))
+			count++;
+	}
 	/* the comments file begins and ends with -- so remove the last counted one */
 	fclose(comment);
-	XFREE(lbuf);
-	XFREE(basename);
+	free(comment_file);
 	set_nb_comments(hdf, post, count);
 }
 
@@ -46,61 +31,49 @@ void
 get_comments(HDF *hdf, Posts *post)
 {
 	int count=0;
-	size_t len;
 	char *comment_file;
-	char *basename;
-	char *buf, *lbuf;
+	char buf[LINE_MAX];
 	char *date_format;
 	FILE *comment;
 
-	XMALLOC(basename,strlen(post->filename) - 3);
-	strlcpy(basename,post->filename,strlen(post->filename) - 3);
-	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), basename);
-	XFREE(basename);
+	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), post->filename);
 	comment=fopen(comment_file,"r");
-	if (comment == NULL)
+	if (comment == NULL) {
+		free(comment_file);
 		return;
+	}
 
-	lbuf=NULL;
-	while (feof(comment) == 0) {
-		while ((lbuf = fgetln(comment, &len))) {
-			if (lbuf[len - 1 ] == '\n')
-				lbuf[len - 1 ] = '\0';
-			else {
-				XMALLOC(buf,len + 1);
-				memcpy(buf, lbuf, len);
-				buf[len] = '\0';
-				lbuf = buf;
-			}
-			if (STARTS_WITH(lbuf, "comment: ")) {
-				if (lbuf[strlen("comment: ")] == '\0')
+	while (fgets(buf, LINE_MAX, comment) != NULL) {
+			if (STARTS_WITH(buf, "comment: ")) {
+				if (buf[strlen("comment: ")] == '\0')
 					continue;
-				set_comments_content(hdf, post, count, cgi_url_unescape(lbuf + strlen("comment: ")));
-			} else if (STARTS_WITH(lbuf, "name: ")) {
-				if (lbuf[strlen("name: ")] == '\0')
+				set_comments_content(hdf, post, count, cgi_url_unescape(buf + strlen("comment: ")));
+			} else if (STARTS_WITH(buf, "name: ")) {
+				if (buf[strlen("name: ")] == '\0')
 					continue;
-				set_comments_author(hdf, post, count, lbuf + strlen("name: "));
-			} else if (STARTS_WITH(lbuf, "url: ")) {
-				if (lbuf[strlen("url: ")] == '\0')
+				set_comments_author(hdf, post, count, buf + strlen("name: "));
+			} else if (STARTS_WITH(buf, "url: ")) {
+				if (buf[strlen("url: ")] == '\0')
 					continue;
-				set_comments_url(hdf, post, count, lbuf + strlen("url: "));
-			} else if (STARTS_WITH(lbuf, "date: ")) {
-				if (lbuf[strlen("date: ")] == '\0')
+				set_comments_url(hdf, post, count, buf + strlen("url: "));
+			} else if (STARTS_WITH(buf, "date: ")) {
+				if (buf[strlen("date: ")] == '\0')
 					continue;
 				date_format = hdf_get_value(hdf, "dateformat", "%d/%m/%Y");
 				time_t date;
-				date = (time_t) strtol(lbuf + strlen("date: "), NULL, 0); 
-				set_comments_date(hdf, post, count, time_to_str(date, date_format));
-			} else if (STARTS_WITH(lbuf, "ip: ")) {
-				if (lbuf[strlen("ip: ")] == '\0')
+				date = (time_t) strtol(buf + strlen("date: "), NULL, 0); 
+				char *time_str = time_to_str(date, date_format);
+				set_comments_date(hdf, post, count, time_str);
+				free(time_str);
+			} else if (STARTS_WITH(buf, "ip: ")) {
+				if (buf[strlen("ip: ")] == '\0')
 					continue;
-				set_comments_ip(hdf,post,count,lbuf + strlen("ip: "));
-			} else if (STARTS_WITH(lbuf, "--")) 
+				set_comments_ip(hdf,post,count,buf + strlen("ip: "));
+			} else if (STARTS_WITH(buf, "--")) 
 				count++;
 		}
-	}
 	fclose(comment);
-	XFREE(lbuf);
+	free(comment_file);
 	return;
 }
 
@@ -108,7 +81,6 @@ void
 set_comments(HDF *hdf, char *filename)
 {
 	char *comment_file;
-	char *basename;
 	char *comment;
 	FILE *cfd;
 
@@ -127,13 +99,11 @@ set_comments(HDF *hdf, char *filename)
 		return;
 
 	cgi_url_escape( get_query_str(hdf,"comment"), &comment);
-	XSTRDUP(basename, filename);
-	basename[strlen(basename) - 4 ]='\0';
-	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), basename);  
+	asprintf(&comment_file, "%s/%s.comments", get_cache_dir(hdf), filename);  
 
 	cfd=fopen(comment_file,"a");      
 	if (cfd == NULL) {
-		XFREE(basename);
+		free(comment_file);
 		return;
 	}
 
@@ -163,5 +133,5 @@ set_comments(HDF *hdf, char *filename)
 	hdf_remove_tree(hdf,"Query.comment");
 
 	fclose(cfd);
-	XFREE(basename);
+	free(comment_file);
 }

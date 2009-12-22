@@ -1,6 +1,11 @@
+/* $Id: tools.c,v 1.4 2009/12/03 00:23:41 imil Exp $ */
+
 /*
- * Copyright (c) 2005
- *      iMil <imil@gcu.info>.  All rights reserved.
+ * Copyright (c) 2009 The NetBSD Foundation, Inc.
+ * All rights reserved.
+ *
+ * This code is derived from software contributed to The NetBSD Foundation
+ * by Emile "iMil" Heitor <imil@NetBSD.org> .
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -10,26 +15,19 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *      This product includes software developed by iMil.
- * 4. Neither the name of the author nor the names of any co-contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY iMil AND CONTRIBUTORS ``AS IS'' AND
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL iMil OR THE VOICES IN HIS HEAD
- * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGE.
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  *
- * $Id: tools.c,v 1.1.1.1 2009/03/09 10:34:34 imil Exp $ 
  */
 
 #include "tools.h"
@@ -82,52 +80,46 @@ splitstr(char *str, const char *sep)
 }
 
 void
-free_list(char ***list)
+free_list(char **list)
 {
 	int i;
-	char **plist;
-
-	if (*list != NULL) {
-		plist = *list;
-		for (i = 0; plist[i] != NULL; i++)
-			XFREE(plist[i]);
-		XFREE(*list);
-	}
-}
-
-void
-cut_str(char *str, int maxlen)
-{
-	int len, i, j;
-
-	if (str == NULL)
-		return;
-
-	len = strlen(str);
-
-	if (len > maxlen) {
-		j = 0;
-		/* step back */
-		for (i = maxlen - j; j < 3; j++)
-			str[i + j] = '.';
-		str[i + j] = '\0';
-	}
-}
-
-int verbose = 10;
-
-/* debug printf, show info if global verbose >= verbosity */
-void
-d_printf(uint8_t verbosity, char *fmt, ...) {
-        char buffer[MAXLEN];
 	
-        if (verbose >= verbosity ) {
-                va_list args;
-                va_start(args, fmt);
-                vsnprintf(buffer, MAXLEN, fmt, args);
-                fprintf(stderr, "%s", buffer);
-                va_end(args);
-        }
+	if (list != NULL) {
+		for (i = 0; list[i] != NULL; i++)
+			XFREE(list[i]);
+		XFREE(list);
+	}
+}
+
+void
+trunc_str(char *str, char limit, int direction)
+{
+	char *p;
+
+	switch(direction) {
+	case STR_FORWARD:
+		if ((p = strchr(str, limit)) != NULL)
+			*p = '\0';
+		break;
+	case STR_BACKWARD:
+		if ((p = strrchr(str, limit)) != NULL)
+			*p = '\0';
+		break;
+	}
+}
+
+char *
+safe_snprintf(int size, const char *fmt, ...)
+{
+	char *p;
+	va_list ap;
+
+	XMALLOC(p, size * sizeof(char));
+	va_start(ap, fmt);
+	(void) vsnprintf(p, size, fmt, ap);
+	va_end(ap);
+
+	return p;
 }
 
 __inline int
@@ -139,85 +131,6 @@ __inline int
 min(int a, int b)
 {
         return (a < b ? a : b);
-}
-
-int
-tcpclient(char *host, int port) {
-	int s;
-	struct sockaddr_in sa;
-	struct hostent *he;
-
-	if ((s = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
-		warn("socket");
-		return (-1);
-	}
-  
-	bzero(&sa, sizeof sa);
-
-	sa.sin_family = AF_INET;
-	sa.sin_port = htons(port);
-
-	if ((he = gethostbyname(host)) == NULL) {
-		herror(host);
-		return (-1);
-	}
-  
-	bcopy(he->h_addr_list[0],&sa.sin_addr, he->h_length);
-
-	if (connect(s, (struct sockaddr *)&sa, sizeof sa) < 0) {
-		warn("connect");
-		close(s);
-		return (-1);
-	}
-
-	return (s);
-}
-
-/* CAUTION, this function assume you know how long your line is ! */
-void
-line_padding(char *line, char fill, int len)
-{
-	int i;
-	char *p;
-
-	if (line == NULL || fill == 0 || len == 0)
-		return;
-
-	i = strlen(line);
-	p = &line[i];
-	for (; i < len; i++)
-		p[i] = fill;
-
-	p[i] = '\0';
-}
-
-char *
-strreplace(char *str, const char *from, const char *to)
-{
-	int fromlen, tolen, i;
-	char *p, *ret, buf[MAXLEN];
-
-	memset(buf, 0, MAXLEN);
-
-	fromlen = strlen(from);
-	/* keep space for \0's strcat */
-	tolen = strlen(to) + 1;
-
-	for (i = 0, p = str; *p != 0;) {
-		if (strncmp(p, from, fromlen) == 0) {
-			strncat(buf, to, tolen);
-			p += fromlen;
-			i += tolen;
-		} else {
-			buf[i] = *p;
-			p++;
-			i++;
-		}
-	}
-	buf[i] = '\0';
-
-	XSTRDUP(ret, buf);
-	return(ret);
 }
 
 int
@@ -287,4 +200,72 @@ do_log(const char *path, const char *fmt, ...)
 	fclose(fp);
 
 	va_end(args);
+}
+
+/* Return architecture name or NULL in case of failure */
+char *
+getosarch(void)
+{
+	char			*ret;
+	struct utsname	un;
+
+	memset(&un, 0, sizeof(un));
+	if (uname(&un) < 0)
+		return NULL;
+
+	XSTRDUP(ret, un.machine);
+
+	return ret;
+}
+
+/* Return release numbers or NULL in case of failure */
+char *
+getosrelease(void)
+{
+	struct utsname	un;
+	char			*ret, *p;
+
+	memset(&un, 0, sizeof(un));
+	if (uname(&un) < 0)
+		return NULL;
+
+	XSTRDUP(ret, un.release);
+
+	for (p = ret; *p != '\0' && (isdigit((int)*p) || *p == '.'); p++);
+	*p = '\0';
+
+	return ret;
+}
+
+/*
+ * Find all coincidences found in big string that match oldsub
+ * substring and replace them with newsub.
+ * Returns an allocated buffer that needs to be freed later.
+ */
+char *
+strreplace(char *str, const char *from, const char *to)
+{
+	int		fromlen, tolen, i;
+	char	*p, *ret, buf[MAXLEN];
+
+	memset(buf, 0, MAXLEN);
+
+	fromlen = strlen(from);
+	tolen = strlen(to);
+
+	for (i = 0, p = str; *p != 0;) {
+		if (strncmp(p, from, fromlen) == 0) {
+			strncat(buf, to, tolen);
+			p += fromlen;
+			i += tolen;
+		} else {
+			buf[i] = *p;
+			p++;
+			i++;
+		}
+	}
+	buf[i] = '\0';
+
+	XSTRDUP(ret, buf);
+	return(ret);
 }
