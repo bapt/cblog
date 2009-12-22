@@ -34,7 +34,9 @@ main()
 			NULL, NULL, NULL);
 	while( FCGI_Accept() >= 0) {
 		cblog_main();
+		cblog_err(1, "coucou");
 	}
+	cblog_err(1, "bye");
 	closelog();
 	clean_conf();
 	posts_cleanup();

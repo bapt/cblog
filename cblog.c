@@ -201,13 +201,10 @@ cblog_main()
 	XFREE(path);
 	for(i=0; requesturi[i] != NULL; i++)
 		free(requesturi[i]);
-	hdf_destroy(&(cgi->hdf));
 	XFREE(requesturi);
 	XFREE(req);
-	cgi_destroy(&cgi);
 	XFREE(theme);
-
-	return(EXIT_SUCCESS);
+	return 0;
 }
 
 void

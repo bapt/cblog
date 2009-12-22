@@ -19,7 +19,6 @@
 #include <cdb.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/queue.h>
 
 static char *field[] = {
 	"title",
@@ -36,7 +35,6 @@ struct posts {
 	char *name;
 	time_t ctime;
 };
-
 
 int
 sort_tags_by_name(const void *a, const void *b)
