@@ -119,7 +119,7 @@ reload_conf(HDF *hdf)
 			return -1;
 		}	
 		*/
-	parse_conf(hdf);
+	parse_conf();
 /*	} else if (cblog_status->conf_mdate <= filestat.st_mtime) {
 		if (parse_conf(config_tmp)) {
 			hdf_destroy(&config_tmp);

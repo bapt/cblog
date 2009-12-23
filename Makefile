@@ -1,3 +1,5 @@
+#CC= 	clang
+#LD= 	llvm-ld
 PROG=	cblog.cgi
 SRCS+=	main.c utils.c cblog.c cblog_posts.c cblog_log.c tools.c array.c  buffer.c markdown.c renderers.c
 PREFIX?=	/usr/local
