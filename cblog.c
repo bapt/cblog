@@ -101,49 +101,6 @@ parse_conf()
 	return 0;
 }
 
-int 
-reload_conf(HDF *hdf)
-{
-	int i=0;
-/*	HDF *config_tmp;
-	hdf_init(&config_tmp); */
-/*	if (config == NULL)
-		hdf_init(&config);*/
-//	struct stat filestat;
-/*	stat(CONFFILE, &filestat);
-	if (cblog_status == NULL) {
-		cblog_status = malloc(sizeof(struct Status *));
-		cblog_status->conf_mdate=filestat.st_mtime;
-		if(parse_conf(config_tmp)) {
-			hdf_destroy(&config_tmp);
-			return -1;
-		}	
-		*/
-	parse_conf();
-/*	} else if (cblog_status->conf_mdate <= filestat.st_mtime) {
-		if (parse_conf(config_tmp)) {
-			hdf_destroy(&config_tmp);
-			return -1;	
-		}
-	} else {
-		hdf_destroy(&config_tmp);
-		return 0;
-	} */
-	
-	for (i=0; i < 8; i++) {
-		if(hdf_get_valuef(hdf,mandatory_config[i]) == NULL) {
-			cblog_err(2, "%s is a mandatory option, keeping the old config", mandatory_config[i]);
-//			hdf_destroy(&config_tmp);
-			return -1;
-		}
-
-	}
-	/* Only if everything is ok we reload the conf */
-//	hdf_copy(config,"" , config_tmp);
-//	hdf_destroy(&config_tmp);
-	return 0;
-}
-
 int
 cblog_main()
 {
@@ -162,7 +119,6 @@ cblog_main()
 	cgi_init(&cgi, NULL);
 	cgi_parse(cgi);
 
-	//reload_conf(cgi->hdf);
 	hdf_copy(cgi->hdf, "", config);
 	theme=strdup(hdf_get_valuef(cgi->hdf, "theme"));
 	XSTRDUP(req, get_cgi_str(cgi->hdf,"RequestURI"));
