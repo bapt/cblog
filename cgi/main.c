@@ -1,8 +1,7 @@
 #include <fcgi_stdio.h>
 #include <syslog.h>
 
-#include "cblog.h"
-#include "cblog_posts.h"
+#include "cblog_cgi.h"
 
 /* this are wrappers to have clearsilver to work in fastcgi */
 int
@@ -14,7 +13,8 @@ read_cb(void *ptr, char *data, int size)
 int
 writef_cb(void *ptr, const char *format, va_list ap)
 {
-	return FCGI_vprintf(format, ap);
+    FCGI_vprintf(format, ap);
+    return 0;
 }
 
 int
@@ -26,18 +26,19 @@ write_cb(void *ptr, const char *data, int size)
 /* end of fcgi wrappers */
 
 int
-main()
+main(int argc, char **argv, char **envp)
 {
 	openlog("CBlog", LOG_CONS|LOG_ERR, LOG_DAEMON);
-	parse_conf();
 	cgiwrap_init_emu(NULL, &read_cb, &writef_cb, &write_cb,
 			NULL, NULL, NULL);
+	cgiwrap_init_std(argc, argv, envp);
 	while( FCGI_Accept() >= 0) {
-		cblog_main();
-		cblog_err(1, "coucou");
+	/*	cgi_init(&cgi, NULL);
+		cgi_parse(cgi); */
+		cblogcgi();
+/*		cgi_destroy(&cgi);
+		syslog(LOG_ERR, "coucou"); */
 	}
-	cblog_err(1, "bye");
 	closelog();
-	clean_conf();
 	return EXIT_SUCCESS;
 }
