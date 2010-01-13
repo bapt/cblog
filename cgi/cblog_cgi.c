@@ -151,7 +151,7 @@ add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
 
 	    if (EQUALS(field[i], "tags")) {
 		int nbel = splitchr(val, ',');
-		for (j=0; j < nbel; j++) {
+		for (j=0; j <= nbel; j++) {
 		    size_t next = strlen(val);
 		    char *valtrimed = trimspace(val);
 		    hdf_set_valuef(hdf, "Posts.%i.tags.%i.name=%s", pos, j, valtrimed);
