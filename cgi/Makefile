@@ -7,6 +7,5 @@ DEFINE=-DETCDIR=\"${PREFIX}/etc\"
 INCLUDE=-I${PREFIX}/include -I${PREFIX}/include/ClearSilver -I.
 CFLAGS+=	-Wall -ggdb -O0 ${INCLUDE} ${DEFINE}
 LDADD+=	-L${PREFIX}/lib -lz -lneo_cgi -lneo_cs -lneo_utl -lfcgi -lcdb
-NO_MAN=yes
 
 .include <bsd.prog.mk>
