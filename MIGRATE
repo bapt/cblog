@@ -1,0 +1,13 @@
+To migration from the old backend to the new backend:
+
+in the data repository which won't be needed in the futur:
+
+for file in *.txt; do                                                                                                                                                      <(14:59:04)>
+     cp $file ${file%.txt}
+     cblogctl add ${file%.txt} 
+     rm ${file%.txt}
+done
+
+awk -F\| '{ print "cblogctl set "substr($1, 1, length($1) - 4)" ctime="$2 }'  entries.index  | sh
+
+now your new cblog is ready to run

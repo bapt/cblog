@@ -7,5 +7,3 @@ it features :
 	- tags support,
 	- no SQL engine,
 	- plain text format
-
-it uses software developped by iMil : see tools.h and tools.c	
