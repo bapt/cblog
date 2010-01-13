@@ -29,8 +29,8 @@
 <li><a href="http://www.freshports.org/search.php?stype=maintainer&amp;method=exact&amp;query=baptiste.daroussin@gmail.com">Mes ports FreeBSD</a></li>
 <li><a href="http://baptux.free.fr/wiki">Completion ZSH pour FreeBSD</a></li>
 <li><a href="http://www.zshwiki.org/home/zen">ZSH Extended Network</a></li>
-<li><a href="http://github.com/bapt/CPlanet/">CPlanet</a></li>
-<li><a href="http://github.com/bapt/CBlog/">CBlog</a></li>
+<li><a href="http://brokk.etoilebsd.net/projects/show/cplanet">CPlanet</a></li>
+<li><a href="http://brokk.etoilebsd.net/projects/show/cblog">CBlog</a></li>
 </ul>
 <div class="menutitle">Meta</div>
 <p>
@@ -40,23 +40,24 @@
 </p>
 </div><!-- div id menu -->
 <div id="content">
+<?cs if:err_msg ?><h1 class="error">Error: <?cs var:err_msg ?></h1><hr /><?cs /if ?>
 <?cs each:post = Posts ?>
 <div class="date"><?cs var:post.date ?></div>
 <!--<h2 class="storytitle"><a href="<?cs var:root ?>/post/<?cs var:string.slice(post.filename,0,string.find(post.filename,".txt")) ?>"><?cs var:post.title ?></a></h2>-->
 <h2 class="storytitle"><a href="<?cs var:root ?>/post/<?cs var:post.filename ?>"><?cs var:post.title ?></a></h2>
 <div class="tags"><?cs each:tag = post.tags ?><a href="<?cs var:root ?>/tag/<?cs var:tag.name ?>"><?cs var:tag.name ?></a> <?cs /each ?></div>
-<?cs var:post.content ?>
+<?cs if:Query.source ?><pre><?cs var:post.source ?></pre><?cs else ?><?cs var:post.html ?><?cs /if ?>
 <div class="comments"><a href="<?cs var:root ?>/post/<?cs var:post.filename ?>#comments"><?cs alt:post.nb_comments ?>0<?cs /alt ?> commentaire(s)</a></div>
-<?cs if:Query.post ?>
+<?cs if:subcount(Posts) == 1 ?>
 <p id="comments" class="separator-story" />
 <?cs each:comment = post.comments ?>
 <?cs if:comment.url ?><a href="<?cs var:comment.url ?>"><?cs /if ?><?cs var:comment.author ?><?cs if:comment.url ?></a><?cs /if ?> a écrit le <?cs var:comment.date ?> : <br />
-<blockquote><p><?cs var:html_strip(html_escape(text_html(comment.content))) ?></p></blockquote>
+<p class="comment"><?cs var:html_strip(html_escape(text_html(comment.content))) ?></p>
 <br />
 <?cs /each ?>
 <?cs if:( Query.submit == "Preview") ?>
 <?cs if:Query.url ?><a href="<?cs var:Query.url ?>"><?cs /if ?><?cs var:Query.name ?><?cs if:Query.url ?></a><?cs /if ?> a écrit le <?cs var:Query.date ?> : <br />
-<blockquote><p><?cs var:html_strip(Query.comment) ?></p></blockquote>
+<p class="comment"><?cs var:html_strip(Query.comment) ?></p>
 <?cs /if ?>
 <?cs if:( post.allow_comments != "false") ?>
 <form method="post" action="<?cs var:CGI.RequestURI ?>" >
@@ -74,12 +75,14 @@ No comments allowed
 <?cs /if ?>
 <p class="separator-story" />
 <?cs /each ?>
+<?cs if:subcount(Posts) != 1 ?>
 <div class="paging">
-<p>Page<?cs if:(#nbpages >= 0) ?>s<?cs /if ?> : <?cs if:Query.page ?><?cs set:page = Query.page ?><?cs else ?><?cs set:page = #1 ?><?cs /if ?><?cs loop:x = #1, #nbpages, #1 ?> <?cs if:(#page == #x) ?><strong><?cs var:x ?></strong><?cs else ?> <a href="<?cs var:CGI.RequestURI ?>?page=<?cs var:x ?>"><?cs var:x ?></a><?cs /if ?><?cs /loop ?></p>
+<p>Page<?cs if:(#nbpages >= 0) ?>s<?cs /if ?> : <?cs if:Query.page ?><?cs set:page = Query.page ?><?cs else ?><?cs set:page = #1 ?><?cs /if ?><?cs loop:x = #1, #nbpages, #1 ?> <?cs if:(#page == #x) ?><strong><?cs var:x ?></strong><?cs else ?> <a href="<?cs var:string.slice(CGI.RequestURI,0,string.find(CGI.RequestURI,"?")+1) ?>?page=<?cs var:x ?>"><?cs var:x ?></a><?cs /if ?><?cs /loop ?></p>
 </div>
+<?cs /if ?>
 </div>
 <div id="footer">
-powered by <a href="http://github.com/bapt/CBlog">CBlog</a>
+powered by <a href="http://brokk.etoilebsd.net/projects/show/cblog">CBlog</a>
 </div>
 </div>
 </body>
