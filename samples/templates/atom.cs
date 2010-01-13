@@ -12,10 +12,11 @@
 	<entry>
 		<title type="text"><?cs var:post.title ?></title>
 		<author><name>Bapt</name></author>
-		<content type="html"><![CDATA[<?cs var:post.content ?>]]></content>
+		<content type="html"><![CDATA[<?cs var:post.html ?>]]></content>
 		<?cs each:tag = post.tags ?><category term="<?cs var:tag.name ?>" /><?cs /each ?>
 		<id><?cs var:post.filename ?></id>
-		<link rel="alternate" href="<?cs var:url ?>?post=<?cs var:post.filename ?>" />
+		<link rel="alternate" href="<?cs var:url ?>post/<?cs var:post.filename ?>" />
+		<updated><?cs var:post.date ?></updated>
 		<published><?cs var:post.date ?></published>
 	</entry>
 	<?cs /each ?>

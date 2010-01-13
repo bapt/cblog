@@ -10,8 +10,8 @@
 		 <?cs each:post = Posts ?>
 		 <item>
 			 <title><?cs var:post.title ?></title>
-			 <description><![CDATA[<?cs var:post.content ?>]]></description>
-			 <link><?cs var:url ?>?post=<?cs var:post.filename ?></link>
+			 <description><![CDATA[<?cs var:post.htme ?>]]></description>
+			 <link><?cs var:url ?>post/<?cs var:post.filename ?></link>
 			 <guid><?cs var:post.filename ?></guid>
 			 <?cs each:tag = post.tags ?>
 			 <category><?cs var:tag.name ?></category>
