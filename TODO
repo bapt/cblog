@@ -4,3 +4,5 @@ add CBlog.www to hdf
 add the ability to browse/watch post through : /YYYY/MM/DD, /YYYY/MM or /YYYY
 add the ability to accept multiple / like http://bla//post...
 allow to load external hdf (this can be use to import in the blog information from third party apps : rss feed, weather forcast etc.)
+
+git try
