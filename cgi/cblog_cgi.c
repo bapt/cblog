@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <locale.h>
 #include <unistd.h>
 #include <cdb.h>
 #include <ctype.h>
@@ -133,7 +134,6 @@ time_to_str(time_t source, char *format)
     strftime(formated_date, 256, format, ptr);
     return strdup(formated_date);
 }
-
 
 void
 add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
@@ -418,22 +418,31 @@ cblogcgi()
 
     if (hdf_get_value(cgi->hdf, "err_msg", NULL) == NULL) {
 	if ( EQUALS(hdf_get_value(cgi->hdf, "Query.feed", "fail"), "rss")) {
+		setlocale(LC_ALL, "C");
 	    HDF *hdf;
 	    HDF_FOREACH(hdf, cgi->hdf, "Posts") {
-		int date = hdf_get_int_value(hdf, "date", time(NULL) );
-		char * time_str = time_to_str(date, DATE_FEED);
-		hdf_set_valuef(hdf, "date=%s", time_str);
-		XFREE(time_str);
+			int date = hdf_get_int_value(hdf, "date", time(NULL) );
+			char * time_str = time_to_str(date, DATE_FEED);
+			hdf_set_valuef(hdf, "date=%s",time_str);
+			XFREE(time_str);
 	    }
-	    neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.atom", "rss.cs"));
+		time_t gentime=time(NULL);
+		char * time_str = time_to_str(gentime, DATE_FEED);
+		hdf_set_valuef(cgi->hdf, "gendate=%s",time_str);
+		XFREE(time_str);
+		hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/rss+xml");
+	    neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.rss", "rss.cs"));
 	} else if ( EQUALS(hdf_get_value(cgi->hdf, "Query.feed", "fail"), "atom")) {
 	    HDF *hdf;
 	    HDF_FOREACH(hdf, cgi->hdf, "Posts") {
-		int date = hdf_get_int_value(hdf, "date", time(NULL) );
-		char * time_str = time_to_str(date, DATE_FEED);
-		hdf_set_valuef(hdf, "date=%s", time_str);
-		XFREE(time_str);
+			time_t posttime = hdf_get_int_value(hdf, "date", time(NULL) );
+			struct tm *date = gmtime(&posttime);
+			hdf_set_valuef(hdf, "date=%04d-%02d-%02dT%02d:%02d:%02dZ",date->tm_year + 1900, date->tm_mon + 1,date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
 	    }
+		time_t gentime=time(NULL);
+		struct tm *date = gmtime(&gentime);
+		hdf_set_valuef(cgi->hdf, "gendate=%04d-%02d-%02dT%02d:%02d:%02dZ",date->tm_year + 1900, date->tm_mon + 1,date->tm_mday, date->tm_hour, date->tm_min, date->tm_sec);
+		hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/atom+xml");
 	    neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.atom", "atom.cs"));
 	} else {
 	    HDF *hdf;
