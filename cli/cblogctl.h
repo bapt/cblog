@@ -12,27 +12,27 @@
 #define STARTS_WITH(string, needle) (strncasecmp(string, needle, strlen(needle)) == 0)
 
 static struct command {
-    const char *name;
-    const char *shortcut;
-    const char *descr;
-    const int cmdtype;
+	const char *name;
+	const char *shortcut;
+	const char *descr;
+	const int cmdtype;
 } cmd[] = {
-    { "list", "l", "Lists published posts", CBLOG_LIST_CMD},
-    { "add", "a", "Add or modify a post", CBLOG_ADD_CMD},
-    { "get", "g", "Get a post in text format", CBLOG_GET_CMD},
-    { "set", "s", "Set some information in the post", CBLOG_SET_CMD},
-    { "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
+	{ "list", "l", "Lists published posts", CBLOG_LIST_CMD},
+	{ "add", "a", "Add or modify a post", CBLOG_ADD_CMD},
+	{ "get", "g", "Get a post in text format", CBLOG_GET_CMD},
+	{ "set", "s", "Set some information in the post", CBLOG_SET_CMD},
+	{ "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
 };
 
 static char *field[] = {
-    "title",
-    "tags",
-    "source",
-    "html",
-    "ctime",
-    "published",
-    "comments",
-    NULL
+	"title",
+	"tags",
+	"source",
+	"html",
+	"ctime",
+	"published",
+	"comments",
+	NULL
 };
 
 void cblogctl_list();
@@ -42,41 +42,43 @@ void cblogctl_add(const char *);
 void cblogctl_set(const char *, char *);
 
 #define XMALLOC(elm, size)						\
-	do {										\
-		elm = malloc(size);						\
-		if (elm == NULL)						\
-			err(1, "can't allocate memory\n");	\
-		memset(elm, 0, size);					\
-	} while (/* CONSTCOND */ 0)
+do {										\
+	elm = malloc(size);						\
+	if (elm == NULL)						\
+		err(1, "can't allocate memory\n");	\
+	memset(elm, 0, size);					\
+} while (/* CONSTCOND */ 0)
 
 #define XSTRDUP(dest, src)												\
-	do {																\
-		if (src == NULL)												\
-			dest = NULL;												\
-		else {															\
-			dest = strdup(src);											\
-			if (dest == NULL)											\
-				err(1, "can't strdup %s\n", src);						\
-		}																\
-	} while (/* CONSTCOND */ 0)
+do {																\
+	if (src == NULL)												\
+		dest = NULL;												\
+	else {															\
+		dest = strdup(src);											\
+		if (dest == NULL)											\
+			err(1, "can't strdup %s\n", src);						\
+	}																\
+} while (/* CONSTCOND */ 0)
 
 #define XREALLOC(elm, size)												\
-	do {																\
-		void *telm;														\
-		if (elm == NULL)												\
-			XMALLOC(elm, size);											\
-		else {															\
-			telm = realloc(elm, size);									\
-			if (telm == NULL)											\
-				err(1, "can't allocate memory\n");						\
-			elm = telm;													\
-		}																\
-	} while (/* CONSTCOND */ 0)
+do {																\
+	void *telm;														\
+	if (elm == NULL)												\
+		XMALLOC(elm, size);											\
+	else {															\
+		telm = realloc(elm, size);									\
+		if (telm == NULL)											\
+			err(1, "can't allocate memory\n");						\
+		elm = telm;													\
+	}																\
+} while (/* CONSTCOND */ 0)
 
 #define XFREE(elm)		   					\
-	do {									\
-		if (elm != NULL) {					\
-			free(elm);						\
-			elm = NULL;						\
-		}									\
-	} while (/* CONSTCOND */ 0)
+do {									\
+	if (elm != NULL) {					\
+		free(elm);						\
+		elm = NULL;						\
+	}									\
+} while (/* CONSTCOND */ 0)
+
+/* vim: set sw=4 sts=4 ts=4 : */
