@@ -13,8 +13,8 @@ read_cb(void *ptr, char *data, int size)
 int
 writef_cb(void *ptr, const char *format, va_list ap)
 {
-    FCGI_vprintf(format, ap);
-    return 0;
+	FCGI_vprintf(format, ap);
+	return 0;
 }
 
 int
@@ -30,15 +30,17 @@ main(int argc, char **argv, char **envp)
 {
 	openlog("CBlog", LOG_CONS|LOG_ERR, LOG_DAEMON);
 	cgiwrap_init_emu(NULL, &read_cb, &writef_cb, &write_cb,
-			NULL, NULL, NULL);
+		NULL, NULL, NULL);
 	cgiwrap_init_std(argc, argv, envp);
-	while( FCGI_Accept() >= 0) {
-	/*	cgi_init(&cgi, NULL);
+	while (FCGI_Accept() >= 0) {
+		/*	cgi_init(&cgi, NULL);
 		cgi_parse(cgi); */
 		cblogcgi();
-/*		cgi_destroy(&cgi);
+		/*	cgi_destroy(&cgi);
 		syslog(LOG_ERR, "coucou"); */
 	}
 	closelog();
 	return EXIT_SUCCESS;
 }
+
+/* vim: set sw=4 sts=4 ts=4 : */

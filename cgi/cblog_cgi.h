@@ -28,7 +28,7 @@
 #define STARTS_WITH(string, needle) (strncasecmp(string, needle, strlen(needle)) == 0)
 
 #define HDF_FOREACH(var, hdf, node)		    \
-    for ((var) = hdf_get_child((hdf),node);	    \
+    for ((var) = hdf_get_child((hdf), node);	    \
 	    (var);				    \
 	    (var) = hdf_obj_next((var)))
 
