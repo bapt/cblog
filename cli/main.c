@@ -4,9 +4,17 @@
 #include "cblogctl.h"
 
 static void
-usage()
+usage(const char *s)
 {
-	errx(EXIT_FAILURE, "brrrt");
+printf("Usage: %s cmd [option]\n\n\
+Example:\n\
+init\n\
+add file_post\n\
+get file_post1 file_post2 ... file_postN\n\
+set file_post key=value\n\
+info file_post1 file_post2 ... file_postN\n\
+list\n", s);
+exit(1);
 }
 
 int
@@ -16,7 +24,7 @@ main(int argc, char *argv[])
 	int type;
 
 	if (argc == 1) 
-		usage();
+		usage(argv[0]);
 
 	/* find the type of the first command */
 	for (i=0; cmd[i].name != NULL; i++) {
@@ -27,18 +35,21 @@ main(int argc, char *argv[])
 	}
 
 	switch(type) {
+	case CBLOG_INIT_CMD:
+		cblogctl_init();
+		break;
 	case CBLOG_LIST_CMD:
 		cblogctl_list();
 		break;
 	case CBLOG_ADD_CMD:
 		if (argc != 3)
-			usage();
+			usage(argv[0]);
 
 		cblogctl_add(argv[2]);
 		break;
 	case CBLOG_GET_CMD:
 		if (argc <= 2 )
-			usage();
+			usage(argv[0]);
 
 		for (i=2; i < argc; i++)
 			cblogctl_get(argv[i]);
@@ -46,20 +57,20 @@ main(int argc, char *argv[])
 		break;
 	case CBLOG_SET_CMD:
 		if (argc != 4)
-			usage();
+			usage(argv[0]);
 
 		cblogctl_set(argv[2], argv[3]);
 		break;
 	case CBLOG_INFO_CMD:
 		if (argc <= 2 )
-			usage();
+			usage(argv[0]);
 
 		for (i=2; i < argc; i++)
 			cblogctl_info(argv[i]);
 
 		break;
 	default:
-		usage();
+		usage(argv[0]);
 		/* NOT REACHED */
 	}
 }

@@ -5,8 +5,7 @@
 #define CBLOG_GET_CMD 2
 #define CBLOG_SET_CMD 3
 #define CBLOG_INFO_CMD 4
-
-#define CACHE "/usr/local/cblog"
+#define CBLOG_INIT_CMD 5
 
 #define EQUALS(string, needle) (strcasecmp(string, needle) == 0)
 #define STARTS_WITH(string, needle) (strncasecmp(string, needle, strlen(needle)) == 0)
@@ -22,6 +21,7 @@ static struct command {
 	{ "get", "g", "Get a post in text format", CBLOG_GET_CMD},
 	{ "set", "s", "Set some information in the post", CBLOG_SET_CMD},
 	{ "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
+	{ "init", "I", "Initialize database", CBLOG_INIT_CMD},
 };
 
 static char *field[] = {
@@ -35,6 +35,7 @@ static char *field[] = {
 	NULL
 };
 
+void cblogctl_init();
 void cblogctl_list();
 void cblogctl_info(const char *);
 void cblogctl_get(const char *);

@@ -23,7 +23,7 @@ cblogctl_list()
 	struct cdb_find cdbf;
 	char *val;
 
-	db = open(CACHE"/cblog.cdb", O_RDONLY);
+	db = open(CDB_PATH"/cblog.cdb", O_RDONLY);
 	cdb_init(&cdb, db);
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
@@ -70,7 +70,7 @@ cblogctl_info(const char *post_name)
 	struct cdb cdb;
 	unsigned int vlen, vpos;
 
-	db = open(CACHE"/cblog.cdb", O_RDONLY);
+	db = open(CDB_PATH"/cblog.cdb", O_RDONLY);
 	cdb_init(&cdb, db);
 
 	printf("Informations about %s\n", post_name);
@@ -105,7 +105,7 @@ cblogctl_get(const char *post_name)
 	struct cdb cdb;
 	unsigned int vlen, vpos;
 
-	db = open(CACHE"/cblog.cdb", O_RDONLY);
+	db = open(CDB_PATH"/cblog.cdb", O_RDONLY);
 	cdb_init(&cdb, db);
 
 	out = fopen(post_name, "w");
@@ -175,8 +175,8 @@ cblogctl_add(const char *post_path)
 	if (post == NULL)
 		errx(EXIT_FAILURE, "Unable to open %s", post_name);
 
-	olddb = open(CACHE"/cblog.cdb", O_RDONLY);
-	db = open(CACHE"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644);
+	olddb = open(CDB_PATH"/cblog.cdb", O_RDONLY);
+	db = open(CDB_PATH"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644);
 
 	cdb_init(&cdb, olddb);
 	cdb_make_start(&cdb_make, db);
@@ -272,7 +272,7 @@ cblogctl_add(const char *post_path)
 	close(olddb);
 	cdb_free(&cdb);
 	close(db);
-	rename( CACHE"/cblogtmp.cdb", CACHE"/cblog.cdb");
+	rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb");
 }
 
 void
@@ -287,8 +287,8 @@ cblogctl_set(const char *post_name, char *to_be_set)
 	bool found = false;
 
 
-	olddb = open(CACHE"/cblog.cdb", O_RDONLY);
-	db = open(CACHE"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644);
+	olddb = open(CDB_PATH"/cblog.cdb", O_RDONLY);
+	db = open(CDB_PATH"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644);
 
 	cdb_init(&cdb, olddb);
 	cdb_make_start(&cdb_make, db);
@@ -339,7 +339,24 @@ cblogctl_set(const char *post_name, char *to_be_set)
 	cdb_free(&cdb);
 	close(db);
 	close(olddb);
-	rename(CACHE"/cblogtmp.cdb", CACHE"/cblog.cdb");
+	rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb");
+}
+
+void
+cblogctl_init()
+{
+	int db;
+	struct cdb cdb;
+	struct cdb_make cdb_make;
+
+	db = open(CDB_PATH"/cblog.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644);
+	if (db < 0) { perror(CDB_PATH"/cblog.cdb"); }
+
+	cdb_init(&cdb, db);
+	cdb_make_start(&cdb_make, db);
+	cdb_make_finish(&cdb_make);
+	cdb_free(&cdb);
+	close(db);
 }
 
 /* vim: set sw=4 sts=4 ts=4 : */

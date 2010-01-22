@@ -8,7 +8,10 @@
 
 #define DEFAULT_POSTS_PER_PAGES 10
 #define DEFAULT_THEME "default"
-#define DEFAULT_DB "/usr/local/cblog/cblog.cdb"
+#ifndef CDB_PATH
+#define CDB_PATH "/usr/local/cblog"
+#endif 
+#define DEFAULT_DB CDB_PATH"/cblog.cdb"
 
 #define DATE_FEED "%a, %d %b %Y %H:%M:%S %z"
 
