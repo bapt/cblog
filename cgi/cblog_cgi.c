@@ -465,6 +465,7 @@ cblogcgi()
 		}
 	} else {
 		cgiwrap_writef("Status: 404\n");
+		set_tags(cgi->hdf);
 		neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
 	}
 
