@@ -105,14 +105,15 @@ splitchr(char *str, char sep)
 	char *next;
 	char *buf = str;
 	int nbel = 0;
+
 	while ((next = strchr(buf, sep)) != NULL) {
 		nbel++;
 		buf = next;
 		buf[0] = '\0';
 		buf++;
 	}
-	return nbel;
 
+	return nbel;
 }
 
 void
@@ -352,13 +353,17 @@ cblogcgi()
 	NEOERR *neoerr;
 	STRING neoerr_str;
 	char *requesturi;
+	char *method;
 	int type, i;
 	/* read the configuration file */
 
 	type = CBLOG_ROOT;
 
 	neoerr = cgi_init(&cgi, NULL);
+
 	nerr_ignore(&neoerr);
+
+	method = get_cgi_str(cgi->hdf, "RequestMethod");
 
 	neoerr = cgi_parse(cgi);
 	nerr_ignore(&neoerr);
@@ -386,7 +391,7 @@ cblogcgi()
 				hdf_set_valuef(cgi->hdf, "err_msg=Unknown request: %s", requesturi);
 		}
 
-		switch (type) {
+	switch (type) {
 		case CBLOG_POST:
 			requesturi++;
 			while (requesturi[0] != '/')
@@ -412,14 +417,13 @@ cblogcgi()
 		case CBLOG_ROOT:
 			build_index(cgi->hdf, NULL);
 			break;
-		}
+	}
 
-
-		if (hdf_get_value(cgi->hdf, "err_msg", NULL) == NULL) {
-			if (EQUALS(hdf_get_value(cgi->hdf, "Query.feed", "fail"), "rss")) {
-				setlocale(LC_ALL, "C");
-				HDF *hdf;
-				HDF_FOREACH(hdf, cgi->hdf, "Posts") {
+	if (hdf_get_value(cgi->hdf, "err_msg", NULL) == NULL) {
+		if (EQUALS(hdf_get_value(cgi->hdf, "Query.feed", "fail"), "rss")) {
+			setlocale(LC_ALL, "C");
+			HDF *hdf;
+			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
 				int date = hdf_get_int_value(hdf, "date", time(NULL));
 				char *time_str = time_to_str(date, DATE_FEED);
 				hdf_set_valuef(hdf, "date=%s", time_str);
@@ -437,14 +441,14 @@ cblogcgi()
 				time_t posttime = hdf_get_int_value(hdf, "date", time(NULL));
 				struct tm *date = gmtime(&posttime);
 				hdf_set_valuef(hdf, "date=%04d-%02d-%02dT%02d:%02d:%02dZ",
-					date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
-					date->tm_hour, date->tm_min, date->tm_sec);
+						date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
+						date->tm_hour, date->tm_min, date->tm_sec);
 			}
 			time_t gentime = time(NULL);
 			struct tm *date = gmtime(&gentime);
 			hdf_set_valuef(cgi->hdf, "gendate=%04d-%02d-%02dT%02d:%02d:%02dZ",
-				date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
-				date->tm_hour, date->tm_min, date->tm_sec);
+					date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
+					date->tm_hour, date->tm_min, date->tm_sec);
 			hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/atom+xml");
 			neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.atom", "atom.cs"));
 		} else {
@@ -459,9 +463,12 @@ cblogcgi()
 			}
 			neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
 		}
+	} else {
+		cgiwrap_writef("Status: 404\n");
+		neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
 	}
 
-	if (neoerr != STATUS_OK) {
+	if (neoerr != STATUS_OK && strcmp(method, "HEAD") != 0 ) {
 		nerr_error_string(neoerr, &neoerr_str);
 		cblog_err(-1, neoerr_str.buf);
 		string_clear(&neoerr_str);
