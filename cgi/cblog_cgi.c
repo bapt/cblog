@@ -12,7 +12,7 @@
 #include "cblog_cgi.h"
 
 
-static char *mandator_config[] = {
+static char *mandatory_config[] = {
 	"title",
 	"url",
 	"dateformat",
@@ -24,8 +24,8 @@ static char *mandator_config[] = {
 };
 
 static struct pages {
-	const char *name;
-	int type;
+	const char	*name;
+	int			type;
 } page[] = {
 	{ "/post", CBLOG_POST },
 	{ "/tag", CBLOG_TAG },
@@ -35,13 +35,13 @@ static struct pages {
 };
 
 struct posts {
-	char *name;
-	time_t ctime;
+	char	*name;
+	time_t	ctime;
 };
 
 struct tags {
-	char *name;
-	int count;
+	char	*name;
+	int		count;
 };
 
 int
@@ -67,6 +67,7 @@ char *
 trimspace(char *str)
 {
 	char *line = str;
+
 	/* remove spaces at the beginning */
 	while (true) {
 		if (isspace(line[0]))
@@ -86,8 +87,8 @@ trimspace(char *str)
 
 char *
 db_get(struct cdb *cdb) {
-	int vpos, vlen;
-	char *val;
+	int		vpos, vlen;
+	char	*val;
 
 	vpos = cdb_datapos(cdb);
 	vlen = cdb_datalen(cdb);
@@ -102,9 +103,9 @@ db_get(struct cdb *cdb) {
 int
 splitchr(char *str, char sep)
 {
-	char *next;
-	char *buf = str;
-	int nbel = 0;
+	char	*next;
+	char	*buf = str;
+	int		nbel = 0;
 
 	while ((next = strchr(buf, sep)) != NULL) {
 		nbel++;
@@ -119,7 +120,8 @@ splitchr(char *str, char sep)
 void
 cblog_err(int eval, const char * message, ...)
 {
-	va_list args;
+	va_list		args;
+
 	va_start(args, message);
 	vsyslog(LOG_ERR, message, args);
 }
@@ -128,33 +130,38 @@ cblog_err(int eval, const char * message, ...)
 char *
 time_to_str(time_t source, char *format)
 {
-	char formated_date[256];
-	struct tm *ptr;
+	char		formated_date[256];
+	struct tm	*ptr;
 
 	ptr = localtime(&source);
 	strftime(formated_date, 256, format, ptr);
+
 	return strdup(formated_date);
 }
 
 void
 add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
 {
-	int i, j;
-	char *key, *val;
+	int		i, j;
+	char	*key, *val;
 
 	hdf_set_valuef(hdf, "Posts.%i.filename=%s", pos, name);
 	for (i=0; field[i] != NULL; i++) {
+		char *val_to_free;
+
 		asprintf(&key,"%s_%s", name, field[i]);
 		cdb_find(cdb, key, strlen(key));
 		val = db_get(cdb);
-		char *val_to_free = val;
+		val_to_free = val;
 		XFREE(key);
 
 		if (EQUALS(field[i], "tags")) {
 			int nbel = splitchr(val, ',');
+
 			for (j=0; j <= nbel; j++) {
-				size_t next = strlen(val);
-				char *valtrimed = trimspace(val);
+				size_t	next = strlen(val);
+				char	*valtrimed = trimspace(val);
+
 				hdf_set_valuef(hdf, "Posts.%i.tags.%i.name=%s", pos, j, valtrimed);
 				val += next + 1;
 			}
@@ -170,19 +177,22 @@ add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
 void
 set_tags(HDF *hdf)
 {
-	int db;
-	int i, j, nbtags = 0;
-	struct cdb cdb;
-	struct cdb_find cdbf;
-	char *val, *key;
-	bool found;
-	struct tags **taglist = NULL;
+	int					db;
+	int					i, j, nbtags = 0;
+	struct cdb			cdb;
+	struct cdb_find		cdbf;
+	char				*val, *key;
+	bool				found;
+	struct tags			**taglist = NULL;
 
 	db = open(get_cblog_db(hdf), O_RDONLY);
 	cdb_init(&cdb, db);
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
 	while (cdb_findnext(&cdbf) > 0) {
+		int		nbel;
+		char	*val_to_free;
+
 		val = db_get(&cdb);
 		asprintf(&key, "%s_tags", val);
 		XFREE(val);
@@ -190,12 +200,13 @@ set_tags(HDF *hdf)
 		cdb_find(&cdb, key, strlen(key));
 		val = db_get(&cdb);
 		XFREE(key);
-		char *val_to_free = val;
-		int nbel = splitchr(val, ',');
+		val_to_free = val;
+		nbel = splitchr(val, ',');
 		for (i=0; i <= nbel; i++) {
+			size_t	next = strlen(val);
+			char	*tagcmp = trimspace(val);
+
 			found = false;
-			size_t next = strlen(val);
-			char *tagcmp = trimspace(val);
 
 			for (j=0; j < nbtags; j++) {
 				if (EQUALS(tagcmp, taglist[j]->name)) {
@@ -205,9 +216,10 @@ set_tags(HDF *hdf)
 				}
 			}
 			if (!found) {
+				struct tags		*tag;
+
 				nbtags++;
 				XREALLOC(taglist, nbtags * sizeof(struct tags*));
-				struct tags *tag;
 				XMALLOC(tag, sizeof(struct tags));
 				XSTRDUP(tag->name, tagcmp);
 				tag->count = 1;
@@ -235,18 +247,18 @@ set_tags(HDF *hdf)
 int
 build_post(HDF *hdf, char *postname)
 {
-	int db;
-	struct cdb cdb;
-	char *key;
+	int			db, ret = 0;
+	struct cdb	cdb;
+	char		*key;
 
 	db = open(get_cblog_db(hdf), O_RDONLY);
 	cdb_init(&cdb, db);
 
 	asprintf(&key, "%s_title", postname);
-	if (cdb_find(&cdb, key, strlen(key)) > 0)
+	if (cdb_find(&cdb, key, strlen(key)) > 0) {
 		add_post_to_hdf(hdf, &cdb, postname, 0);
-	else
-		return 0;
+		ret++;
+	}
 	XFREE(key);
 
 	cdb_free(&cdb);
@@ -257,14 +269,14 @@ build_post(HDF *hdf, char *postname)
 int
 build_index(HDF *hdf, char *tagname)
 {
-	int db;
-	int first_post = 0, nb_posts = 0, max_post, total_posts = 0;
-	int nb_pages = 0, page;
-	int i, j = 0, k;
-	struct cdb cdb;
-	struct cdb_find cdbf;
-	char *val, *key;
-	struct posts **posts = NULL;
+	int					db;
+	int					first_post = 0, nb_posts = 0, max_post, total_posts = 0;
+	int					nb_pages = 0, page;
+	int					i, j = 0, k;
+	struct cdb			cdb;
+	struct cdb_find		cdbf;
+	char				*val, *key;
+	struct posts		**posts = NULL;
 
 	max_post = hdf_get_int_value(hdf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
 	page = hdf_get_int_value(hdf, "Query.page", 1);
@@ -304,12 +316,16 @@ build_index(HDF *hdf, char *tagname)
 			asprintf(&key, "%s_tags", posts[i]->name);
 
 			if (cdb_find(&cdb, key, strlen(key)) > 0) {
+				char	*tag;
+				int		nbel;
+
 				val = db_get(&cdb);
-				char *tag = val;
-				int nbel = splitchr(val, ',');
+				tag = val;
+				nbel = splitchr(val, ',');
 				for (k=0; k<= nbel; k++) {
-					size_t next = strlen(val);
-					char *tagcmp = trimspace(val);
+					size_t	next = strlen(val);
+					char	*tagcmp = trimspace(val);
+
 					if (EQUALS(tagname, tagcmp)) {
 						j++;
 						if ((j >= first_post) && (nb_posts < max_post)) {
@@ -347,18 +363,19 @@ build_index(HDF *hdf, char *tagname)
 
 	cdb_free(&cdb);
 	close(db);
+
 	return nb_posts;
 }
 
 void
 cblogcgi()
 {
-	CGI *cgi;
-	NEOERR *neoerr;
-	STRING neoerr_str;
-	char *requesturi;
-	char *method;
-	int type, i, nb_posts;
+	CGI		*cgi;
+	NEOERR	*neoerr;
+	STRING	neoerr_str;
+	char	*requesturi, *method;
+	int		type, i, nb_posts;
+
 	/* read the configuration file */
 
 	type = CBLOG_ROOT;
@@ -433,43 +450,62 @@ cblogcgi()
 
 	if (hdf_get_value(cgi->hdf, "err_msg", NULL) == NULL) {
 		if (EQUALS(hdf_get_value(cgi->hdf, "Query.feed", "fail"), "rss")) {
+			time_t	gentime;
+			char	*time_str;
 			setlocale(LC_ALL, "C");
 			HDF *hdf;
 			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
-				int date = hdf_get_int_value(hdf, "date", time(NULL));
-				char *time_str = time_to_str(date, DATE_FEED);
+				int		date = hdf_get_int_value(hdf, "date", time(NULL));
+
+				time_str = time_to_str(date, DATE_FEED);
+
 				hdf_set_valuef(hdf, "date=%s", time_str);
 				XFREE(time_str);
 			}
-			time_t gentime = time(NULL);
-			char *time_str = time_to_str(gentime, DATE_FEED);
+
+			gentime = time(NULL);
+			time_str = time_to_str(gentime, DATE_FEED);
+
 			hdf_set_valuef(cgi->hdf, "gendate=%s", time_str);
 			XFREE(time_str);
+
 			hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/rss+xml");
 			neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.rss", "rss.cs"));
 		} else if (EQUALS(hdf_get_value(cgi->hdf, "Query.feed", "fail"), "atom")) {
-			HDF *hdf;
+			time_t		gentime, posttime;
+			struct tm	*date;
+			HDF			*hdf;
+
 			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
-				time_t posttime = hdf_get_int_value(hdf, "date", time(NULL));
-				struct tm *date = gmtime(&posttime);
+
+				posttime = hdf_get_int_value(hdf, "date", time(NULL));
+				date = gmtime(&posttime);
+
 				hdf_set_valuef(hdf, "date=%04d-%02d-%02dT%02d:%02d:%02dZ",
 						date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
 						date->tm_hour, date->tm_min, date->tm_sec);
 			}
-			time_t gentime = time(NULL);
-			struct tm *date = gmtime(&gentime);
+
+			gentime = time(NULL);
+			date = gmtime(&gentime);
+
 			hdf_set_valuef(cgi->hdf, "gendate=%04d-%02d-%02dT%02d:%02d:%02dZ",
 					date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
 					date->tm_hour, date->tm_min, date->tm_sec);
+
 			hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/atom+xml");
 			neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.atom", "atom.cs"));
 		} else {
-			HDF *hdf;
+			HDF		*hdf;
+			char	*time_str, *date_format;
+			int		date;
+			
 			set_tags(cgi->hdf);
 			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
-				int date = hdf_get_int_value(hdf, "date", time(NULL));
-				char *date_format = get_dateformat(hdf);
-				char *time_str = time_to_str(date, date_format);
+				date = hdf_get_int_value(hdf, "date", time(NULL));
+				date_format = get_dateformat(hdf);
+				time_str = time_to_str(date, date_format);
+
 				hdf_set_valuef(hdf, "date=%s", time_str);
 				XFREE(time_str);
 			}
