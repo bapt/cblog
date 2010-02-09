@@ -232,7 +232,7 @@ set_tags(HDF *hdf)
 	close(db);
 }
 
-void
+int
 build_post(HDF *hdf, char *postname)
 {
 	int db;
@@ -245,13 +245,16 @@ build_post(HDF *hdf, char *postname)
 	asprintf(&key, "%s_title", postname);
 	if (cdb_find(&cdb, key, strlen(key)) > 0)
 		add_post_to_hdf(hdf, &cdb, postname, 0);
+	else
+		return 0;
 	XFREE(key);
 
 	cdb_free(&cdb);
 	close(db);
+	return 1;
 }
 
-void
+int
 build_index(HDF *hdf, char *tagname)
 {
 	int db;
@@ -344,6 +347,7 @@ build_index(HDF *hdf, char *tagname)
 
 	cdb_free(&cdb);
 	close(db);
+	return nb_posts;
 }
 
 void
@@ -354,7 +358,7 @@ cblogcgi()
 	STRING neoerr_str;
 	char *requesturi;
 	char *method;
-	int type, i;
+	int type, i, nb_posts;
 	/* read the configuration file */
 
 	type = CBLOG_ROOT;
@@ -397,14 +401,22 @@ cblogcgi()
 			while (requesturi[0] != '/')
 				requesturi++;
 			requesturi++;
-			build_post(cgi->hdf, requesturi);
+			nb_posts = build_post(cgi->hdf, requesturi);
+			if (nb_posts == 0) {
+				hdf_set_valuef(cgi->hdf, "err_msg=Unknown post: %s", requesturi);
+				cgiwrap_writef("Status: 404\n");
+			}
 			break;
 		case CBLOG_TAG:
 			requesturi++;
 			while (requesturi[0] != '/')
 				requesturi++;
 			requesturi++;
-			build_index(cgi->hdf, requesturi);
+			nb_posts = build_index(cgi->hdf, requesturi);
+			if (nb_posts == 0) {
+				hdf_set_valuef(cgi->hdf, "err_msg=Unknown tag: %s", requesturi);
+				cgiwrap_writef("Status: 404\n");
+			}
 			break;
 		case CBLOG_RSS:
 			hdf_set_valuef(cgi->hdf, "Query.feed=rss");
