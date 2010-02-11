@@ -134,7 +134,7 @@ cblogctl_add(const char *post_path)
 {
 	int					olddb, db, i;
 	FILE				*post;
-	char				key[BUFSIZ];
+	char				key[BUFSIZ], date[11];
 	char				*val, *valkey, *date, *post_name;
 	bool				found = false;
 	struct cdb			cdb;
@@ -212,10 +212,9 @@ cblogctl_add(const char *post_path)
 	fclose(post);
 
 	stat(post_path, &filestat);
-	asprintf(&date, "%lld", (long long int)filestat.st_mtime);
+	snprintf(date, 11, "%lld", (long long int)filestat.st_mtime);
 	snprintf(key, BUFSIZ, "%s_ctime", post_name);
 	cdb_make_put(&cdb_make, key, strlen(key), date, strlen(val), CDB_PUT_INSERT);
-	free(date);
 
 	ob = bufnew(BUFSIZ);
 	markdown(ob, ib, &mkd_xhtml);
