@@ -6,13 +6,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include <syslog.h>
-#include "../cli/cblogctl.h"
-#include <err.h>
+#include "cblog_utils.h"
+#include "cblog_common.h"
 
 #include "cblog_cgi.h"
 
 
-static char *mandatory_config[] = {
+/*static char *mandatory_config[] = {
 	"title",
 	"url",
 	"dateformat",
@@ -21,7 +21,7 @@ static char *mandatory_config[] = {
 	"theme",
 	"post_per_pages",
 	NULL,
-};
+};*/
 
 static struct pages {
 	const char	*name;
@@ -85,38 +85,6 @@ trimspace(char *str)
 	return line;
 }
 
-static char *
-db_get(struct cdb *cdb) {
-	int		vpos, vlen;
-	char	*val;
-
-	vpos = cdb_datapos(cdb);
-	vlen = cdb_datalen(cdb);
-
-	XMALLOC(val, vlen + 1);
-	cdb_read(cdb, val, vlen, vpos);
-	val[vlen] = '\0';
-
-	return val;
-}
-
-static int
-splitchr(char *str, char sep)
-{
-	char	*next;
-	char	*buf = str;
-	int		nbel = 0;
-
-	while ((next = strchr(buf, sep)) != NULL) {
-		nbel++;
-		buf = next;
-		buf[0] = '\0';
-		buf++;
-	}
-
-	return nbel;
-}
-
 void
 cblog_err(int eval, const char * message, ...)
 {
@@ -166,7 +134,7 @@ add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
 		} else
 			hdf_set_valuef(hdf, "Posts.%i.%s=%s", pos, field[i], val);
 
-		XFREE(val_to_free);
+		free(val_to_free);
 	}
 }
 
@@ -192,7 +160,7 @@ set_tags(HDF *hdf)
 
 		val = db_get(&cdb);
 		snprintf(key, BUFSIZ, "%s_tags", val);
-		XFREE(val);
+		free(val);
 
 		cdb_find(&cdb, key, strlen(key));
 		val = db_get(&cdb);
@@ -216,16 +184,16 @@ set_tags(HDF *hdf)
 				struct tags		*tag;
 
 				nbtags++;
-				XREALLOC(taglist, nbtags * sizeof(struct tags*));
-				XMALLOC(tag, sizeof(struct tags));
-				XSTRDUP(tag->name, tagcmp);
+				taglist = realloc(taglist, nbtags * sizeof(struct tags*));
+				tag = malloc(sizeof(struct tags));
+				tag->name = strdup(tagcmp);
 
 				tag->count = 1;
 				taglist[nbtags - 1] = tag;
 			}
 			val+= next + 1;
 		}
-		XFREE(val_to_free);
+		free(val_to_free);
 	}
 
 	qsort(taglist, nbtags, sizeof(struct tags *), sort_by_name);
@@ -233,10 +201,10 @@ set_tags(HDF *hdf)
 	for (i=0; i<nbtags; i++) {
 		set_tag_name(hdf, i, taglist[i]->name);
 		set_tag_count(hdf, i, taglist[i]->count);
-		XFREE(taglist[i]->name);
-		XFREE(taglist[i]);
+		free(taglist[i]->name);
+		free(taglist[i]);
 	}
-	XFREE(taglist);
+	free(taglist);
 
 	cdb_free(&cdb);
 	close(db);
@@ -291,8 +259,8 @@ build_index(HDF *hdf, char *tagname)
 
 		total_posts++;
 
-		XREALLOC(posts, total_posts * sizeof(struct posts *));
-		XMALLOC(post, sizeof(struct posts));
+		posts = realloc(posts, total_posts * sizeof(struct posts *));
+		post = malloc(sizeof(struct posts));
 
 		/* fetch the post key name */
 		post->name = db_get(&cdb);
@@ -301,7 +269,7 @@ build_index(HDF *hdf, char *tagname)
 		if ( cdb_find(&cdb, key, strlen(key)) > 0){
 			val = db_get(&cdb);
 			post->ctime = (time_t)strtol(val, NULL, 10);
-			XFREE(val);
+			free(val);
 		} else
 			post->ctime = time(NULL);
 
@@ -335,10 +303,10 @@ build_index(HDF *hdf, char *tagname)
 					}
 					val += next + 1;
 				}
-				XFREE(tag);
+				free(tag);
 			}
-			XFREE(posts[i]->name);
-			XFREE(posts[i]);
+			free(posts[i]->name);
+			free(posts[i]);
 		}
 	} else {
 		for (i=first_post; i < total_posts; i++) {
@@ -346,11 +314,11 @@ build_index(HDF *hdf, char *tagname)
 				add_post_to_hdf(hdf, &cdb, posts[i]->name, i);
 				nb_posts++;
 			}
-			XFREE(posts[i]->name);
-			XFREE(posts[i]);
+			free(posts[i]->name);
+			free(posts[i]);
 		}
 	}
-	XFREE(posts);
+	free(posts);
 
 	nb_pages = j / max_post;
 	if (j % max_post > 0)

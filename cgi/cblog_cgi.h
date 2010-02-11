@@ -27,9 +27,6 @@
 
 #define CONFFILE ETCDIR"/cblog.conf"
 
-#define EQUALS(string, needle) (strcasecmp(string, needle) == 0)
-#define STARTS_WITH(string, needle) (strncasecmp(string, needle, strlen(needle)) == 0)
-
 #define HDF_FOREACH(var, hdf, node)		    \
     for ((var) = hdf_get_child((hdf), node);	    \
 	    (var);				    \
