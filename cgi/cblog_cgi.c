@@ -209,6 +209,11 @@ build_post(HDF *hdf, char *postname)
 	int			db, ret = 0;
 	struct cdb	cdb;
 	char		key[BUFSIZ];
+	char		*submit;
+
+	submit = get_query_str(hdf,"submit");
+	if ( submit != NULL && EQUALS(submit,"Post"))
+			set_comment(hdf, postname);
 
 	db = open(get_cblog_db(hdf), O_RDONLY);
 	cdb_init(&cdb, db);

@@ -7,3 +7,5 @@
 char	*db_get(struct cdb *);
 int		splitchr(char *, char);
 void	time_to_str(time_t, const char *, char *, size_t);
+void	send_mail(const char *, const char *, const char *, 
+		const char *, const char *, const char *, const char *);
