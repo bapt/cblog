@@ -60,7 +60,7 @@ cblogctl_info(const char *post_name)
 {
 	int			i;
 	int			db;
-	char		*key;
+	char		key[BUFSIZ];
 	char		*val;
 	struct cdb	cdb;
 
@@ -72,13 +72,12 @@ cblogctl_info(const char *post_name)
 		if (EQUALS(field[i], "source") || EQUALS(field[i], "html"))
 			continue;
 
-		asprintf(&key, "%s_%s", post_name, field[i]);
+		snprintf(key, BUFSIZ, "%s_%s", post_name, field[i]);
 		if (cdb_find(&cdb, key, strlen(key)) > 0) {
 			val=db_get(&cdb);
 			printf("- %s: %s\n", field[i], val);
 			free(val);
 		}
-		free(key);
 	}
 	printf("\n");
 	cdb_free(&cdb);
@@ -90,7 +89,7 @@ cblogctl_get(const char *post_name)
 {
 	int			db;
 	FILE		*out;
-	char		*key;
+	char		key[BUFSIZ];
 	char		*val;
 	struct cdb	cdb;
 
@@ -99,34 +98,31 @@ cblogctl_get(const char *post_name)
 
 	out = fopen(post_name, "w");
 
-	asprintf(&key, "%s_%s", post_name, "title");
+	snprintf(key, BUFSIZ, "%s_%s", post_name, "title");
 	if (cdb_find(&cdb, key, strlen(key)) > 0) {
 		val = db_get(&cdb);
 		fprintf(out, "Title: %s\n", val);
 	} else {
 		warnx("post %s not found", post_name);
-		free(key);
 		return;
 	}
-	free(key);
 
-	asprintf(&key, "%s_%s", post_name, "tags");
+
+	snprintf(key, BUFSIZ, "%s_%s", post_name, "tags");
 	if (cdb_find(&cdb, key, strlen(key)) > 0) {
 		val=db_get(&cdb);
 		fprintf(out, "Tags: %s\n", val);
 		free(val);
 	}
-	free(key);
 
 	fprintf(out, "\n");
 
-	asprintf(&key, "%s_%s", post_name,"source");
+	snprintf(key, BUFSIZ, "%s_%s", post_name,"source");
 	if (cdb_find(&cdb, key, strlen(key)) > 0) {
 		val = db_get(&cdb);
 		fprintf(out, "%s\n", val);
 		free(val);
 	}
-	free(key);
 
 	fclose(out);
 	cdb_free(&cdb);
@@ -138,7 +134,8 @@ cblogctl_add(const char *post_path)
 {
 	int					olddb, db, i;
 	FILE				*post;
-	char				*key, *val, *valkey, *date, *post_name;
+	char				key[BUFSIZ];
+	char				*val, *valkey, *date, *post_name;
 	bool				found = false;
 	struct cdb			cdb;
 	struct cdb_make		cdb_make;
@@ -171,13 +168,12 @@ cblogctl_add(const char *post_path)
 			found = true;
 
 		for (i=0; field[i] != NULL; i++) {
-			asprintf(&key, "%s_%s", valkey, field[i]);
+			snprintf(key, BUFSIZ, "%s_%s", valkey, field[i]);
 			if (cdb_find(&cdb, key, strlen(key)) > 0) {
 				val = db_get(&cdb);
 				cdb_make_add(&cdb_make, key, strlen(key), val, strlen(val));
 				free(val);
 			}
-			free(key);
 		}
 		free(valkey);
 	}
@@ -198,18 +194,17 @@ cblogctl_add(const char *post_path)
 				while (isspace(filebuf[strlen(filebuf) - 1]))
 					filebuf[strlen(filebuf) - 1] = '\0';
 
-				asprintf(&key, "%s_title", post_name);
+				snprintf(key, BUFSIZ, "%s_title", post_name);
 				val = filebuf + strlen("Title :");
 				cdb_make_put(&cdb_make, key, strlen(key), val, strlen(val), CDB_PUT_REPLACE);
-				free(key);
+
 			} else if (STARTS_WITH(filebuf, "Tags")) {
 				while (isspace(filebuf[strlen(filebuf) - 1]))
 					filebuf[strlen(filebuf) - 1] = '\0';
 
 				val = filebuf + strlen("Tags: ");
-				asprintf(&key, "%s_tags", post_name);
+				snprintf(key, BUFSIZ, "%s_tags", post_name);
 				cdb_make_put(&cdb_make, key, strlen(key), val, strlen(val), CDB_PUT_REPLACE);
-				free(key);
 			}
 		} else
 			bufputs(ib, filebuf);
@@ -218,24 +213,21 @@ cblogctl_add(const char *post_path)
 
 	stat(post_path, &filestat);
 	asprintf(&date, "%lld", (long long int)filestat.st_mtime);
-	asprintf(&key, "%s_ctime", post_name);
+	snprintf(key, BUFSIZ, "%s_ctime", post_name);
 	cdb_make_put(&cdb_make, key, strlen(key), date, strlen(val), CDB_PUT_INSERT);
 	free(date);
-	free(key);
 
 	ob = bufnew(BUFSIZ);
 	markdown(ob, ib, &mkd_xhtml);
 	bufnullterm(ob);
 	bufnullterm(ib);
 
-	asprintf(&key, "%s_source", post_name);
+	snprintf(key, BUFSIZ, "%s_source", post_name);
 	cdb_make_put(&cdb_make, key, strlen(key), ib->data, strlen(ib->data), CDB_PUT_REPLACE);
-	free(key);
 	bufrelease(ob);
 
-	asprintf(&key, "%s_html", post_name);
+	snprintf(key, BUFSIZ, "%s_html", post_name);
 	cdb_make_put(&cdb_make, key, strlen(key), ob->data, strlen(ob->data), CDB_PUT_REPLACE);
-	free(key);
 	bufrelease(ob);
 
 	cdb_make_finish(&cdb_make);
@@ -249,7 +241,8 @@ void
 cblogctl_set(const char *post_name, char *to_be_set)
 {
 	int					olddb, db, i;
-	char				*key, *val, *newkey, *valkey;
+	char				key[BUFSIZ];
+	char				*val, *newkey, *valkey;
 	struct cdb			cdb;
 	struct cdb_make		cdb_make;
 	struct cdb_find		cdbf;
@@ -270,13 +263,12 @@ cblogctl_set(const char *post_name, char *to_be_set)
 			found = true;
 
 		for (i=0; field[i] != NULL; i++) {
-			asprintf(&key, "%s_%s", valkey, field[i]);
+			snprintf(key, BUFSIZ, "%s_%s", valkey, field[i]);
 			if (cdb_find(&cdb, key, strlen(key)) > 0) {
 				val = db_get(&cdb);
 				cdb_make_add(&cdb_make, key, strlen(key), val, strlen(val));
 				free(val);
 			}
-			free(key);
 		}
 		free(valkey);
 	}
@@ -290,7 +282,7 @@ cblogctl_set(const char *post_name, char *to_be_set)
 	to_be_set[0] = '\0';
 	to_be_set++;
 
-	asprintf(&key, "%s_%s", post_name, newkey);
+	snprintf(key, BUFSIZ, "%s_%s", post_name, newkey);
 
 	cdb_make_put(&cdb_make, key, strlen(key), to_be_set, strlen(to_be_set), CDB_PUT_REPLACE);
 	free(key);
@@ -299,6 +291,7 @@ cblogctl_set(const char *post_name, char *to_be_set)
 	cdb_free(&cdb);
 	close(db);
 	close(olddb);
+
 	rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb");
 }
 

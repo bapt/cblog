@@ -16,6 +16,7 @@ static struct command {
 	{ "set", "s", "Set some information in the post", CBLOG_SET_CMD},
 	{ "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
 	{ "init", "I", "Initialize database", CBLOG_INIT_CMD},
+	{ NULL, NULL, NULL, 0},
 };
 
 static void
