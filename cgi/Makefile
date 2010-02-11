@@ -1,7 +1,7 @@
 #CC= 	clang
 #LD= 	llvm-ld
 PROG=	cblog.cgi
-SRCS+=	main.c cblog_cgi.c
+SRCS+=	main.c cblog_cgi.c cblog_comments.c
 PREFIX?=	/usr/local
 DEFINE=-DETCDIR=\"${PREFIX}/etc\"
 INCLUDE=-I${PREFIX}/include -I${PREFIX}/include/ClearSilver -I. -I../lib

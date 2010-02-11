@@ -29,4 +29,6 @@
 	    (var);				    \
 	    (var) = hdf_obj_next((var)))
 
-void cblogcgi();
+void	cblogcgi();
+int		get_comments_count(char *postname);
+void	get_comments(HDF *hdf, char *postname);

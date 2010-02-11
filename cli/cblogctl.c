@@ -284,7 +284,6 @@ cblogctl_set(const char *post_name, char *to_be_set)
 	snprintf(key, BUFSIZ, "%s_%s", post_name, newkey);
 
 	cdb_make_put(&cdb_make, key, strlen(key), to_be_set, strlen(to_be_set), CDB_PUT_REPLACE);
-	free(key);
 
 	cdb_make_finish(&cdb_make);
 	cdb_free(&cdb);

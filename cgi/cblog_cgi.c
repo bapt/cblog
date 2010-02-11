@@ -94,14 +94,6 @@ cblog_err(int eval, const char * message, ...)
 	vsyslog(LOG_ERR, message, args);
 }
 
-void
-time_to_str(time_t source, const char *format, char *dest, size_t size)
-{
-	struct tm	*ptr;
-
-	ptr = localtime(&source);
-	strftime(dest, size, format, ptr);
-}
 
 void
 add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
@@ -136,6 +128,7 @@ add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
 
 		free(val_to_free);
 	}
+	hdf_set_valuef(hdf, "Posts.%i.nb_comments=%i", pos, get_comments_count(name));
 }
 
 void
@@ -226,6 +219,8 @@ build_post(HDF *hdf, char *postname)
 		add_post_to_hdf(hdf, &cdb, postname, 0);
 		ret++;
 	}
+
+	get_comments(hdf, postname);
 
 	cdb_free(&cdb);
 	close(db);
@@ -463,10 +458,11 @@ cblogcgi()
 			char	*date_format;
 			int		date;
 			
+			date_format = get_dateformat(cgi->hdf);
 			set_tags(cgi->hdf);
+
 			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
 				date = hdf_get_int_value(hdf, "date", time(NULL));
-				date_format = get_dateformat(hdf);
 				time_to_str(date, date_format, time_str, 256);
 
 				hdf_set_valuef(hdf, "date=%s", time_str);

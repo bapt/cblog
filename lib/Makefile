@@ -6,6 +6,6 @@ CFLAGS+=	-I/usr/local/include -Wall -Werror
 SRCS=		db.c utils.c
 
 WARNS?=	3
-WFORMAT?=	1
+#WFORMAT?=	1
 
 .include <bsd.lib.mk>

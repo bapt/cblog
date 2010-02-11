@@ -1,4 +1,5 @@
 #include "cblog_utils.h"
+#include <time.h>
 #include <string.h>
 
 int
@@ -16,4 +17,13 @@ splitchr(char *str, char sep)
 	}
 
 	return nbel;
+}
+
+void
+time_to_str(time_t source, const char *format, char *dest, size_t size)
+{
+	struct tm	*ptr;
+
+	ptr = localtime(&source);
+	strftime(dest, size, format, ptr);
 }
