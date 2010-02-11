@@ -135,7 +135,7 @@ cblogctl_add(const char *post_path)
 	int					olddb, db, i;
 	FILE				*post;
 	char				key[BUFSIZ], date[11];
-	char				*val, *valkey, *date, *post_name;
+	char				*val, *valkey, *post_name;
 	bool				found = false;
 	struct cdb			cdb;
 	struct cdb_make		cdb_make;
