@@ -310,4 +310,9 @@ cblogctl_init()
 	close(db);
 }
 
+void
+cblogctl_version()
+{
+	fprintf(stderr, "%s (%s)\n", cblog_version, cblog_url);
+}
 /* vim: set sw=4 sts=4 ts=4 : */

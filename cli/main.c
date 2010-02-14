@@ -16,6 +16,7 @@ static struct command {
 	{ "set", "s", "Set some information in the post", CBLOG_SET_CMD},
 	{ "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
 	{ "init", "I", "Initialize database", CBLOG_INIT_CMD},
+	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
 	{ NULL, NULL, NULL, 0},
 };
 
@@ -86,6 +87,9 @@ main(int argc, char *argv[])
 				cblogctl_info(argv[i]);
 
 			break;
+		case CBLOG_VERSION_CMD:
+			cblogctl_version();
+			exit(0);
 		default:
 			usage(argv[0]);
 			/* NOT REACHED */

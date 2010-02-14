@@ -362,6 +362,8 @@ cblogcgi()
 		cblog_err(-1, "Error while reading configuration file");
 	}
 	nerr_ignore(&neoerr);
+	hdf_set_valuef(cgi->hdf, "CBlog.version=%s", cblog_version);
+	hdf_set_valuef(cgi->hdf, "CBlog.url=%s", cblog_url);
 
 	requesturi = get_cgi_str(cgi->hdf, "RequestURI");
 	splitchr(requesturi, '?');
