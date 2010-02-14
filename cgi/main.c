@@ -35,7 +35,7 @@ main(int argc, char **argv, char **envp)
 	while (FCGI_Accept() >= 0) {
 		/*	cgi_init(&cgi, NULL);
 		cgi_parse(cgi); */
-		cblogcgi();
+		cblogcgi(); 
 		/*	cgi_destroy(&cgi);
 		syslog(LOG_ERR, "coucou"); */
 	}

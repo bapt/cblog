@@ -7,7 +7,7 @@
 	<link rel="alternate" type="text/html" href="<?cs var:url ?>" />
 	<updated><?cs var:gendate ?></updated>
 	<author><name>Bapt</name></author>
-	<generator uri="http://brokk.etoilebsd.net/projects/show/cblog" version="0.1 alpha">CBlog</generator>
+	<generator uri="<?cs var:CBlog.url ?>" version="<?cs var:CBlog.version ?>"><?cs var:CBlog.version ?></generator>
 	<?cs each:post = Posts ?>
 	<entry>
 		<title type="text"><?cs var:post.title ?></title>

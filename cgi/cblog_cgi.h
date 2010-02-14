@@ -1,4 +1,6 @@
+#include <fcgi_stdio.h>
 #include <ClearSilver.h>
+
 #define CBLOG_POST 0
 #define CBLOG_TAG 1
 #define CBLOG_RSS 2

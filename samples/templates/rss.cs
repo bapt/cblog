@@ -6,12 +6,12 @@
 		<atom:link rel="self" href="<?cs var:url ?><?cs var:CGI.RequestURI ?>" />
 		<description><?cs var:title ?></description>
 		 <language>fr</language>
-		 <generator>CBlog 0.1 alpha</generator>
+		 <generator><?cs var:CBlog.version ?></generator>
 		 <lastBuildDate><?cs var:gendate ?></lastBuildDate>
 		 <?cs each:post = Posts ?>
 		 <item>
 			 <title><?cs var:post.title ?></title>
-			 <description>[CDATA[<?cs var:post.htme ?>]]</description>
+			 <description><?cs var:html_escape(post.html) ?></description>
 			 <link><?cs var:url ?>/post/<?cs var:post.filename ?></link>
 			 <guid><?cs var:url ?>/post/<?cs var:post.filename ?></guid>
 			 <?cs each:tag = post.tags ?>

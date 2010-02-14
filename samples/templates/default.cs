@@ -3,6 +3,8 @@
 <head><title><?cs var:title ?></title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <link href="/style.css" rel="stylesheet" type="text/css" />
+<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+<link rel="icon" href="/favicon.ico" type="image/x-icon" />
 <?cs if:Query.tag ?>
 <link href="<?cs var:root ?>/tag/<?cs var:Query.tag ?>?feed=atom" rel="alternate" title="Atom 1.0 pour le tag <?cs var:Query.tag ?>" type="application/atom+xml" />
 <link href="<?cs var:root ?>/tag/<?cs var:Query.tag ?>?feed=rss" rel="alternate" title="RSS 2.0 pour le tag <?cs var:Query.tag ?>" type="application/rss+xml" />
@@ -77,12 +79,14 @@ No comments allowed
 <?cs /each ?>
 <?cs if:subcount(Posts) != 1 ?>
 <div class="paging">
+<?cs if:nbpages ?>
 <p>Page<?cs if:(#nbpages >= 0) ?>s<?cs /if ?> : <?cs if:Query.page ?><?cs set:page = Query.page ?><?cs else ?><?cs set:page = #1 ?><?cs /if ?><?cs loop:x = #1, #nbpages, #1 ?> <?cs if:(#page == #x) ?><strong><?cs var:x ?></strong><?cs else ?> <a href="<?cs var:string.slice(CGI.RequestURI,0,string.find(CGI.RequestURI,"?")+1) ?>?page=<?cs var:x ?>"><?cs var:x ?></a><?cs /if ?><?cs /loop ?></p>
+<?cs /if ?>
 </div>
 <?cs /if ?>
 </div>
 <div id="footer">
-powered by <a href="http://brokk.etoilebsd.net/projects/show/cblog">CBlog</a>
+Powered by <a href="<?cs var:CBlog.url ?>"><?cs var:CBlog.version ?></a>
 </div>
 </div>
 </body>
