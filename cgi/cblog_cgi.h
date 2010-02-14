@@ -13,6 +13,7 @@
 #define DATE_FEED "%a, %d %b %Y %H:%M:%S %z"
 
 #define get_cgi_str(hdf,name) hdf_get_value(hdf, "CGI."name, NULL)
+#define get_query_str(hdf,name) hdf_get_value(hdf, "Query."name, NULL)
 #define get_cgi_theme(hdf) hdf_get_value(hdf, "theme", DEFAULT_THEME)
 #define get_dateformat(hdf)  hdf_get_value(hdf, "dateformat", "%d/%m/%Y")
 #define get_cblog_db(hdf) hdf_get_value(hdf, "db_path", DEFAULT_DB)
@@ -24,12 +25,12 @@
 
 #define CONFFILE ETCDIR"/cblog.conf"
 
-#define EQUALS(string, needle) (strcasecmp(string, needle) == 0)
-#define STARTS_WITH(string, needle) (strncasecmp(string, needle, strlen(needle)) == 0)
-
 #define HDF_FOREACH(var, hdf, node)		    \
     for ((var) = hdf_get_child((hdf), node);	    \
 	    (var);				    \
 	    (var) = hdf_obj_next((var)))
 
-void cblogcgi();
+void	cblogcgi();
+int		get_comments_count(char *postname);
+void	get_comments(HDF *hdf, char *postname);
+void	set_comment(HDF *hdf, char *postname);
