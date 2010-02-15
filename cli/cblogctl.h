@@ -8,6 +8,7 @@
 #define CBLOG_CREATE_CMD 5
 #define CBLOG_VERSION_CMD 6
 
+#define db_open_ro() 
 
 void cblogctl_create();
 void cblogctl_list();

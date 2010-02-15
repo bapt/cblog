@@ -55,7 +55,7 @@ main(int argc, char *argv[])
 
 	if (type != CBLOG_CREATE_CMD && type != CBLOG_VERSION_CMD)
 	    if (access(CDB_PATH"/cblog.cdb", F_OK) != 0)
-		    errx(1, "%s must exists. Make '%s init' first.", CDB_PATH"/cblog.cdb", argv[0]);
+		    errx(1, "%s must exists. Make '%s create' first.", CDB_PATH"/cblog.cdb", argv[0]);
 
 	switch(type) {
 		case CBLOG_CREATE_CMD:
