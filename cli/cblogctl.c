@@ -24,7 +24,8 @@ cblogctl_list()
 	struct cdb_find		cdbf;
 	char				*val;
 
-	db = open(CDB_PATH"/cblog.cdb", O_RDONLY);
+	if ((db = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
+		err(1, CDB_PATH"/cblog.cdb");
 	cdb_init(&cdb, db);
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
@@ -64,7 +65,8 @@ cblogctl_info(const char *post_name)
 	char		*val;
 	struct cdb	cdb;
 
-	db = open(CDB_PATH"/cblog.cdb", O_RDONLY);
+	if ((db = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
+		err(1, CDB_PATH"/cblog.cdb");
 	cdb_init(&cdb, db);
 
 	printf("Informations about %s\n", post_name);
@@ -93,7 +95,8 @@ cblogctl_get(const char *post_name)
 	char		*val;
 	struct cdb	cdb;
 
-	db = open(CDB_PATH"/cblog.cdb", O_RDONLY);
+	if ((db = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
+		err(1, CDB_PATH"/cblog.cdb");
 	cdb_init(&cdb, db);
 
 	out = fopen(post_name, "w");
@@ -151,8 +154,10 @@ cblogctl_add(const char *post_path)
 	if (post == NULL)
 		errx(EXIT_FAILURE, "Unable to open %s", post_name);
 
-	olddb = open(CDB_PATH"/cblog.cdb", O_RDONLY);
-	db = open(CDB_PATH"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644);
+	if ((olddb = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
+		err(1, CDB_PATH"/cblog.cdb");
+	if ((db = open(CDB_PATH"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
+		err(1, CDB_PATH"/cblogtmp.cdb");
 
 	cdb_init(&cdb, olddb);
 	cdb_make_start(&cdb_make, db);
@@ -233,7 +238,8 @@ cblogctl_add(const char *post_path)
 	close(olddb);
 	cdb_free(&cdb);
 	close(db);
-	rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb");
+	if (rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb") < 0)
+		err(1, CDB_PATH"/cblog.cdb");
 }
 
 void
@@ -247,8 +253,10 @@ cblogctl_set(const char *post_name, char *to_be_set)
 	struct cdb_find		cdbf;
 	bool				found = false;
 
-	olddb = open(CDB_PATH"/cblog.cdb", O_RDONLY);
-	db = open(CDB_PATH"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644);
+	if ((olddb = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
+		err(1, CDB_PATH"/cblog.cdb");
+	if ((db = open(CDB_PATH"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
+		err(1, CDB_PATH"/cblogtmp.cdb");
 
 	cdb_init(&cdb, olddb);
 	cdb_make_start(&cdb_make, db);
@@ -290,18 +298,21 @@ cblogctl_set(const char *post_name, char *to_be_set)
 	close(db);
 	close(olddb);
 
-	rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb");
+	if (rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb") < 0)
+		err(1, CDB_PATH"/cblog.cdb");
 }
 
 void
-cblogctl_init()
+cblogctl_create()
 {
 	int					db;
 	struct cdb			cdb;
 	struct cdb_make		cdb_make;
 
-	db = open(CDB_PATH"/cblog.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644);
-	if (db < 0) { perror(CDB_PATH"/cblog.cdb"); }
+	if (access(CDB_PATH"/cblog.cdb", F_OK) == 0)
+		errx(1, "%s already exists", CDB_PATH"/cblog.cdb");
+	if ((db = open(CDB_PATH"/cblog.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
+		err(1, CDB_PATH"/cblog.cdb");
 
 	cdb_init(&cdb, db);
 	cdb_make_start(&cdb_make, db);

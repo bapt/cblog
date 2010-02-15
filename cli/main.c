@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <err.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "cblogctl.h"
 #include "cblog_utils.h"
 
@@ -15,7 +16,7 @@ static struct command {
 	{ "get", "g", "Get a post in text format", CBLOG_GET_CMD},
 	{ "set", "s", "Set some information in the post", CBLOG_SET_CMD},
 	{ "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
-	{ "init", "I", "Initialize database", CBLOG_INIT_CMD},
+	{ "create", "c", "Create database", CBLOG_CREATE_CMD},
 	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
 	{ NULL, NULL, NULL, 0},
 };
@@ -52,9 +53,13 @@ main(int argc, char *argv[])
 		}
 	}
 
+	if (type != CBLOG_CREATE_CMD && type != CBLOG_VERSION_CMD)
+	    if (access(CDB_PATH"/cblog.cdb", F_OK) != 0)
+		    errx(1, "%s must exists. Make '%s init' first.", CDB_PATH"/cblog.cdb", argv[0]);
+
 	switch(type) {
-		case CBLOG_INIT_CMD:
-			cblogctl_init();
+		case CBLOG_CREATE_CMD:
+			cblogctl_create();
 			break;
 		case CBLOG_LIST_CMD:
 			cblogctl_list();
