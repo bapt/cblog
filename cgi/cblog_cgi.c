@@ -6,11 +6,12 @@
 #include <stdbool.h>
 #include <string.h>
 #include <syslog.h>
+
 #include "cblog_utils.h"
 #include "cblog_common.h"
-
 #include "cblog_cgi.h"
 
+extern int errno;
 
 /*static char *mandatory_config[] = {
 	"title",
@@ -143,7 +144,11 @@ set_tags(HDF *hdf)
 	bool				found;
 	struct tags			**taglist = NULL;
 
-	db = open(get_cblog_db(hdf), O_RDONLY);
+	if ((db = open(get_cblog_db(hdf), O_RDONLY)) < 0) {
+		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
+		hdf_set_value(hdf, "err_msg", strerror(errno));
+		return;
+	}
 	cdb_init(&cdb, db);
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
@@ -211,11 +216,15 @@ build_post(HDF *hdf, char *postname)
 	char		key[BUFSIZ];
 	char		*submit;
 
-	submit = get_query_str(hdf,"submit");
-	if ( submit != NULL && EQUALS(submit,"Post"))
+	submit = get_query_str(hdf, "submit");
+	if (submit != NULL && EQUALS(submit, "Post"))
 			set_comment(hdf, postname);
 
-	db = open(get_cblog_db(hdf), O_RDONLY);
+	if ((db = open(get_cblog_db(hdf), O_RDONLY)) < 0) {
+		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
+		hdf_set_value(hdf, "err_msg", strerror(errno));
+		return 0;
+	}
 	cdb_init(&cdb, db);
 
 	snprintf(key, BUFSIZ, "%s_title", postname);
@@ -249,7 +258,11 @@ build_index(HDF *hdf, char *tagname)
 	page = hdf_get_int_value(hdf, "Query.page", 1);
 	first_post = (page * max_post) - max_post;
 
-	db = open(get_cblog_db(hdf), O_RDONLY);
+	if ((db = open(get_cblog_db(hdf), O_RDONLY)) < 0) {
+		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
+		hdf_set_value(hdf, "err_msg", strerror(errno));
+		return 0;
+	}
 	cdb_init(&cdb, db);
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
@@ -333,7 +346,7 @@ build_index(HDF *hdf, char *tagname)
 }
 
 void
-cblogcgi()
+cblogcgi(HDF *conf)
 {
 	CGI		*cgi;
 	NEOERR	*neoerr;
@@ -356,11 +369,7 @@ cblogcgi()
 	neoerr = cgi_parse(cgi);
 	nerr_ignore(&neoerr);
 
-	neoerr = hdf_read_file(cgi->hdf, CONFFILE);
-	if (neoerr != STATUS_OK) {
-		type = CBLOG_ERR;
-		cblog_err(-1, "Error while reading configuration file");
-	}
+	neoerr = hdf_copy(cgi->hdf, "", conf);
 	nerr_ignore(&neoerr);
 	hdf_set_valuef(cgi->hdf, "CBlog.version=%s", cblog_version);
 	hdf_set_valuef(cgi->hdf, "CBlog.url=%s", cblog_url);
