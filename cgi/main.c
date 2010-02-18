@@ -8,10 +8,36 @@
 
 HDF *conf;
 
+static char *mandatory_config[] = {
+	"title",
+	"url",
+	"dateformat",
+	"hdf.loadpaths.tpl",
+	"db_path",
+	"theme",
+	"posts_per_pages",
+	NULL,
+};
+
+int
+check_conf(HDF *conf)
+{
+	int i = 0;
+	while (mandatory_config[i]) {
+		if (! hdf_get_obj(conf, mandatory_config[i]))
+			return i;
+		i++;
+	}
+	return -1;
+}
+
 void
-read_conf() {
+read_conf()
+{
 	HDF *hdf;
 	NEOERR *neoerr;
+	int ret;
+
 	if (access(CONFFILE, R_OK) != 0) {
 		cblog_err(-1, "%s: can't access file", CONFFILE);
 		return;
@@ -29,6 +55,10 @@ read_conf() {
 	}
 	nerr_ignore(&neoerr);
 
+	if ((ret = check_conf(hdf)) != -1) {
+		cblog_err(-1, "%s: %s is mandatory", CONFFILE, mandatory_config[ret]);
+		return;
+	}
 	neoerr = hdf_copy(conf, "", hdf);
 	if (neoerr != STATUS_OK) {
 		cblog_err(-1, "%s: hdf_copy error", CONFFILE);
@@ -62,6 +92,7 @@ int
 main(int argc, char **argv, char **envp)
 {
 	NEOERR *neoerr;
+	int ret;
 
 	signal(SIGHUP, read_conf);
 
@@ -79,6 +110,10 @@ main(int argc, char **argv, char **envp)
 		errx(1, "hdf_read %s", CONFFILE);
 	}
 	nerr_ignore(&neoerr);
+
+	if ((ret = check_conf(conf)) != -1) {
+		errx(1, "check_conf %s: %s is mandatory", CONFFILE, mandatory_config[ret]);
+	}
 
 	openlog("CBlog", LOG_CONS|LOG_ERR, LOG_DAEMON);
 	cgiwrap_init_emu(NULL, &read_cb, &writef_cb, &write_cb,

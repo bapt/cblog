@@ -13,17 +13,6 @@
 
 extern int errno;
 
-/*static char *mandatory_config[] = {
-	"title",
-	"url",
-	"dateformat",
-	"hdf.loadpaths.tpl",
-	"db_path",
-	"theme",
-	"post_per_pages",
-	NULL,
-};*/
-
 static struct pages {
 	const char	*name;
 	int			type;

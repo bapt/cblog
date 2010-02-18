@@ -1,4 +1,3 @@
-use mandatory_config in CGI to be sure that the config file as at least what it needs otherwise the cgi should fail
 change comment backend from files to cdb (don't know if it is a good idea or not)
 add the ability to browse/watch post through : /YYYY/MM/DD, /YYYY/MM or /YYYY
 allow to load external hdf (this can be use to import in the blog information from third party apps : rss feed, weather forcast etc.)
