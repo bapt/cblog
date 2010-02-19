@@ -364,10 +364,11 @@ cblogcgi(HDF *conf)
 	hdf_set_valuef(cgi->hdf, "CBlog.url=%s", cblog_url);
 
 	requesturi = get_cgi_str(cgi->hdf, "RequestURI");
-	splitchr(requesturi, '?');
 
 	/* find the beginig of the request */
 	if (requesturi != NULL)
+	{
+		splitchr(requesturi, '?');
 		if (requesturi[1] != '\0') {
 			for (i = 0; page[i].name != NULL; i++) {
 				if (STARTS_WITH(requesturi, page[i].name)) {
@@ -378,6 +379,7 @@ cblogcgi(HDF *conf)
 			if (type == CBLOG_ROOT)
 				hdf_set_valuef(cgi->hdf, "err_msg=Unknown request: %s", requesturi);
 		}
+	}
 
 	switch (type) {
 		case CBLOG_POST:
