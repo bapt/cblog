@@ -138,7 +138,13 @@ set_tags(HDF *hdf)
 		hdf_set_value(hdf, "err_msg", strerror(errno));
 		return;
 	}
-	cdb_init(&cdb, db);
+
+	if (cdb_init(&cdb, db) < 0) {
+		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
+		hdf_set_value(hdf, "err_msg", strerror(errno));
+		close(db);
+		return;
+	}
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
 	while (cdb_findnext(&cdbf) > 0) {
