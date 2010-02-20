@@ -76,8 +76,12 @@ cblogctl_info(const char *post_name)
 
 		snprintf(key, BUFSIZ, "%s_%s", post_name, field[i]);
 		if (cdb_find(&cdb, key, strlen(key)) > 0) {
-			val=db_get(&cdb);
-			printf("- %s: %s\n", field[i], val);
+			val = db_get(&cdb);
+			if (EQUALS(field[i], "ctime")) {
+				time_to_str((time_t)strtoll(val, NULL, 10), "%Y/%m/%d %T", key, BUFSIZ);
+				printf("- %s: %s\n", field[i], key);
+			} else 
+				printf("- %s: %s\n", field[i], val);
 			free(val);
 		}
 	}
