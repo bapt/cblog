@@ -34,6 +34,13 @@ struct tags {
 	int		count;
 };
 
+struct criteria {
+	int		type;
+	char	*tagname;
+	time_t	start;
+	time_t	end;
+};
+
 static int
 sort_by_name(const void *a, const void *b)
 {
@@ -50,7 +57,7 @@ sort_by_ctime(const void *a, const void *b)
 	struct posts *post_a = *((struct posts **)a);
 	struct posts *post_b = *((struct posts **)b);
 
-	return post_b->ctime - post_a ->ctime;
+	return post_b->ctime - post_a->ctime;
 }
 
 static char *
@@ -231,7 +238,7 @@ build_post(HDF *hdf, char *postname)
 }
 
 int
-build_index(HDF *hdf, char *tagname)
+build_index(HDF *hdf, struct criteria *criteria)
 {
 	int					db;
 	int					first_post = 0, nb_posts = 0, max_post, total_posts = 0;
@@ -268,7 +275,7 @@ build_index(HDF *hdf, char *tagname)
 		post->name = db_get(&cdb);
 
 		snprintf(key, BUFSIZ, "%s_ctime", post->name);
-		if ( cdb_find(&cdb, key, strlen(key)) > 0){
+		if (cdb_find(&cdb, key, strlen(key)) > 0){
 			val = db_get(&cdb);
 			post->ctime = (time_t)strtol(val, NULL, 10);
 			free(val);
@@ -280,46 +287,59 @@ build_index(HDF *hdf, char *tagname)
 
 	qsort(posts, total_posts, sizeof(struct posts *), sort_by_ctime);
 
-	if (tagname != NULL) {
-		for (i=0; i < total_posts; i++) {
-			snprintf(key, BUFSIZ, "%s_tags", posts[i]->name);
+	switch (criteria->type) {
+		case CRITERIA_TAGNAME:
+			for (i=0; i < total_posts; i++) {
+				snprintf(key, BUFSIZ, "%s_tags", posts[i]->name);
 
-			if (cdb_find(&cdb, key, strlen(key)) > 0) {
-				char	*tag;
-				int		nbel;
+				if (cdb_find(&cdb, key, strlen(key)) > 0) {
+					char	*tag;
+					int		nbel;
 
-				val = db_get(&cdb);
-				tag = val;
-				nbel = splitchr(val, ',');
-				for (k=0; k<= nbel; k++) {
-					size_t	next = strlen(val);
-					char	*tagcmp = trimspace(val);
+					val = db_get(&cdb);
+					tag = val;
+					nbel = splitchr(val, ',');
+					for (k=0; k <= nbel; k++) {
+						size_t	next = strlen(val);
+						char	*tagcmp = trimspace(val);
 
-					if (EQUALS(tagname, tagcmp)) {
-						j++;
-						if ((j >= first_post) && (nb_posts < max_post)) {
-							add_post_to_hdf(hdf, &cdb, posts[i]->name, j);
-							nb_posts++;
-							break;
+						if (EQUALS(criteria->tagname, tagcmp)) {
+							j++;
+							if ((j >= first_post) && (nb_posts < max_post)) {
+								add_post_to_hdf(hdf, &cdb, posts[i]->name, j);
+								nb_posts++;
+								break;
+							}
 						}
+						val += next + 1;
 					}
-					val += next + 1;
+					free(tag);
 				}
-				free(tag);
+				free(posts[i]->name);
+				free(posts[i]);
 			}
-			free(posts[i]->name);
-			free(posts[i]);
-		}
-	} else {
-		for (i=first_post; i < total_posts; i++) {
-			if ((i >= first_post) && (nb_posts < max_post)) {
-				add_post_to_hdf(hdf, &cdb, posts[i]->name, i);
-				nb_posts++;
+			break;
+		case CRITERIA_TIME_T:
+			for (i=0; i < total_posts; i++) {
+				if (posts[i]->ctime >= criteria->start && posts[i]->ctime <= criteria->end) {
+					add_post_to_hdf(hdf, &cdb, posts[i]->name, i);
+					nb_posts++;
+				}
+				free(posts[i]->name);
+				free(posts[i]);
 			}
-			free(posts[i]->name);
-			free(posts[i]);
-		}
+			break;
+		default:
+			for (i=first_post; i < total_posts; i++) {
+				if ((i >= first_post) && (nb_posts < max_post)) {
+					add_post_to_hdf(hdf, &cdb, posts[i]->name, i);
+					nb_posts++;
+				}
+				free(posts[i]->name);
+				free(posts[i]);
+			}
 	}
+
 	free(posts);
 
 	nb_pages = j / max_post;
@@ -344,10 +364,14 @@ cblogcgi(HDF *conf)
 	char	*requesturi, *method;
 	int		type, i, nb_posts;
 	time_t		gentime, posttime;
+	int     yyyy, mm, dd;
+	struct	criteria criteria;
+	struct tm calc_time;
 
 	/* read the configuration file */
 
 	type = CBLOG_ROOT;
+	criteria.type = 0;
 
 	neoerr = cgi_init(&cgi, NULL);
 
@@ -375,8 +399,20 @@ cblogcgi(HDF *conf)
 					break;
 				}
 			}
-			if (type == CBLOG_ROOT)
-				hdf_set_valuef(cgi->hdf, "err_msg=Unknown request: %s", requesturi);
+			if (type == CBLOG_ROOT) {
+				if (sscanf(requesturi, "/%4d/%02d/%02d", &yyyy, &mm, &dd) == 3) {
+					type = CBLOG_YYYY_MM_DD;
+					criteria.type = CRITERIA_TIME_T;
+				} else if (sscanf(requesturi, "/%4d/%02d", &yyyy, &mm) == 2) {
+					type = CBLOG_YYYY_MM;
+					criteria.type = CRITERIA_TIME_T;
+				} else if (sscanf(requesturi, "/%4d", &yyyy) == 1) {
+					type = CBLOG_YYYY;
+					criteria.type = CRITERIA_TIME_T;
+				} else {
+					hdf_set_valuef(cgi->hdf, "err_msg=Unknown request: %s", requesturi);
+				}
+			}
 		}
 
 	switch (type) {
@@ -396,7 +432,9 @@ cblogcgi(HDF *conf)
 			while (requesturi[0] != '/')
 				requesturi++;
 			requesturi++;
-			nb_posts = build_index(cgi->hdf, requesturi);
+			criteria.type = CRITERIA_TAGNAME;
+			criteria.tagname = requesturi;
+			nb_posts = build_index(cgi->hdf, &criteria);
 			if (nb_posts == 0) {
 				hdf_set_valuef(cgi->hdf, "err_msg=Unknown tag: %s", requesturi);
 				cgiwrap_writef("Status: 404\n");
@@ -404,14 +442,51 @@ cblogcgi(HDF *conf)
 			break;
 		case CBLOG_RSS:
 			hdf_set_valuef(cgi->hdf, "Query.feed=rss");
-			build_index(cgi->hdf, NULL);
+			build_index(cgi->hdf, &criteria);
 			break;
 		case CBLOG_ATOM:
 			hdf_set_valuef(cgi->hdf, "Query.feed=atom");
-			build_index(cgi->hdf, NULL);
+			build_index(cgi->hdf, &criteria);
 			break;
 		case CBLOG_ROOT:
-			build_index(cgi->hdf, NULL);
+			build_index(cgi->hdf, &criteria);
+			break;
+		case CBLOG_YYYY:
+			calc_time.tm_year = yyyy - 1900;
+			calc_time.tm_mon = 0;
+			calc_time.tm_mday = 1;
+			criteria.start = mktime(&calc_time);
+			calc_time.tm_mon = 11;
+			calc_time.tm_mday = 31;
+			calc_time.tm_hour = 23;
+			calc_time.tm_min = 59;
+			calc_time.tm_sec = 59;
+			criteria.end = mktime(&calc_time);
+			build_index(cgi->hdf, &criteria);
+			break;
+		case CBLOG_YYYY_MM:
+			calc_time.tm_year = yyyy - 1900;
+			calc_time.tm_mon = mm - 1;
+			calc_time.tm_mday = 1;
+			criteria.start = mktime(&calc_time);
+			calc_time.tm_mon = mm;
+			calc_time.tm_hour = 23;
+			calc_time.tm_min = 59;
+			calc_time.tm_sec = 59;
+			criteria.end = mktime(&calc_time);
+			criteria.end -= 60 * 60 * 24;
+			build_index(cgi->hdf, &criteria);
+			break;
+		case CBLOG_YYYY_MM_DD:
+			calc_time.tm_year = yyyy - 1900;
+			calc_time.tm_mon = mm - 1;
+			calc_time.tm_mday = dd;
+			criteria.start = mktime(&calc_time);
+			calc_time.tm_hour = 23;
+			calc_time.tm_min = 59;
+			calc_time.tm_sec = 59;
+			criteria.end = mktime(&calc_time);
+			build_index(cgi->hdf, &criteria);
 			break;
 	}
 

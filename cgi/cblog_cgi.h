@@ -7,6 +7,12 @@
 #define CBLOG_ATOM 3
 #define CBLOG_ROOT 4
 #define CBLOG_ERR 5
+#define CBLOG_YYYY 6
+#define CBLOG_YYYY_MM 7
+#define CBLOG_YYYY_MM_DD 8
+
+#define CRITERIA_TAGNAME 1
+#define CRITERIA_TIME_T 2
 
 #define DEFAULT_POSTS_PER_PAGES 10
 #define DEFAULT_THEME "default"
