@@ -18,6 +18,7 @@ static struct command {
 	{ "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
 	{ "create", "c", "Create database", CBLOG_CREATE_CMD},
 	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
+	{ "path", "p", "Print cblog.cdb path", CBLOG_PATH_CMD},
 	{ NULL, NULL, NULL, 0},
 };
 
@@ -31,7 +32,9 @@ usage(const char *s)
 			get file_post1 file_post2 ... file_postN\n\
 			set file_post key=value\n\
 			info file_post1 file_post2 ... file_postN\n\
-			list\n", s);
+			list\n\
+			path\n\
+			version\n", s);
 
 	exit(1);
 }
@@ -94,6 +97,9 @@ main(int argc, char *argv[])
 			break;
 		case CBLOG_VERSION_CMD:
 			cblogctl_version();
+			exit(0);
+		case CBLOG_PATH_CMD:
+			cblogctl_path();
 			exit(0);
 		default:
 			usage(argv[0]);

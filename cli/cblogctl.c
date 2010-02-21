@@ -326,6 +326,12 @@ cblogctl_create()
 }
 
 void
+cblogctl_path()
+{
+	printf("%s\n", CDB_PATH);
+}
+
+void
 cblogctl_version()
 {
 	fprintf(stderr, "%s (%s)\n", cblog_version, cblog_url);
