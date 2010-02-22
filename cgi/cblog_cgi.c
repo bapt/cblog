@@ -91,6 +91,23 @@ cblog_err(int eval, const char * message, ...)
 	vsyslog(LOG_ERR, message, args);
 }
 
+static int
+db_open(HDF *hdf, struct cdb *cdb, int flags)
+{
+	int fd, db;
+
+	fd = db = open(get_cblog_db(hdf), flags);
+
+	if (fd >= 0 && (db = cdb_init(cdb, fd)) < 0)
+		close(fd);
+
+	if (db < 0) {
+		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
+		hdf_set_value(hdf, "err_msg", strerror(errno));
+	}
+
+	return db;
+}
 
 void
 add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
@@ -131,7 +148,6 @@ add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
 void
 set_tags(HDF *hdf)
 {
-	int					db;
 	int					i, j, nbtags = 0;
 	struct cdb			cdb;
 	struct cdb_find		cdbf;
@@ -140,18 +156,8 @@ set_tags(HDF *hdf)
 	bool				found;
 	struct tags			**taglist = NULL;
 
-	if ((db = open(get_cblog_db(hdf), O_RDONLY)) < 0) {
-		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
-		hdf_set_value(hdf, "err_msg", strerror(errno));
+	if (db_open(hdf, &cdb, O_RDONLY) < 0)
 		return;
-	}
-
-	if (cdb_init(&cdb, db) < 0) {
-		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
-		hdf_set_value(hdf, "err_msg", strerror(errno));
-		close(db);
-		return;
-	}
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
 	while (cdb_findnext(&cdbf) > 0) {
@@ -206,14 +212,14 @@ set_tags(HDF *hdf)
 	}
 	free(taglist);
 
+	close(cdb_fileno(&cdb));
 	cdb_free(&cdb);
-	close(db);
 }
 
 int
 build_post(HDF *hdf, char *postname)
 {
-	int			db, ret = 0;
+	int			ret = 0;
 	struct cdb	cdb;
 	char		key[BUFSIZ];
 	char		*submit;
@@ -222,12 +228,8 @@ build_post(HDF *hdf, char *postname)
 	if (submit != NULL && EQUALS(submit, "Post"))
 			set_comment(hdf, postname);
 
-	if ((db = open(get_cblog_db(hdf), O_RDONLY)) < 0) {
-		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
-		hdf_set_value(hdf, "err_msg", strerror(errno));
+	if (db_open(hdf, &cdb, O_RDONLY) < 0)
 		return 0;
-	}
-	cdb_init(&cdb, db);
 
 	snprintf(key, BUFSIZ, "%s_title", postname);
 
@@ -238,15 +240,14 @@ build_post(HDF *hdf, char *postname)
 
 	get_comments(hdf, postname);
 
+	close(cdb_fileno(&cdb));
 	cdb_free(&cdb);
-	close(db);
 	return 1;
 }
 
 int
 build_index(HDF *hdf, struct criteria *criteria)
 {
-	int					db;
 	int					first_post = 0, nb_posts = 0, max_post, total_posts = 0;
 	int					nb_pages = 0, page;
 	int					i, j = 0, k;
@@ -260,12 +261,8 @@ build_index(HDF *hdf, struct criteria *criteria)
 	page = hdf_get_int_value(hdf, "Query.page", 1);
 	first_post = (page * max_post) - max_post;
 
-	if ((db = open(get_cblog_db(hdf), O_RDONLY)) < 0) {
-		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
-		hdf_set_value(hdf, "err_msg", strerror(errno));
+	if (db_open(hdf, &cdb, O_RDONLY) < 0)
 		return 0;
-	}
-	cdb_init(&cdb, db);
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
 
@@ -354,8 +351,8 @@ build_index(HDF *hdf, struct criteria *criteria)
 
 	set_nb_pages(hdf, nb_pages);
 
+	close(cdb_fileno(&cdb));
 	cdb_free(&cdb);
-	close(db);
 
 	return nb_posts;
 }
