@@ -1,6 +1,8 @@
 PROG=cblogctl
 SRCS+= main.c cblogctl.c buffer.c markdown.c renderers.c array.c
 PREFIX?= 	/usr/local
+DESTDIR= ${PREFIX}/
+BINDIR= bin
 INCLUDE= -I${PREFIX}/include -I. -I../lib
 CFLAGS+= 	-Wall -ggdb -O0 ${INCLUDE} -Werror
 CDB_PATH?=	/usr/local/cblog
