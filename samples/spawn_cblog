@@ -1,0 +1,87 @@
+#!/bin/sh
+
+# PROVIDE: spawn_cblog
+# REQUIRE: DAEMON
+# BEFORE:  LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="spawn_cblog"
+rcvar=`set_rcvar`
+extra_commands="reload"
+
+load_rc_config $name
+
+: ${spawn_cblog_enable="NO"}
+: ${spawn_cblog_app="_APP_"}
+: ${spawn_cblog_app_args=""}
+: ${spawn_cblog_pidfile="/var/run/spawn-cblog.pid"}
+: ${spawn_cblog_username="www"}
+: ${spawn_cblog_groupname="www"}
+: ${spawn_cblog_chroot_dir=""}
+: ${spawn_cblog_bindaddr="127.0.0.1"}
+: ${spawn_cblog_bindport="9000"}
+: ${spawn_cblog_bindsocket="/tmp/cblog.sock"}
+: ${spawn_cblog_bindsocket_mode="0777"}
+: ${spawn_cblog_children="5"}
+: ${spawn_cblog_max_requests="1000"}
+: ${spawn_cblog_web_server_addrs=""}
+: ${spawn_cblog_allowed_env=""}
+: ${spawn_cblog_path_env="/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin"}
+
+if [ -z "${spawn_cblog_bindsocket}" ]; then
+    _spawn_cblog_bind="-a ${spawn_cblog_bindaddr} -p ${spawn_cblog_bindport}"
+else
+    if [ -n "${spawn_cblog_bindsocket_mode}" ]; then
+        _spawn_cblog_bind="-s ${spawn_cblog_bindsocket} -M ${spawn_cblog_bindsocket_mode}"
+    else
+        _spawn_cblog_bind="-s ${spawn_cblog_bindsocket}"
+    fi
+fi
+
+if [ -n "${spawn_cblog_chroot_dir}" ]; then
+    _spawn_cblog_chroot="-c ${spawn_cblog_chroot_dir}"
+else
+    _spawn_cblog_chroot=""
+fi
+
+command="/usr/local/bin/spawn-fcgi"
+command_args="-u ${spawn_cblog_username} -g ${spawn_cblog_groupname} ${_spawn_cblog_bind} ${_spawn_cblog_chroot} -P ${spawn_cblog_pidfile} -- ${spawn_cblog_app} ${spawn_cblog_app_args}"
+pidfile=${spawn_cblog_pidfile}
+procname=${spawn_cblog_app}
+
+_allowed_env="PATH USER PHP_FCGI_CHILDREN PHP_FCGI_MAX_REQUESTS FCGI_WEB_SERVER_ADDRS"
+_allowed_env="${_allowed_env} ${spawn_cblog_allowed_env}"
+
+start_precmd="${name}_start_precmd"
+stop_postcmd="${name}_stop_postcmd"
+
+spawn_cblog_start_precmd()
+{
+    export PATH=${spawn_cblog_path_env}
+    export USER=${spawn_cblog_username}
+    export PHP_FCGI_CHILDREN=${spawn_cblog_children}
+    export PHP_FCGI_MAX_REQUESTS=${spawn_cblog_max_requests}
+    export FCGI_WEB_SERVER_ADDRS=${spawn_cblog_web_server_addrs}
+    E=
+    for i in ${_allowed_env}; do
+        eval _val="\$$i"
+        if [ "${_val}_x" != "_x" ]; then
+            eval _add="$i=$_val"
+            E="${E} ${_add}"
+        fi
+    done
+    command="env - ${E} ${command}"
+}
+
+spawn_cblog_stop_postcmd()
+{
+    rm -f ${pidfile}
+
+    if [ -n "${spawn_cblog_bindsocket}" -a -S "${spawn_cblog_chroot_dir}${spawn_cblog_bindsocket}" ]; then
+        rm -f ${spawn_cblog_chroot_dir}${spawn_cblog_bindsocket}
+    fi
+}
+
+run_rc_command "$1"
