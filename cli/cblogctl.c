@@ -151,8 +151,10 @@ cblogctl_add(const char *post_path)
 	char				filebuf[LINE_MAX];
 	bool				headers = true;
 	struct stat			filestat;
+	char				*ppath;
 
-	post_name = basename(post_path);
+	ppath = strdup(post_path);
+	post_name = basename(ppath);
 	post = fopen(post_path, "r");
 
 	if (post == NULL)
@@ -244,6 +246,8 @@ cblogctl_add(const char *post_path)
 	close(db);
 	if (rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb") < 0)
 		err(1, CDB_PATH"/cblog.cdb");
+
+	free(ppath);
 }
 
 void
