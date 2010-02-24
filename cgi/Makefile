@@ -13,7 +13,7 @@ CFLAGS+=	-Wall -ggdb -O0 ${INCLUDE} ${DEFINE} -DCDB_PATH=\"${CDB_PATH}\" -Werror
 LDADD+=	-L${PREFIX}/lib -lz -lneo_cgi -lneo_cs -lneo_utl -lfcgi -lcdb -L../lib -lcblog_utils
 
 #if exists(cblogctl)
-CDB_PATH!= cblogctl p
+CDB_PATH!= ../cli/cblogctl p
 #endif
 
 beforeinstall:

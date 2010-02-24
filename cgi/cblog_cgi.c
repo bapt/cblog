@@ -11,7 +11,8 @@
 #include "cblog_common.h"
 #include "cblog_cgi.h"
 
-extern int errno;
+/*extern int errno;*/
+#include <errno.h>
 
 static struct pages {
 	const char	*name;
