@@ -105,6 +105,7 @@ main(int argc, char *argv[])
 			usage(argv[0]);
 			/* NOT REACHED */
 	}
+	return EXIT_SUCCESS;
 }
 
 /* vim: set sw=4 sts=4 ts=4 : */
