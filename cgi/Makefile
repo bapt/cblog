@@ -18,7 +18,7 @@ CDB_PATH!= ../cli/cblogctl p
 
 beforeinstall:
 	@mkdir -p ${PREFIX}/etc ${PREFIX}/etc/rc.d
-	@sed -e 's,_CDB_PATH_,${CDB_PATH},' ../samples/cblog.conf > ${PREFIX}/etc/
+	@sed -e 's,_CDB_PATH_,${CDB_PATH},' ../samples/cblog.conf > ${PREFIX}/etc/cblog.conf
 	@mkdir -p ${DESTDIR}/share/cblog
 	@cp -r ../samples/templates ${DESTDIR}/share/cblog
 	@sed -e 's,_APP_,${DESTDIR}${BINDIR}${PROG},' ../samples/spawn_cblog > ${PREFIX}/etc/rc.d/spawn_cblog
