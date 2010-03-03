@@ -1,2 +1,4 @@
+cblogctl should have a -c option to read the configuration file which default to ETCDIR/cblog.conf
+CDB_PATH shoud disapear from cblogctl code to be directly found from the configuration file
 change comment backend from files to cdb (don't know if it is a good idea or not)
 allow to load external hdf (this can be use to import in the blog information from third party apps : rss feed, weather forcast etc.)
