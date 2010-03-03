@@ -22,6 +22,7 @@ beforeinstall:
 	@mkdir -p ${DESTDIR}/share/cblog
 	@cp -r ../samples/templates ${DESTDIR}/share/cblog
 	@sed -e 's,_APP_,${DESTDIR}${BINDIR}${PROG},' ../samples/spawn_cblog > ${PREFIX}/etc/rc.d/spawn_cblog
+	@chmod +x ${PREFIX}/etc/rc.d/spawn_cblog
 	@mkdir -p ${DESTDIR}${BINDIR}
 
 .include <bsd.prog.mk>
