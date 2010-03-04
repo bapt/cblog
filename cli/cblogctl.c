@@ -206,7 +206,7 @@ cblogctl_add(const char *post_path)
 					filebuf[strlen(filebuf) - 1] = '\0';
 
 				snprintf(key, BUFSIZ, "%s_title", post_name);
-				val = filebuf + strlen("Title :");
+				val = filebuf + strlen("Title: ");
 				cdb_make_put(&cdb_make, key, strlen(key), val, strlen(val), CDB_PUT_REPLACE);
 
 			} else if (STARTS_WITH(filebuf, "Tags")) {

@@ -1,6 +1,11 @@
 #include <time.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 #include <sys/param.h>
+#include <sys/stat.h>
 
 #include "cblog_cgi.h"
 #include "cblog_utils.h"
@@ -33,42 +38,70 @@ get_comments_count(char *postname)
 void
 get_comments(HDF *hdf, char *postname)
 {
-	char	comment_file[MAXPATHLEN];
-	char	filebuf[LINE_MAX];
-	FILE	*comment;
-	char	*date_format;
-	time_t	comment_date;
-	char	date[256];
-	int		count = 0;
+	char		comment_file[MAXPATHLEN];
+	int			commentfd;
+	char		*date_format;
+	time_t		comment_date;
+	char		date[256];
+	int			count = 0;
+	int			nbel = 0, j = 0;
+	char		*buffer = NULL, *bufstart;
+	struct stat	comment_stat;
+	size_t		next;
 
 	date_format = get_dateformat(hdf);
 
 	snprintf(comment_file, MAXPATHLEN, CDB_PATH"/comments/%s", postname);
-	comment = fopen(comment_file, "r");
-
-	if (comment == NULL)
+	if (stat(comment_file, &comment_stat) == -1)
 		return;
 
-	while (fgets(filebuf, LINE_MAX, comment) != NULL) {
-		if (STARTS_WITH(filebuf, "comment: "))
-			hdf_set_valuef(hdf, "Posts.0.comments.%i.content=%s", count, cgi_url_unescape(filebuf + 9));
+	if ((buffer = malloc((comment_stat.st_size + 1) * sizeof(char))) == NULL)
+		return;
 
-		else if (STARTS_WITH(filebuf, "name: "))
-			hdf_set_valuef(hdf, "Posts.0.comments.%i.author=%s", count, filebuf + 6);
-
-		else if (STARTS_WITH(filebuf, "url: "))
-			hdf_set_valuef(hdf, "Posts.0.comments.%i.url=%s", count, filebuf + 5);
-
-
-		else if (STARTS_WITH(filebuf, "date: ")) {
-			comment_date = (time_t)strtol(filebuf + 6, NULL, 10);
-			time_to_str(comment_date, date_format, date, 256);
-			hdf_set_valuef(hdf, "Posts.0.comments.%i.date=%s", count, date);
-		} else if (STARTS_WITH(filebuf, "--"))
-			count++;
+	if ((commentfd = open(comment_file, O_RDONLY)) == -1 ) {
+		free(buffer);
+		return;
 	}
 
-	fclose(comment);
+	if (read(commentfd, buffer, comment_stat.st_size) != comment_stat.st_size) {
+		free(buffer);
+		return;
+	}
+
+	buffer[comment_stat.st_size] = '\0';
+
+	if (close(commentfd) == -1) {
+		free(buffer);
+		return;
+	}
+
+	bufstart = buffer;
+	nbel = splitchr(buffer, '\n');
+	next = strlen(buffer);
+	while (j<= nbel) {
+		if (STARTS_WITH(buffer, "comment: "))
+			hdf_set_valuef(hdf, "Posts.0.comments.%i.content=%s", count, cgi_url_unescape(buffer + 9));
+
+		else if (STARTS_WITH(buffer, "name: "))
+			hdf_set_valuef(hdf, "Posts.0.comments.%i.author=%s", count, buffer + 6);
+
+		else if (STARTS_WITH(buffer, "url: "))
+			hdf_set_valuef(hdf, "Posts.0.comments.%i.url=%s", count, buffer + 5);
+
+
+		else if (STARTS_WITH(buffer, "date: ")) {
+			comment_date = (time_t)strtol(buffer + 6, NULL, 10);
+			time_to_str(comment_date, date_format, date, 256);
+			hdf_set_valuef(hdf, "Posts.0.comments.%i.date=%s", count, date);
+		} else if (STARTS_WITH(buffer, "--"))
+			count++;
+
+		buffer += next + 1;
+		j++;
+		next = strlen(buffer);
+	}
+	
+	free(bufstart);
 }
 
 void
