@@ -338,7 +338,6 @@ build_index(HDF *hdf, struct criteria *criteria)
 			break;
 		default:
 			for (i=first_post; i < total_posts; i++) {
-				j++;
 				if ((i >= first_post) && (nb_posts < max_post)) {
 					add_post_to_hdf(hdf, &cdb, posts[i]->name, i);
 					nb_posts++;
@@ -346,6 +345,7 @@ build_index(HDF *hdf, struct criteria *criteria)
 				free(posts[i]->name);
 				free(posts[i]);
 			}
+			j = total_posts;
 	}
 
 	free(posts);
