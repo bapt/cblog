@@ -225,7 +225,7 @@ cblogctl_add(const char *post_path)
 	stat(post_path, &filestat);
 	snprintf(date, 11, "%lld", (long long int)filestat.st_mtime);
 	snprintf(key, BUFSIZ, "%s_ctime", post_name);
-	cdb_make_put(&cdb_make, key, strlen(key), date, strlen(val), CDB_PUT_INSERT);
+	cdb_make_put(&cdb_make, key, strlen(key), date, strlen(date), CDB_PUT_INSERT);
 
 	ob = bufnew(BUFSIZ);
 	markdown(ob, ib, &mkd_xhtml);

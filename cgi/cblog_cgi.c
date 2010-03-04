@@ -243,7 +243,7 @@ build_post(HDF *hdf, char *postname)
 
 	close(cdb_fileno(&cdb));
 	cdb_free(&cdb);
-	return 1;
+	return ret;
 }
 
 int

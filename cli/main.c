@@ -43,7 +43,7 @@ int
 main(int argc, char *argv[])
 {
 	int i;
-	int type;
+	int type = -1;
 
 	if (argc == 1) 
 		usage(argv[0]);
