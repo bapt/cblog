@@ -35,6 +35,11 @@ get_comments_count(char *postname)
 		return count;
 	}
 
+	if (read(commentfd, buffer, comment_stat.st_size) != comment_stat.st_size) {
+		free(buffer);
+		return count;
+	}
+
 	buffer[comment_stat.st_size] = '\0';
 
 	if (close(commentfd) == -1) {
