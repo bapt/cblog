@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <syslog.h>
+#include <sys/queue.h>
 
 #include "cblog_utils.h"
 #include "cblog_common.h"
@@ -28,11 +29,13 @@ static struct pages {
 struct posts {
 	char	*name;
 	time_t	ctime;
+	SLIST_ENTRY(posts) next;
 };
 
 struct tags {
 	char	*name;
 	int		count;
+	SLIST_ENTRY(tags) next;
 };
 
 struct criteria {
@@ -149,22 +152,25 @@ add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
 void
 set_tags(HDF *hdf)
 {
-	int					i, j, nbtags = 0;
+	int					i, nbtags = 0, nbel;
 	struct cdb			cdb;
 	struct cdb_find		cdbf;
 	char				key[BUFSIZ];
 	char				*val;
 	bool				found;
 	struct tags			**taglist = NULL;
+	struct tags			*tag;
+	char				*tagcmp, *val_to_free;
+	size_t				next;
+
+	SLIST_HEAD(, tags) tagshead;
+	SLIST_INIT(&tagshead);
 
 	if (db_open(hdf, &cdb, O_RDONLY) < 0)
 		return;
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
 	while (cdb_findnext(&cdbf) > 0) {
-		int		nbel;
-		char	*val_to_free;
-
 		val = db_get(&cdb);
 		snprintf(key, BUFSIZ, "%s_tags", val);
 		free(val);
@@ -175,32 +181,37 @@ set_tags(HDF *hdf)
 		val_to_free = val;
 		nbel = splitchr(val, ',');
 		for (i=0; i <= nbel; i++) {
-			size_t	next = strlen(val);
-			char	*tagcmp = trimspace(val);
+			next = strlen(val);
+			tagcmp = trimspace(val);
 
 			found = false;
 
-			for (j=0; j < nbtags; j++) {
-				if (EQUALS(tagcmp, taglist[j]->name)) {
+			SLIST_FOREACH(tag, &tagshead, next) {
+				if (EQUALS(tagcmp, tag->name)) {
 					found = true;
-					taglist[j]->count++;
+					tag->count++;
 					break;
 				}
 			}
 			if (!found) {
-				struct tags		*tag;
-
 				nbtags++;
-				taglist = realloc(taglist, nbtags * sizeof(struct tags*));
 				tag = malloc(sizeof(struct tags));
 				tag->name = strdup(tagcmp);
 
 				tag->count = 1;
-				taglist[nbtags - 1] = tag;
+				SLIST_INSERT_HEAD(&tagshead, tag, next);
 			}
 			val+= next + 1;
 		}
 		free(val_to_free);
+	}
+
+	taglist = malloc(nbtags * sizeof(struct tags *));
+
+	i=0;
+	SLIST_FOREACH(tag, &tagshead, next) {
+		taglist[i] = tag;
+		i++;
 	}
 
 	qsort(taglist, nbtags, sizeof(struct tags *), sort_by_name);
@@ -250,13 +261,15 @@ int
 build_index(HDF *hdf, struct criteria *criteria)
 {
 	int					first_post = 0, nb_posts = 0, max_post, total_posts = 0;
-	int					nb_pages = 0, page;
+	int					nb_pages = 0, page, nbel;
 	int					i, j = 0, k;
 	struct cdb			cdb;
 	struct cdb_find		cdbf;
-	char				*val;
+	char				*val, *tag, *tagcmp;
 	char				key[BUFSIZ];
 	struct posts		**posts = NULL;
+	struct posts		*post;
+	size_t				next;
 
 	max_post = hdf_get_int_value(hdf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
 	page = hdf_get_int_value(hdf, "Query.page", 1);
@@ -267,12 +280,13 @@ build_index(HDF *hdf, struct criteria *criteria)
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
 
+	SLIST_HEAD(, posts) postshead;
+	SLIST_INIT(&postshead);
+
 	while (cdb_findnext(&cdbf) > 0) {
-		struct posts *post = NULL;
 
 		total_posts++;
 
-		posts = realloc(posts, total_posts * sizeof(struct posts *));
 		post = malloc(sizeof(struct posts));
 
 		/* fetch the post key name */
@@ -286,7 +300,15 @@ build_index(HDF *hdf, struct criteria *criteria)
 		} else
 			post->ctime = time(NULL);
 
-		posts[total_posts - 1] = post;
+		SLIST_INSERT_HEAD(&postshead, post, next);
+	}
+
+	posts = malloc(total_posts * sizeof(struct posts *));
+
+	i = 0;
+	SLIST_FOREACH(post, &postshead, next) {
+		posts[i] = post;
+		i++;
 	}
 
 	qsort(posts, total_posts, sizeof(struct posts *), sort_by_ctime);
@@ -297,15 +319,12 @@ build_index(HDF *hdf, struct criteria *criteria)
 				snprintf(key, BUFSIZ, "%s_tags", posts[i]->name);
 
 				if (cdb_find(&cdb, key, strlen(key)) > 0) {
-					char	*tag;
-					int		nbel;
-
 					val = db_get(&cdb);
 					tag = val;
 					nbel = splitchr(val, ',');
 					for (k=0; k <= nbel; k++) {
-						size_t	next = strlen(val);
-						char	*tagcmp = trimspace(val);
+						next = strlen(val);
+						tagcmp = trimspace(val);
 
 						if (EQUALS(criteria->tagname, tagcmp)) {
 							j++;
@@ -365,16 +384,16 @@ build_index(HDF *hdf, struct criteria *criteria)
 void
 cblogcgi(HDF *conf)
 {
-	CGI		*cgi;
-	NEOERR	*neoerr;
-	HDF		*hdf;
-	STRING	neoerr_str;
-	char	*requesturi, *method;
-	int		type, i, nb_posts;
-	time_t		gentime, posttime;
-	int     yyyy, mm, dd;
-	struct	criteria criteria;
-	struct tm calc_time;
+	CGI					*cgi;
+	NEOERR				*neoerr;
+	HDF					*hdf;
+	STRING				neoerr_str;
+	char				*requesturi, *method;
+	int					type, i, nb_posts;
+	time_t				gentime, posttime;
+	int					yyyy, mm, dd;
+	struct	criteria	criteria;
+	struct tm			calc_time;
 
 	/* read the configuration file */
 

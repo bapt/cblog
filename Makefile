@@ -1,3 +1,3 @@
-SUBDIR= 	lib cli cgi fcgi
+SUBDIR= 	lib cli cgi
 
 .include <bsd.subdir.mk>
