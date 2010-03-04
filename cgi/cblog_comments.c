@@ -15,23 +15,47 @@
 int
 get_comments_count(char *postname)
 {
-	char	comment_file[MAXPATHLEN];
-	char	filebuf[LINE_MAX];
-	FILE	*comment;
-	int		count = 0;
+	char		comment_file[MAXPATHLEN];
+	int			commentfd;
+	int			count = 0, j = 0, nbel = 0;
+	struct stat	comment_stat;
+	size_t		next;
+	char		*buffer = NULL, *bufstart;
 
 	snprintf(comment_file, MAXPATHLEN, CDB_PATH"/comments/%s", postname);
-	comment = fopen(comment_file, "r");
 
-	if (comment == NULL)
+	if (stat(comment_file, &comment_stat) == -1)
 		return count;
 
-	while (fgets(filebuf, LINE_MAX, comment) != NULL) {
-		if (STARTS_WITH(filebuf, "--"))
-			count++;
+	if ((buffer = malloc((comment_stat.st_size + 1) * sizeof(char))) == NULL)
+		return count;
+
+	if ((commentfd = open(comment_file, O_RDONLY)) == -1 ) {
+		free(buffer);
+		return count;
 	}
 
-	fclose(comment);
+	buffer[comment_stat.st_size] = '\0';
+
+	if (close(commentfd) == -1) {
+		free(buffer);
+		return count;
+	}
+
+	bufstart = buffer;
+	nbel = splitchr(buffer, '\n');
+	next = strlen(buffer);
+
+	for (j=0; j <= nbel; j++) {
+		if (STARTS_WITH(buffer, "--"))
+			count++;
+
+		buffer += next + 1;
+		next = strlen(buffer);
+	}
+
+	free(buffer);
+
 	return count;
 }
 

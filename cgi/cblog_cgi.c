@@ -326,8 +326,11 @@ build_index(HDF *hdf, struct criteria *criteria)
 		case CRITERIA_TIME_T:
 			for (i=0; i < total_posts; i++) {
 				if (posts[i]->ctime >= criteria->start && posts[i]->ctime <= criteria->end) {
-					add_post_to_hdf(hdf, &cdb, posts[i]->name, i);
-					nb_posts++;
+					j++;
+					if ((j >= first_post) && (nb_posts < max_post)) {
+						add_post_to_hdf(hdf, &cdb, posts[i]->name, i);
+						nb_posts++;
+					}
 				}
 				free(posts[i]->name);
 				free(posts[i]);
@@ -335,6 +338,7 @@ build_index(HDF *hdf, struct criteria *criteria)
 			break;
 		default:
 			for (i=first_post; i < total_posts; i++) {
+				j++;
 				if ((i >= first_post) && (nb_posts < max_post)) {
 					add_post_to_hdf(hdf, &cdb, posts[i]->name, i);
 					nb_posts++;
