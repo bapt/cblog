@@ -314,7 +314,6 @@ void
 cblogctl_create()
 {
 	int					db;
-	struct cdb			cdb;
 	struct cdb_make		cdb_make;
 
 	if (access(CDB_PATH"/cblog.cdb", F_OK) == 0)
@@ -322,10 +321,8 @@ cblogctl_create()
 	if ((db = open(CDB_PATH"/cblog.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
 		err(1, CDB_PATH"/cblog.cdb");
 
-	cdb_init(&cdb, db);
 	cdb_make_start(&cdb_make, db);
 	cdb_make_finish(&cdb_make);
-	cdb_free(&cdb);
 	close(db);
 }
 
