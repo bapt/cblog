@@ -32,7 +32,7 @@ check_conf(HDF *conf)
 }
 
 void
-read_conf()
+read_conf(void)
 {
 	HDF *hdf;
 	NEOERR *neoerr;

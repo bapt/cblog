@@ -9,14 +9,14 @@
 #define CBLOG_VERSION_CMD 6
 #define CBLOG_PATH_CMD 7
 
-void cblogctl_create();
-void cblogctl_list();
+void cblogctl_create(void);
+void cblogctl_list(void);
 void cblogctl_info(const char *);
 void cblogctl_get(const char *);
 void cblogctl_add(const char *);
 void cblogctl_set(const char *, char *);
-void cblogctl_version();
-void cblogctl_path();
+void cblogctl_version(void);
+void cblogctl_path(void);
 
 /* path the the CDB database file */
 extern char	cblog_cdb[];

@@ -21,7 +21,7 @@ char	cblog_cdb[PATH_MAX];
 char	cblog_cdb_tmp[PATH_MAX];
 
 void
-cblogctl_list()
+cblogctl_list(void)
 {
 	int					db;
 	struct cdb			cdb;
@@ -315,7 +315,7 @@ cblogctl_set(const char *post_name, char *to_be_set)
 }
 
 void
-cblogctl_create()
+cblogctl_create(void)
 {
 	int					db;
 	struct cdb_make		cdb_make;
@@ -331,13 +331,13 @@ cblogctl_create()
 }
 
 void
-cblogctl_path()
+cblogctl_path(void)
 {
 	printf("%s\n", cblog_cdb);
 }
 
 void
-cblogctl_version()
+cblogctl_version(void)
 {
 	fprintf(stderr, "%s (%s)\n", cblog_version, cblog_url);
 }
