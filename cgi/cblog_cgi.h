@@ -1,3 +1,6 @@
+#ifndef	CBLOG_CGI_CBLOG_CGI_H
+#define	CBLOG_CGI_CBLOG_CGI_H
+
 #include <fcgi_stdio.h>
 #include <ClearSilver.h>
 
@@ -43,3 +46,5 @@ int		get_comments_count(char *postname);
 void	get_comments(HDF *hdf, char *postname);
 void	set_comment(HDF *hdf, char *postname);
 void	cblog_err(int eval, const char * message, ...);
+
+#endif	/* ndef CBLOG_CGI_CBLOG_CGI_H */
