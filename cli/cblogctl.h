@@ -18,4 +18,8 @@ void cblogctl_set(const char *, char *);
 void cblogctl_version();
 void cblogctl_path();
 
+/* path the the CDB database file */
+extern char	cblog_cdb[];
+extern char	cblog_cdb_tmp[];
+
 /* vim: set sw=4 sts=4 ts=4 : */

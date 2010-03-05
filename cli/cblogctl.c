@@ -16,6 +16,10 @@
 #include "cblog_common.h"
 #include "cblog_utils.h"
 
+/* path the the CDB database file */
+char	cblog_cdb[PATH_MAX];
+char	cblog_cdb_tmp[PATH_MAX];
+
 void
 cblogctl_list()
 {
@@ -24,8 +28,8 @@ cblogctl_list()
 	struct cdb_find		cdbf;
 	char				*val;
 
-	if ((db = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
-		err(1, CDB_PATH"/cblog.cdb");
+	if ((db = open(cblog_cdb, O_RDONLY)) < 0)
+		err(1, "%s", cblog_cdb);
 	cdb_init(&cdb, db);
 
 	cdb_findinit(&cdbf, &cdb, "posts", 5);
@@ -65,8 +69,8 @@ cblogctl_info(const char *post_name)
 	char		*val;
 	struct cdb	cdb;
 
-	if ((db = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
-		err(1, CDB_PATH"/cblog.cdb");
+	if ((db = open(cblog_cdb, O_RDONLY)) < 0)
+		err(1, "%s", cblog_cdb);
 	cdb_init(&cdb, db);
 
 	printf("Informations about %s\n", post_name);
@@ -99,8 +103,8 @@ cblogctl_get(const char *post_name)
 	char		*val;
 	struct cdb	cdb;
 
-	if ((db = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
-		err(1, CDB_PATH"/cblog.cdb");
+	if ((db = open(cblog_cdb, O_RDONLY)) < 0)
+		err(1, "%s", cblog_cdb);
 	cdb_init(&cdb, db);
 
 	out = fopen(post_name, "w");
@@ -160,10 +164,10 @@ cblogctl_add(const char *post_path)
 	if (post == NULL)
 		errx(EXIT_FAILURE, "Unable to open %s", post_name);
 
-	if ((olddb = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
-		err(1, CDB_PATH"/cblog.cdb");
-	if ((db = open(CDB_PATH"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
-		err(1, CDB_PATH"/cblogtmp.cdb");
+	if ((olddb = open(cblog_cdb, O_RDONLY)) < 0)
+		err(1, "%s", cblog_cdb);
+	if ((db = open(cblog_cdb, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
+		err(1, "%s", cblog_cdb);
 
 	cdb_init(&cdb, olddb);
 	cdb_make_start(&cdb_make, db);
@@ -244,8 +248,8 @@ cblogctl_add(const char *post_path)
 	close(olddb);
 	cdb_free(&cdb);
 	close(db);
-	if (rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb") < 0)
-		err(1, CDB_PATH"/cblog.cdb");
+	if (rename(cblog_cdb_tmp, cblog_cdb) < 0)
+		err(1, "%s", cblog_cdb);
 
 	free(ppath);
 }
@@ -261,10 +265,10 @@ cblogctl_set(const char *post_name, char *to_be_set)
 	struct cdb_find		cdbf;
 	bool				found = false;
 
-	if ((olddb = open(CDB_PATH"/cblog.cdb", O_RDONLY)) < 0)
-		err(1, CDB_PATH"/cblog.cdb");
-	if ((db = open(CDB_PATH"/cblogtmp.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
-		err(1, CDB_PATH"/cblogtmp.cdb");
+	if ((olddb = open(cblog_cdb, O_RDONLY)) < 0)
+		err(1, "%s", cblog_cdb);
+	if ((db = open(cblog_cdb_tmp, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
+		err(1, "%s", cblog_cdb);
 
 	cdb_init(&cdb, olddb);
 	cdb_make_start(&cdb_make, db);
@@ -306,8 +310,8 @@ cblogctl_set(const char *post_name, char *to_be_set)
 	close(db);
 	close(olddb);
 
-	if (rename(CDB_PATH"/cblogtmp.cdb", CDB_PATH"/cblog.cdb") < 0)
-		err(1, CDB_PATH"/cblog.cdb");
+	if (rename(cblog_cdb_tmp, cblog_cdb) < 0)
+		err(1, "%s", cblog_cdb);
 }
 
 void
@@ -316,10 +320,10 @@ cblogctl_create()
 	int					db;
 	struct cdb_make		cdb_make;
 
-	if (access(CDB_PATH"/cblog.cdb", F_OK) == 0)
-		errx(1, "%s already exists", CDB_PATH"/cblog.cdb");
-	if ((db = open(CDB_PATH"/cblog.cdb", O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
-		err(1, CDB_PATH"/cblog.cdb");
+	if (access(cblog_cdb, F_OK) == 0)
+		errx(1, "%s already exists", cblog_cdb);
+	if ((db = open(cblog_cdb, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
+		err(1, "%s", cblog_cdb);
 
 	cdb_make_start(&cdb_make, db);
 	cdb_make_finish(&cdb_make);
@@ -329,7 +333,7 @@ cblogctl_create()
 void
 cblogctl_path()
 {
-	printf("%s\n", CDB_PATH);
+	printf("%s\n", cblog_cdb);
 }
 
 void

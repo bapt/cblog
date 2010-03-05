@@ -2,6 +2,7 @@
 #include <err.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <limits.h>
 #include "cblogctl.h"
 #include "cblog_utils.h"
 
@@ -56,9 +57,26 @@ main(int argc, char *argv[])
 		}
 	}
 
-	if (type != CBLOG_CREATE_CMD && type != CBLOG_VERSION_CMD && type != CBLOG_PATH_CMD)
-	    if (access(CDB_PATH"/cblog.cdb", F_OK) != 0)
-		    errx(1, "%s must exists. Make '%s create' first.", CDB_PATH"/cblog.cdb", argv[0]);
+	/* search for cblog_cdb value, get from env or fallback to default otherwise */
+	char	*s;
+	size_t	slen;
+	s = getenv("CBLOG_CDB");
+	if (s == NULL) {
+		/* fallback to default path */
+		s = CDB_PATH"/cblog.cdb";
+	}
+	/* check path's size */
+	slen = strlen(s);
+	if ((slen + 4) >= PATH_MAX) /* keep 4 char for .tmp */
+		err(-1, "database path is too long.");
+	/* setup cblog_cdb and cblog_cdb_tmp variable */
+	(void)memcpy(cblog_cdb, s, slen + 1);
+	(void)sprintf(cblog_cdb_tmp, "%s.tmp", cblog_cdb);
+
+	if (type != CBLOG_CREATE_CMD && type != CBLOG_VERSION_CMD && type != CBLOG_PATH_CMD) {
+	    if (access(cblog_cdb, F_OK) != 0)
+		    errx(1, "%s must exists. Make '%s create' first.", cblog_cdb, argv[0]);
+	}
 
 	switch(type) {
 		case CBLOG_CREATE_CMD:
