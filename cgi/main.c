@@ -32,7 +32,7 @@ check_conf(HDF *conf)
 }
 
 void
-read_conf(void)
+read_conf(int signal /* unused */)
 {
 	HDF *hdf;
 	NEOERR *neoerr;
