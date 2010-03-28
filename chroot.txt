@@ -1,6 +1,10 @@
 jail + chroot + cblog
 
-* create chroot inside a jail:
+* Prepare the chroot
+
+    user@devel> sudo ./chroot_cblog.sh
+
+* Create chroot inside a jail:
 
     user@jail> setenv CHROOT /usr/local/chroot/cblog
     user@jail> sudo mkdir $CHROOT
@@ -8,17 +12,33 @@ jail + chroot + cblog
 
 * Popuplate the chroot:
 
-    user@jail> find . -type f
-    ./lib/libfcgi.so.0
-    ./lib/libc.so.7
-    ./lib/libz.so.5
-    ./usr/local/etc/cblog.conf
-    ./usr/local/libexec/cgi-bin/cblog.cgi
-    ./usr/local/share/cblog/templates/atom.cs
-    ./usr/local/share/cblog/templates/rss.cs
-    ./usr/local/share/cblog/templates/default.cs
-    ./libexec/ld-elf.so.1
-    user@jail> sudo mkdir -p dev tmp var/run var/db
+    user@jail> (copy chroot_cblog.tgz from devel)
+    user@jail> sudo tar xzvf /path/to/chroot_cblog.tgz
+    x ./
+    x ./usr/
+    x ./lib/
+    x ./tmp/
+    x ./libexec/
+    x ./dev/
+    x ./var/
+    x ./var/run/
+    x ./var/db/
+    x ./libexec/ld-elf.so.1
+    x ./lib/libfcgi.so.0
+    x ./lib/libc.so.7
+    x ./lib/libz.so.5
+    x ./usr/local/
+    x ./usr/local/etc/
+    x ./usr/local/libexec/
+    x ./usr/local/share/
+    x ./usr/local/share/cblog/
+    x ./usr/local/share/cblog/templates/
+    x ./usr/local/share/cblog/templates/default.cs
+    x ./usr/local/share/cblog/templates/rss.cs
+    x ./usr/local/share/cblog/templates/atom.cs
+    x ./usr/local/libexec/cgi-bin/
+    x ./usr/local/libexec/cgi-bin/cblog.cgi
+    x ./usr/local/etc/cblog.conf
 
 * Configure cblog:
 

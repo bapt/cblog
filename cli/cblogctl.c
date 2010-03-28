@@ -166,7 +166,7 @@ cblogctl_add(const char *post_path)
 
 	if ((olddb = open(cblog_cdb, O_RDONLY)) < 0)
 		err(1, "%s", cblog_cdb);
-	if ((db = open(cblog_cdb, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
+	if ((db = open(cblog_cdb_tmp, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
 		err(1, "%s", cblog_cdb);
 
 	cdb_init(&cdb, olddb);
