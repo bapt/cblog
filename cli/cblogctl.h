@@ -11,12 +11,14 @@
 #define CBLOG_CREATE_CMD 5
 #define CBLOG_VERSION_CMD 6
 #define CBLOG_PATH_CMD 7
+#define CBLOG_DEL_CMD 8
 
 void cblogctl_create(void);
 void cblogctl_list(void);
 void cblogctl_info(const char *);
 void cblogctl_get(const char *);
 void cblogctl_add(const char *);
+void cblogctl_del(const char *);
 void cblogctl_set(const char *, char *);
 void cblogctl_version(void);
 void cblogctl_path(void);

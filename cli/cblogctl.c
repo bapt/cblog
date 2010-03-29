@@ -255,6 +255,50 @@ cblogctl_add(const char *post_path)
 }
 
 void
+cblogctl_del(const char *post_name)
+{
+	int					olddb, db, i;
+	struct cdb			cdb;
+	struct cdb_make		cdb_make;
+	struct cdb_find		cdbf;
+	char				*val, *valkey;
+	char				key[BUFSIZ];
+
+	if ((olddb = open(cblog_cdb, O_RDONLY)) < 0)
+		err(1, "%s", cblog_cdb);
+	if ((db = open(cblog_cdb_tmp, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
+		err(1, "%s", cblog_cdb);
+
+	cdb_init(&cdb, olddb);
+	cdb_make_start(&cdb_make, db);
+
+	cdb_findinit(&cdbf, &cdb, "posts", 5);
+	while (cdb_findnext(&cdbf) > 0) {
+		valkey = db_get(&cdb);
+
+		if (EQUALS(post_name, valkey))
+			continue;
+		cdb_make_add(&cdb_make, "posts", 5, valkey, strlen(valkey));
+
+		for (i=0; field[i] != NULL; i++) {
+			snprintf(key, BUFSIZ, "%s_%s", valkey, field[i]);
+			if (cdb_find(&cdb, key, strlen(key)) > 0) {
+				val = db_get(&cdb);
+				cdb_make_add(&cdb_make, key, strlen(key), val, strlen(val));
+				free(val);
+			}
+		}
+		free(valkey);
+	}
+	cdb_make_finish(&cdb_make);
+	close(olddb);
+	cdb_free(&cdb);
+	close(db);
+	if (rename(cblog_cdb_tmp, cblog_cdb) < 0)
+		err(1, "%s", cblog_cdb);
+}
+
+void
 cblogctl_set(const char *post_name, char *to_be_set)
 {
 	int					olddb, db, i;

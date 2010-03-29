@@ -14,6 +14,7 @@ static struct command {
 } cmd[] = {
 	{ "list", "l", "Lists published posts", CBLOG_LIST_CMD},
 	{ "add", "a", "Add or modify a post", CBLOG_ADD_CMD},
+	{ "del", "d", "Delete a post", CBLOG_DEL_CMD},
 	{ "get", "g", "Get a post in text format", CBLOG_GET_CMD},
 	{ "set", "s", "Set some information in the post", CBLOG_SET_CMD},
 	{ "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
@@ -30,6 +31,7 @@ usage(const char *s)
 			Example:\n\
 			init\n\
 			add file_post\n\
+			del file_post\n\
 			get file_post1 file_post2 ... file_postN\n\
 			set file_post key=value\n\
 			info file_post1 file_post2 ... file_postN\n\
@@ -90,6 +92,12 @@ main(int argc, char *argv[])
 				usage(argv[0]);
 
 			cblogctl_add(argv[2]);
+			break;
+		case CBLOG_DEL_CMD:
+			if (argc != 3)
+				usage(argv[0]);
+
+			cblogctl_del(argv[2]);
 			break;
 		case CBLOG_GET_CMD:
 			if (argc <= 2 )
