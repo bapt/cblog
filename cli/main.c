@@ -29,7 +29,7 @@ usage(const char *s)
 {
 	printf("Usage: %s cmd [option]\n\n\
 			Example:\n\
-			init\n\
+			create\n\
 			add file_post\n\
 			del file_post\n\
 			get file_post1 file_post2 ... file_postN\n\
