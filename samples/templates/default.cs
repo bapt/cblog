@@ -66,7 +66,7 @@
 <table>
 <tr><td>Nom :</td><td><input name="name" size="35" value="<?cs var:Query.name ?>" /></td></tr>
 <tr><td>URL (optionel) :</td><td><input name="url" size="35" value="<?cs var:Query.url ?>" /></td></tr>
-<tr><td>Écrire ici: "je chie sur les spams"</td><td><input name="antispam" size="35" value="" /></td></tr>
+<tr><td>Écrire ici: "<?cs var:antispamres ?>"</td><td><input name="antispam" size="35" value="" /></td></tr>
 <tr><td>Commentaires :</td><td><textarea name="comment" rows="5" cols="60"><?cs var:Query.comment ?></textarea></td></tr>
 <tr><td><input type="hidden" name="test1" value="" /><input type="hidden" name="test2" value="cblog!powa" /><input type="submit" name="submit" value="Preview" /></td><td><input type="submit" name="submit" value="Post" /></td></tr>
 </table>
