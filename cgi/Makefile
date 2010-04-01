@@ -12,10 +12,6 @@ CDB_PATH?=	/usr/local/cblog
 CFLAGS+=	-Wall -ggdb -O0 ${INCLUDE} ${DEFINE} -DCDB_PATH=\"${CDB_PATH}\" -Werror
 LDADD+=	-L${PREFIX}/lib -lz -lneo_cgi -lneo_cs -lneo_utl -lfcgi -lcdb -L../lib -lcblog_utils
 
-#if exists(cblogctl)
-CDB_PATH!= ../cli/cblogctl p
-#endif
-
 beforeinstall:
 	@mkdir -p ${PREFIX}/etc ${PREFIX}/etc/rc.d
 	@sed -e 's,_CDB_PATH_,${CDB_PATH},' ../samples/cblog.conf > ${PREFIX}/etc/cblog.conf
