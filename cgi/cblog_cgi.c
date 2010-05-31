@@ -604,66 +604,66 @@ cblogcgi(HDF *conf)
 
 	/* work set the good date format and display everything */
 	switch (type) {
-			case CBLOG_RSS:
+		case CBLOG_RSS:
 
-				setlocale(LC_ALL, "C");
-				HDF_FOREACH(hdf, cgi->hdf, "Posts") {
-					int		date = hdf_get_int_value(hdf, "date", time(NULL));
+			setlocale(LC_ALL, "C");
+			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
+				int		date = hdf_get_int_value(hdf, "date", time(NULL));
 
-					time_to_str(date, DATE_FEED, buf, BUFSIZ);
+				time_to_str(date, DATE_FEED, buf, BUFSIZ);
 
-					hdf_set_valuef(hdf, "date=%s", buf);
-				}
+				hdf_set_valuef(hdf, "date=%s", buf);
+			}
 
-				gentime = time(NULL);
-				time_to_str(gentime, DATE_FEED, buf, BUFSIZ);
+			gentime = time(NULL);
+			time_to_str(gentime, DATE_FEED, buf, BUFSIZ);
 
-				hdf_set_valuef(cgi->hdf, "gendate=%s", buf);
+			hdf_set_valuef(cgi->hdf, "gendate=%s", buf);
 
-				hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/rss+xml");
-				neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.rss", "rss.cs"));
-				break;
-			case CBLOG_ATOM:
+			hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/rss+xml");
+			neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.rss", "rss.cs"));
+			break;
+		case CBLOG_ATOM:
 
-				HDF_FOREACH(hdf, cgi->hdf, "Posts") {
+			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
 
-					posttime = hdf_get_int_value(hdf, "date", time(NULL));
-					date = gmtime(&posttime);
+				posttime = hdf_get_int_value(hdf, "date", time(NULL));
+				date = gmtime(&posttime);
 
-					hdf_set_valuef(hdf, "date=%04d-%02d-%02dT%02d:%02d:%02dZ",
-							date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
-							date->tm_hour, date->tm_min, date->tm_sec);
-				}
-
-				gentime = time(NULL);
-				date = gmtime(&gentime);
-
-				hdf_set_valuef(cgi->hdf, "gendate=%04d-%02d-%02dT%02d:%02d:%02dZ",
+				hdf_set_valuef(hdf, "date=%04d-%02d-%02dT%02d:%02d:%02dZ",
 						date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
 						date->tm_hour, date->tm_min, date->tm_sec);
+			}
 
-				hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/atom+xml");
-				neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.atom", "atom.cs"));
-				break;
-			case CBLOG_ERR:
-				cgiwrap_writef("Status: 404\n");
+			gentime = time(NULL);
+			date = gmtime(&gentime);
+
+			hdf_set_valuef(cgi->hdf, "gendate=%04d-%02d-%02dT%02d:%02d:%02dZ",
+					date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
+					date->tm_hour, date->tm_min, date->tm_sec);
+
+			hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/atom+xml");
+			neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.atom", "atom.cs"));
+			break;
+		case CBLOG_ERR:
+			cgiwrap_writef("Status: 404\n");
+			set_tags(cgi->hdf);
+			neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
+			break;
+		default:
+			if (type == CBLOG_POST)
 				set_tags(cgi->hdf);
-				neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
-				break;
-			default:
-				if (type == CBLOG_POST)
-					set_tags(cgi->hdf);
 
-				date_format = get_dateformat(cgi->hdf);
+			date_format = get_dateformat(cgi->hdf);
 
-				HDF_FOREACH(hdf, cgi->hdf, "Posts") {
-					datenum = hdf_get_int_value(hdf, "date", time(NULL));
-					time_to_str(datenum, date_format, buf, BUFSIZ);
+			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
+				datenum = hdf_get_int_value(hdf, "date", time(NULL));
+				time_to_str(datenum, date_format, buf, BUFSIZ);
 
-					hdf_set_valuef(hdf, "date=%s", buf);
-				}
-				neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
-				break;
+				hdf_set_valuef(hdf, "date=%s", buf);
+			}
+			neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
+			break;
 	}
 
 	if (neoerr != STATUS_OK && EQUALS(method, "HEAD") ) {
