@@ -261,15 +261,17 @@ int
 build_index(HDF *hdf, struct criteria *criteria)
 {
 	int					first_post = 0, nb_posts = 0, max_post, total_posts = 0;
-	int					nb_pages = 0, page, nbel;
+	int					nb_pages = 0, page, nbel, nbtags = 0;
 	int					i, j = 0, k;
 	struct cdb			cdb;
 	struct cdb_find		cdbf;
-	char				*val, *tag, *tagcmp;
+	char				*val, *tag, *tagcmp, *valtrimed, *val_to_free;
+	struct tags			**taglist = NULL, *tags;
 	char				key[BUFSIZ];
 	struct posts		**posts = NULL;
 	struct posts		*post;
 	size_t				next;
+	bool				found;
 
 	max_post = hdf_get_int_value(hdf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
 	page = hdf_get_int_value(hdf, "Query.page", 1);
@@ -282,6 +284,9 @@ build_index(HDF *hdf, struct criteria *criteria)
 
 	SLIST_HEAD(, posts) postshead;
 	SLIST_INIT(&postshead);
+
+	SLIST_HEAD(, tags) tagshead;
+	SLIST_INIT(&tagshead);
 
 	while (cdb_findnext(&cdbf) > 0) {
 
@@ -301,7 +306,58 @@ build_index(HDF *hdf, struct criteria *criteria)
 			post->ctime = time(NULL);
 
 		SLIST_INSERT_HEAD(&postshead, post, next);
+
+		/* while here work on the tags to prevent another userless loop */
+		snprintf(key, BUFSIZ, "%s_tags", post->name);
+		cdb_find(&cdb, key, strlen(key));
+		val = db_get(&cdb);
+
+		val_to_free = val;
+		nbel = splitchr(val, ',');
+		for (i = 0; i <= nbel; i++) {
+			next = strlen(val);
+			valtrimed = trimspace(val);
+			found = false;
+			SLIST_FOREACH(tags, &tagshead, next) {
+				if (EQUALS(valtrimed, tags->name)) {
+					found = true;
+					tags->count++;
+					break;
+				}
+			}
+			if (!found) {
+				nbtags++;
+				tags = malloc(sizeof(struct tags));
+				tags->name = strdup(valtrimed);
+				tags->count = 1;
+				SLIST_INSERT_HEAD(&tagshead, tags, next);
+			}
+			val+= next + 1;
+		}
+		free(val_to_free);
+
 	}
+
+	/* process tags */
+	taglist = malloc(nbtags * sizeof(struct tags *));
+
+	i=0;
+	SLIST_FOREACH(tags, &tagshead, next) {
+		taglist[i] = tags;
+		i++;
+	}
+
+	qsort(taglist, nbtags, sizeof(struct tags *), sort_by_name);
+
+	for (i = 0; i < nbtags; i++) {
+		set_tag_name(hdf, i, taglist[i]->name);
+		set_tag_count(hdf, i, taglist[i]->count);
+		free(taglist[i]->name);
+		free(taglist[i]);
+	}
+	free(taglist);
+
+	/* going back to posts processing */
 
 	posts = malloc(total_posts * sizeof(struct posts *));
 
@@ -585,8 +641,10 @@ cblogcgi(HDF *conf)
 				neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
 				break;
 			default:
+				if (type == CBLOG_POST)
+					set_tags(cgi->hdf);
+
 				date_format = get_dateformat(cgi->hdf);
-				set_tags(cgi->hdf);
 
 				HDF_FOREACH(hdf, cgi->hdf, "Posts") {
 					datenum = hdf_get_int_value(hdf, "date", time(NULL));
