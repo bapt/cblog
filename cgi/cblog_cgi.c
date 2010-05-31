@@ -455,10 +455,9 @@ cblogcgi(HDF *conf)
 	int					type, i, nb_posts;
 	time_t				gentime, posttime;
 	int					yyyy, mm, dd, datenum;
-	struct	criteria	criteria;
-	struct tm			calc_time;
+	struct criteria		criteria;
+	struct tm			calc_time, *date;
 	char				buf[BUFSIZ];
-	struct tm			*date;
 
 	/* read the configuration file */
 
@@ -605,12 +604,11 @@ cblogcgi(HDF *conf)
 	/* work set the good date format and display everything */
 	switch (type) {
 		case CBLOG_RSS:
-
 			setlocale(LC_ALL, "C");
 			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
-				int		date = hdf_get_int_value(hdf, "date", time(NULL));
+				datenum = hdf_get_int_value(hdf, "date", time(NULL));
 
-				time_to_str(date, DATE_FEED, buf, BUFSIZ);
+				time_to_str(datenum, DATE_FEED, buf, BUFSIZ);
 
 				hdf_set_valuef(hdf, "date=%s", buf);
 			}
