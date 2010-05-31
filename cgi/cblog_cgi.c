@@ -40,6 +40,7 @@ struct tags {
 
 struct criteria {
 	int		type;
+	bool	feed;
 	char	*tagname;
 	time_t	start;
 	time_t	end;
@@ -286,7 +287,10 @@ build_index(HDF *hdf, struct criteria *criteria)
 	SLIST_INIT(&postshead);
 
 	SLIST_HEAD(, tags) tagshead;
-	SLIST_INIT(&tagshead);
+
+	if (!criteria->feed) {
+		SLIST_INIT(&tagshead);
+	}
 
 	while (cdb_findnext(&cdbf) > 0) {
 
@@ -307,58 +311,61 @@ build_index(HDF *hdf, struct criteria *criteria)
 
 		SLIST_INSERT_HEAD(&postshead, post, next);
 
-		/* while here work on the tags to prevent another userless loop */
-		snprintf(key, BUFSIZ, "%s_tags", post->name);
-		cdb_find(&cdb, key, strlen(key));
-		val = db_get(&cdb);
+		if (!criteria->feed) {
+			/* while here work on the tags to prevent another userless loop */
+			snprintf(key, BUFSIZ, "%s_tags", post->name);
+			cdb_find(&cdb, key, strlen(key));
+			val = db_get(&cdb);
 
-		val_to_free = val;
-		nbel = splitchr(val, ',');
-		for (i = 0; i <= nbel; i++) {
-			next = strlen(val);
-			valtrimed = trimspace(val);
-			found = false;
-			SLIST_FOREACH(tags, &tagshead, next) {
-				if (EQUALS(valtrimed, tags->name)) {
-					found = true;
-					tags->count++;
-					break;
+			val_to_free = val;
+			nbel = splitchr(val, ',');
+			for (i = 0; i <= nbel; i++) {
+				next = strlen(val);
+				valtrimed = trimspace(val);
+				found = false;
+				SLIST_FOREACH(tags, &tagshead, next) {
+					if (EQUALS(valtrimed, tags->name)) {
+						found = true;
+						tags->count++;
+						break;
+					}
 				}
+				if (!found) {
+					nbtags++;
+					tags = malloc(sizeof(struct tags));
+					tags->name = strdup(valtrimed);
+					tags->count = 1;
+					SLIST_INSERT_HEAD(&tagshead, tags, next);
+				}
+				val+= next + 1;
 			}
-			if (!found) {
-				nbtags++;
-				tags = malloc(sizeof(struct tags));
-				tags->name = strdup(valtrimed);
-				tags->count = 1;
-				SLIST_INSERT_HEAD(&tagshead, tags, next);
-			}
-			val+= next + 1;
+			free(val_to_free);
 		}
-		free(val_to_free);
 
 	}
 
-	/* process tags */
-	taglist = malloc(nbtags * sizeof(struct tags *));
+	if (!criteria->feed) {
+		/* process tags */
+		taglist = malloc(nbtags * sizeof(struct tags *));
 
-	i=0;
-	SLIST_FOREACH(tags, &tagshead, next) {
-		taglist[i] = tags;
-		i++;
+		i=0;
+		SLIST_FOREACH(tags, &tagshead, next) {
+			taglist[i] = tags;
+			i++;
+		}
+
+		qsort(taglist, nbtags, sizeof(struct tags *), sort_by_name);
+
+		for (i = 0; i < nbtags; i++) {
+			set_tag_name(hdf, i, taglist[i]->name);
+			set_tag_count(hdf, i, taglist[i]->count);
+			free(taglist[i]->name);
+			free(taglist[i]);
+		}
+		free(taglist);
 	}
-
-	qsort(taglist, nbtags, sizeof(struct tags *), sort_by_name);
-
-	for (i = 0; i < nbtags; i++) {
-		set_tag_name(hdf, i, taglist[i]->name);
-		set_tag_count(hdf, i, taglist[i]->count);
-		free(taglist[i]->name);
-		free(taglist[i]);
-	}
-	free(taglist);
 
 	/* going back to posts processing */
-
 	posts = malloc(total_posts * sizeof(struct posts *));
 
 	i = 0;
@@ -457,6 +464,7 @@ cblogcgi(HDF *conf)
 
 	type = CBLOG_ROOT;
 	criteria.type = 0;
+	criteria.feed = false;
 
 	neoerr = cgi_init(&cgi, NULL);
 
@@ -541,9 +549,11 @@ cblogcgi(HDF *conf)
 			break;
 
 		case CBLOG_RSS:
+			criteria.feed = true;
 			build_index(cgi->hdf, &criteria);
 			break;
 		case CBLOG_ATOM:
+			criteria.feed = true;
 			build_index(cgi->hdf, &criteria);
 			break;
 

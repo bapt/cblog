@@ -16,6 +16,7 @@
 
 #define CRITERIA_TAGNAME 1
 #define CRITERIA_TIME_T 2
+#define CRITERIA_FEEDS 3
 
 #define DEFAULT_POSTS_PER_PAGES 10
 #define DEFAULT_THEME "default"
