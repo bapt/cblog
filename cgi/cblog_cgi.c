@@ -406,14 +406,18 @@ cblogcgi(HDF *conf)
 
 	method = get_cgi_str(cgi->hdf, "RequestMethod");
 
-	neoerr = cgi_parse(cgi);
-	nerr_ignore(&neoerr);
+	/* only parse ig necessary */
+	if (EQUALS(method, "POST") || EQUALS(method,"PUT" )) {
+			neoerr = cgi_parse(cgi);
+			nerr_ignore(&neoerr);
+	}
 
 	neoerr = hdf_copy(cgi->hdf, "", conf);
 	nerr_ignore(&neoerr);
 	hdf_set_valuef(cgi->hdf, "CBlog.version=%s", cblog_version);
 	hdf_set_valuef(cgi->hdf, "CBlog.url=%s", cblog_url);
 
+/*	requesturi = getenv("REQUEST_URI");*/
 	requesturi = get_cgi_str(cgi->hdf, "RequestURI");
 
 	/* find the beginig of the request */
@@ -427,6 +431,7 @@ cblogcgi(HDF *conf)
 					break;
 				}
 			}
+
 			if (type == CBLOG_ROOT) {
 				if (sscanf(requesturi, "/%4d/%02d/%02d", &yyyy, &mm, &dd) == 3) {
 					type = CBLOG_YYYY_MM_DD;
@@ -584,7 +589,7 @@ cblogcgi(HDF *conf)
 		neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
 	}
 
-	if (neoerr != STATUS_OK && strcmp(method, "HEAD") != 0 ) {
+	if (neoerr != STATUS_OK && EQUALS(method, "HEAD") ) {
 		nerr_error_string(neoerr, &neoerr_str);
 		cblog_err(-1, neoerr_str.buf);
 		string_clear(&neoerr_str);
