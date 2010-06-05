@@ -27,6 +27,5 @@ void cblogctl_path(void);
 extern char	cblog_cdb[];
 extern char	cblog_cdb_tmp[];
 
-/* vim: set sw=4 sts=4 ts=4 : */
-
 #endif	/* ndef CBLOG_CLI_CBLOGCTL_H */
+/* vim: set sw=4 sts=4 ts=4 : */

@@ -59,7 +59,6 @@ trimcr(char *str)
 	return 0;
 }
 
-
 void
 cblogctl_info(const char *post_name)
 {
@@ -117,7 +116,6 @@ cblogctl_get(const char *post_name)
 		warnx("post %s not found", post_name);
 		return;
 	}
-
 
 	snprintf(key, BUFSIZ, "%s_%s", post_name, "tags");
 	if (cdb_find(&cdb, key, strlen(key)) > 0) {

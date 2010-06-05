@@ -11,7 +11,6 @@
 #include "cblog_utils.h"
 #include <syslog.h>
 
-
 int
 get_comments_count(char *postname)
 {
@@ -107,7 +106,7 @@ get_comments(HDF *hdf, char *postname)
 	bufstart = buffer;
 	nbel = splitchr(buffer, '\n');
 	next = strlen(buffer);
-	while (j<= nbel) {
+	while (j <= nbel) {
 		if (STARTS_WITH(buffer, "comment: "))
 			hdf_set_valuef(hdf, "Posts.0.comments.%i.content=%s", count, cgi_url_unescape(buffer + 9));
 
@@ -192,8 +191,6 @@ set_comment(HDF *hdf, char *postname)
 					get_query_str(hdf, "comment"),
 					get_query_str(hdf, "name"),
 					get_query_str(hdf, "url"));
-
-
 	}
 
 	/* Some cleanup on the hdf */
