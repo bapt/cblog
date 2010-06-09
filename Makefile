@@ -43,4 +43,4 @@ install: all
 	install -d ${DESTDIR}${DATADIR}
 	install -m 644 cblog.conf ${DESTDIR}${DATADIR}/
 	cp -r samples ${DESTDIR}${DATADIR}
-	install -m 644 cblog.cgi.1 ${DESTDIR}${MANDIR}/man1
+	install -m 644 cgi/cblog.cgi.1 ${DESTDIR}${MANDIR}/man1
