@@ -39,7 +39,7 @@ install: all
 	install -d ${DESTDIR}${CGIDIR}
 	install -m 755 ${CGI} ${DESTDIR}${CGIDIR}
 	install -m 755 ${CLI} ${DESTDIR}${BINDIR}
-	sed -e "'s,_CDB_PATH_,${CDB_PATH},' ../samples/cblog.conf" > cblog.conf
+	sed -e 's,_CDB_PATH_,${CDB_PATH},' samples/cblog.conf > cblog.conf
 	install -d ${DESTDIR}${DATADIR}
 	install -m 644 cblog.conf ${DESTDIR}${DATADIR}/
 	cp -r samples ${DESTDIR}${DATADIR}
