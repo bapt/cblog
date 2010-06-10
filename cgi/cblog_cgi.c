@@ -458,6 +458,7 @@ cblogcgi(HDF *conf)
 	struct criteria		criteria;
 	struct tm			calc_time, *date;
 	char				buf[BUFSIZ];
+	const char			*typefeed;
 
 	/* read the configuration file */
 
@@ -485,6 +486,13 @@ cblogcgi(HDF *conf)
 
 /*	requesturi = getenv("REQUEST_URI");*/
 	requesturi = get_cgi_str(cgi->hdf, "RequestURI");
+
+	typefeed = get_query_str(cgi->hdf, "feed");
+
+	if (typefeed != NULL && (
+				EQUALS(typefeed, "rss") || 
+				EQUALS(typefeed, "atom")))
+		criteria.feed=true;
 
 	/* find the beginig of the request */
 	if (requesturi != NULL) {
@@ -599,6 +607,14 @@ cblogcgi(HDF *conf)
 			criteria.end = mktime(&calc_time);
 			build_index(cgi->hdf, &criteria);
 			break;
+	}
+
+	if (criteria.feed)
+	{
+		if (EQUALS(typefeed, "rss"))
+			type = CBLOG_RSS;
+		else
+			type = CBLOG_ATOM;
 	}
 
 	/* work set the good date format and display everything */
