@@ -609,7 +609,7 @@ cblogcgi(HDF *conf)
 			break;
 	}
 
-	if (criteria.feed)
+	if (type != CBLOG_RSS && type != CBLOG_ATOM && criteria.feed)
 	{
 		if (EQUALS(typefeed, "rss"))
 			type = CBLOG_RSS;
