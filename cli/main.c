@@ -133,5 +133,4 @@ main(int argc, char *argv[])
 	}
 	return EXIT_SUCCESS;
 }
-
 /* vim: set sw=4 sts=4 ts=4 : */

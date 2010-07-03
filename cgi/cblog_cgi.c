@@ -209,7 +209,7 @@ set_tags(HDF *hdf)
 
 	taglist = malloc(nbtags * sizeof(struct tags *));
 
-	i=0;
+	i = 0;
 	SLIST_FOREACH(tag, &tagshead, next) {
 		taglist[i] = tag;
 		i++;
@@ -319,7 +319,7 @@ build_index(HDF *hdf, struct criteria *criteria)
 
 			val_to_free = val;
 			nbel = splitchr(val, ',');
-			for (i = 0; i <= nbel; i++) {
+			for (i=0; i <= nbel; i++) {
 				next = strlen(val);
 				valtrimed = trimspace(val);
 				found = false;
@@ -337,18 +337,17 @@ build_index(HDF *hdf, struct criteria *criteria)
 					tags->count = 1;
 					SLIST_INSERT_HEAD(&tagshead, tags, next);
 				}
-				val+= next + 1;
+				val += next + 1;
 			}
 			free(val_to_free);
 		}
-
 	}
 
 	if (!criteria->feed) {
 		/* process tags */
 		taglist = malloc(nbtags * sizeof(struct tags *));
 
-		i=0;
+		i = 0;
 		SLIST_FOREACH(tags, &tagshead, next) {
 			taglist[i] = tags;
 			i++;
@@ -356,7 +355,7 @@ build_index(HDF *hdf, struct criteria *criteria)
 
 		qsort(taglist, nbtags, sizeof(struct tags *), sort_by_name);
 
-		for (i = 0; i < nbtags; i++) {
+		for (i=0; i < nbtags; i++) {
 			set_tag_name(hdf, i, taglist[i]->name);
 			set_tag_count(hdf, i, taglist[i]->count);
 			free(taglist[i]->name);
@@ -500,7 +499,7 @@ cblogcgi(HDF *conf)
 		splitchr(requesturi, '?');
 		if (requesturi[1] != '\0') {
 
-			for (i = 0; page[i].name != NULL; i++) {
+			for (i=0; page[i].name != NULL; i++) {
 				if (STARTS_WITH(requesturi, page[i].name)) {
 					type = page[i].type;
 					break;
@@ -540,7 +539,6 @@ cblogcgi(HDF *conf)
 				type = CBLOG_ERR;
 			}
 			break;
-
 		case CBLOG_TAG:
 			requesturi++;
 			while (requesturi[0] != '/')
@@ -554,7 +552,6 @@ cblogcgi(HDF *conf)
 				type = CBLOG_ERR;
 			}
 			break;
-
 		case CBLOG_RSS:
 			criteria.feed = true;
 			build_index(cgi->hdf, &criteria);
@@ -563,11 +560,9 @@ cblogcgi(HDF *conf)
 			criteria.feed = true;
 			build_index(cgi->hdf, &criteria);
 			break;
-
 		case CBLOG_ROOT:
 			build_index(cgi->hdf, &criteria);
 			break;
-
 		case CBLOG_YYYY:
 			calc_time.tm_year = yyyy - 1900;
 			calc_time.tm_mon = 0;
@@ -581,7 +576,6 @@ cblogcgi(HDF *conf)
 			criteria.end = mktime(&calc_time);
 			build_index(cgi->hdf, &criteria);
 			break;
-
 		case CBLOG_YYYY_MM:
 			calc_time.tm_year = yyyy - 1900;
 			calc_time.tm_mon = mm - 1;
@@ -595,7 +589,6 @@ cblogcgi(HDF *conf)
 			criteria.end -= 60 * 60 * 24;
 			build_index(cgi->hdf, &criteria);
 			break;
-
 		case CBLOG_YYYY_MM_DD:
 			calc_time.tm_year = yyyy - 1900;
 			calc_time.tm_mon = mm - 1;
@@ -638,7 +631,6 @@ cblogcgi(HDF *conf)
 			neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.rss", "rss.cs"));
 			break;
 		case CBLOG_ATOM:
-
 			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
 
 				posttime = hdf_get_int_value(hdf, "date", time(NULL));
@@ -688,5 +680,4 @@ cblogcgi(HDF *conf)
 	nerr_ignore(&neoerr);
 	cgi_destroy(&cgi);
 }
-
 /* vim: set sw=4 sts=4 ts=4 : */

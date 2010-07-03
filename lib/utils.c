@@ -29,7 +29,6 @@ time_to_str(time_t source, const char *format, char *dest, size_t size)
 	strftime(dest, size, format, ptr);
 }
 
-
 /* Send an email to an email with a specified subject
  * and body
  */
@@ -53,6 +52,4 @@ send_mail(const char *from, const char *to, const char *subject, const char *ip,
 	pclose(email);
 
 	return;
-
 }
-
