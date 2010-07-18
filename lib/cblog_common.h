@@ -1,8 +1,8 @@
 #ifndef	CBLOG_LIB_COMMON_H
 #define	CBLOG_LIB_COMMON_H
 
-static char *cblog_version = "CBlog 0.1.1";
-static char *cblog_url = "http://brokk.etoilebsd.net/projects/show/cblog";
+static char *cblog_version = "CBlog 0.1.2";
+static char *cblog_url = "http://github.com/bapt/cblog";
 
 static char *field[] = {
 	"title",

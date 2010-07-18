@@ -276,6 +276,9 @@ build_index(HDF *hdf, struct criteria *criteria)
 
 	max_post = hdf_get_int_value(hdf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
 	page = hdf_get_int_value(hdf, "Query.page", 1);
+	if (page <= 0)
+		page = 1;
+	
 	first_post = (page * max_post) - max_post;
 
 	if (db_open(hdf, &cdb, O_RDONLY) < 0)
