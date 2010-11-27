@@ -21,7 +21,7 @@ static struct pages {
 } page[] = {
 	{ "/post", CBLOG_POST },
 	{ "/tag", CBLOG_TAG },
-	{ "/index.rss", CBLOG_RSS },
+	{ "/index.rss", CBLOG_ATOM },
 	{ "/index.atom", CBLOG_ATOM },
 	{ NULL, -1 },
 };
@@ -492,7 +492,7 @@ cblogcgi(HDF *conf)
 	typefeed = get_query_str(cgi->hdf, "feed");
 
 	if (typefeed != NULL && (
-				EQUALS(typefeed, "rss") || 
+				EQUALS(typefeed, "rss") ||
 				EQUALS(typefeed, "atom")))
 		criteria.feed=true;
 
@@ -555,10 +555,6 @@ cblogcgi(HDF *conf)
 				type = CBLOG_ERR;
 			}
 			break;
-		case CBLOG_RSS:
-			criteria.feed = true;
-			build_index(cgi->hdf, &criteria);
-			break;
 		case CBLOG_ATOM:
 			criteria.feed = true;
 			build_index(cgi->hdf, &criteria);
@@ -605,34 +601,11 @@ cblogcgi(HDF *conf)
 			break;
 	}
 
-	if (type != CBLOG_RSS && type != CBLOG_ATOM && criteria.feed)
-	{
-		if (EQUALS(typefeed, "rss"))
-			type = CBLOG_RSS;
-		else
+	if (type != CBLOG_ATOM && criteria.feed)
 			type = CBLOG_ATOM;
-	}
 
 	/* work set the good date format and display everything */
 	switch (type) {
-		case CBLOG_RSS:
-			setlocale(LC_ALL, "C");
-			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
-				datenum = hdf_get_int_value(hdf, "date", time(NULL));
-
-				time_to_str(datenum, DATE_FEED, buf, BUFSIZ);
-
-				hdf_set_valuef(hdf, "date=%s", buf);
-			}
-
-			gentime = time(NULL);
-			time_to_str(gentime, DATE_FEED, buf, BUFSIZ);
-
-			hdf_set_valuef(cgi->hdf, "gendate=%s", buf);
-
-			hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/rss+xml");
-			neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.rss", "rss.cs"));
-			break;
 		case CBLOG_ATOM:
 			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
 

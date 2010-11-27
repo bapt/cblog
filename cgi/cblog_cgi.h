@@ -6,13 +6,12 @@
 
 #define CBLOG_POST 0
 #define CBLOG_TAG 1
-#define CBLOG_RSS 2
-#define CBLOG_ATOM 3
-#define CBLOG_ROOT 4
-#define CBLOG_ERR 5
-#define CBLOG_YYYY 6
-#define CBLOG_YYYY_MM 7
-#define CBLOG_YYYY_MM_DD 8
+#define CBLOG_ATOM 2
+#define CBLOG_ROOT 3
+#define CBLOG_ERR 4
+#define CBLOG_YYYY 5
+#define CBLOG_YYYY_MM 6
+#define CBLOG_YYYY_MM_DD 7
 
 #define CRITERIA_TAGNAME 1
 #define CRITERIA_TIME_T 2
