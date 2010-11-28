@@ -136,7 +136,7 @@ void
 set_comment(HDF *hdf, char *postname)
 {
 	char	comment_file[MAXPATHLEN];
-	char	*nospam, *comment;
+	char    *nospam, *comment, *name, *url;
 	char	*from, *to;
 	char	subject[LINE_MAX];
 	FILE	*comment_fd;
@@ -168,13 +168,19 @@ set_comment(HDF *hdf, char *postname)
 	if (comment_fd == NULL)
 		return;
 
+	cgi_url_escape(get_query_str(hdf, "name"), &name);
+	cgi_url_escape(get_query_str(hdf, "url"), &url);
 	cgi_url_escape(get_query_str(hdf, "comment"), &comment);
 	fprintf(comment_fd, "comment: %s\n", comment);
-	fprintf(comment_fd, "name: %s\n", get_query_str(hdf, "name"));
-	fprintf(comment_fd, "url: %s\n", get_query_str(hdf, "url"));
+	fprintf(comment_fd, "name: %s\n", name);
+	fprintf(comment_fd, "url: %s\n", url);
 	fprintf(comment_fd, "date: %lld\n", (long long int)time(NULL));
 	fprintf(comment_fd, "ip: %s\n", get_cgi_str(hdf, "RemoteAddress"));
 	fprintf(comment_fd, "-----\n");
+
+	free(comment);
+	free(url);
+	free(name);
 
 	fclose(comment_fd);
 
