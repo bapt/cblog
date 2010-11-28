@@ -2,6 +2,7 @@
 #include <locale.h>
 #include <unistd.h>
 #include <cdb.h>
+#include <time.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <string.h>
@@ -648,11 +649,11 @@ cblogcgi(HDF *conf)
 			break;
 	}
 
-	if (neoerr != STATUS_OK && EQUALS(method, "HEAD") ) {
+/*	if (neoerr != STATUS_OK && EQUALS(method, "HEAD") ) {
 		nerr_error_string(neoerr, &neoerr_str);
 		cblog_err(-1, neoerr_str.buf);
 		string_clear(&neoerr_str);
-	}
+	}*/
 	nerr_ignore(&neoerr);
 	cgi_destroy(&cgi);
 }

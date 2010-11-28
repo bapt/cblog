@@ -191,6 +191,7 @@ main(int argc, char **argv, char **envp)
 	int ret;
 
 	signal(SIGHUP, read_conf);
+	signal(SIGPIPE, SIG_IGN);
 
 	if (access(CONFFILE, R_OK) != 0)
 		errx(1, "%s: file not found", CONFFILE);
