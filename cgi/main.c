@@ -217,7 +217,7 @@ main(int argc, char **argv, char **envp)
 		NULL, NULL, NULL);
 	cgiwrap_init_std(argc, argv, envp);
 	if (argc == 2) {
-/*		daemon(0,0);*/
+		daemon(0,0);
 		bind_socket(argv[1]);
 	}
 
