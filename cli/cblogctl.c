@@ -236,7 +236,7 @@ cblogctl_add(const char *post_path)
 
 	snprintf(key, BUFSIZ, "%s_source", post_name);
 	cdb_make_put(&cdb_make, key, strlen(key), ib->data, strlen(ib->data), CDB_PUT_REPLACE);
-	bufrelease(ob);
+	bufrelease(ib);
 
 	snprintf(key, BUFSIZ, "%s_html", post_name);
 	cdb_make_put(&cdb_make, key, strlen(key), ob->data, strlen(ob->data), CDB_PUT_REPLACE);
