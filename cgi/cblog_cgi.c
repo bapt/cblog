@@ -66,28 +66,6 @@ sort_by_ctime(const void *a, const void *b)
 	return post_b->ctime - post_a->ctime;
 }
 
-static char *
-trimspace(char *str)
-{
-	char *line = str;
-
-	/* remove spaces at the beginning */
-	while (true) {
-		if (isspace(line[0]))
-			line++;
-		else
-			break;
-	}
-	/* remove spaces at the end */
-	while (true) {
-		if (isspace(line[strlen(line) - 1]))
-			line[strlen(line) - 1] = '\0';
-		else
-			break;
-	}
-	return line;
-}
-
 void
 cblog_err(int eval, const char * message, ...)
 {

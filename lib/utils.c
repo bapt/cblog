@@ -1,5 +1,6 @@
 #include "cblog_utils.h"
 #include <stdio.h>
+#include <stdbool.h>
 #include <time.h>
 #include <string.h>
 
@@ -53,3 +54,26 @@ send_mail(const char *from, const char *to, const char *subject, const char *ip,
 
 	return;
 }
+
+char *
+trimspace(char *str)
+{
+	char *line = str;
+
+	/* remove spaces at the beginning */
+	while (true) {
+		if (isspace(line[0]))
+			line++;
+		else
+			break;
+	}
+	/* remove spaces at the end */
+	while (true) {
+		if (isspace(line[strlen(line) - 1]))
+			line[strlen(line) - 1] = '\0';
+		else
+			break;
+	}
+	return line;
+}
+
