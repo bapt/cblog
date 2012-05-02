@@ -66,7 +66,7 @@ cblogctl_info(const char *post_name)
 	sqlite3_initialize();
 	sqlite3_open(cblog_cdb, &sqlite);
 
-	if (sqlite3_prepare_v2(sqlite, "SELECT title, datetime(posts.date, 'unixepoch') as date, group_concat(tag, ',') as tags "
+	if (sqlite3_prepare_v2(sqlite, "SELECT title, datetime(posts.date, 'unixepoch') as date, group_concat(tag, ', ') as tags "
 	    "FROM posts, tags_posts, tags "
 	    "WHERE link=?1 and posts.id=tags_posts.post_id and tags_posts.tag_id=tags.id;", -1, &stmt, NULL) != SQLITE_OK)
 		errx(1, "%s", sqlite3_errmsg(sqlite));
@@ -96,46 +96,45 @@ cblogctl_info(const char *post_name)
 void
 cblogctl_get(const char *post_name)
 {
-	int			db;
-	FILE		*out;
-	char		key[BUFSIZ];
-	char		*val;
-	struct cdb	cdb;
+	sqlite3 *sqlite;
+	sqlite3_stmt *stmt;
+	int icol;
+	FILE *out;
 
-	if ((db = open(cblog_cdb, O_RDONLY)) < 0)
-		err(1, "%s", cblog_cdb);
-	cdb_init(&cdb, db);
+	sqlite3_initialize();
+	sqlite3_open(cblog_cdb, &sqlite);
 
 	out = fopen(post_name, "w");
 
-	snprintf(key, BUFSIZ, "%s_%s", post_name, "title");
-	if (cdb_find(&cdb, key, strlen(key)) > 0) {
-		val = db_get(&cdb);
-		fprintf(out, "Title: %s\n", val);
-	} else {
-		warnx("post %s not found", post_name);
-		return;
+	if (sqlite3_prepare_v2(sqlite, "SELECT title as Title, "
+		"group_concat(tag, ', ') as Tags, source "
+	    "FROM posts, tags_posts, tags "
+	    "WHERE link=?1 and posts.id=tags_posts.post_id and tags_posts.tag_id=tags.id;", -1, &stmt, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
+
+	sqlite3_bind_text(stmt, 1, post_name, -1, SQLITE_STATIC);
+	while (sqlite3_step(stmt) == SQLITE_ROW) {
+		for (icol = 0; icol < sqlite3_column_count(stmt); icol++) {
+			switch (sqlite3_column_type(stmt, icol)) {
+				case SQLITE_TEXT:
+					if (strcmp(sqlite3_column_name(stmt, icol),"source") == 0)
+							fprintf(out, "\n%s\n",  sqlite3_column_text(stmt, icol));
+					else
+						fprintf(out, "%s: %s\n", sqlite3_column_name(stmt, icol), sqlite3_column_text(stmt, icol));
+					break;
+				case SQLITE_INTEGER:
+					fprintf(out, "%s: %lld\n", sqlite3_column_name(stmt, icol), sqlite3_column_int64(stmt, icol));
+					break;
+				default:
+					/* do nothing */
+					break;
+			}
+		}
 	}
-
-	snprintf(key, BUFSIZ, "%s_%s", post_name, "tags");
-	if (cdb_find(&cdb, key, strlen(key)) > 0) {
-		val=db_get(&cdb);
-		fprintf(out, "Tags: %s\n", val);
-		free(val);
-	}
-
-	fprintf(out, "\n");
-
-	snprintf(key, BUFSIZ, "%s_%s", post_name,"source");
-	if (cdb_find(&cdb, key, strlen(key)) > 0) {
-		val = db_get(&cdb);
-		fprintf(out, "%s\n", val);
-		free(val);
-	}
-
+	sqlite3_finalize(stmt);
+	sqlite3_close(sqlite);
+	sqlite3_shutdown();
 	fclose(out);
-	cdb_free(&cdb);
-	close(db);
 }
 
 void
