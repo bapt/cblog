@@ -10,6 +10,7 @@
 #include <err.h>
 #include <limits.h>
 #include <cdb.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include "cblogctl.h"
@@ -58,35 +59,38 @@ trimcr(char *str)
 void
 cblogctl_info(const char *post_name)
 {
-	int			i;
-	int			db;
-	char		key[BUFSIZ];
-	char		*val;
-	struct cdb	cdb;
+	sqlite3 *sqlite;
+	sqlite3_stmt *stmt;
+	int icol;
 
-	if ((db = open(cblog_cdb, O_RDONLY)) < 0)
-		err(1, "%s", cblog_cdb);
-	cdb_init(&cdb, db);
+	sqlite3_initialize();
+	sqlite3_open(cblog_cdb, &sqlite);
 
-	printf("Informations about %s\n", post_name);
-	for (i=0; field[i] != NULL; i++) {
-		if (EQUALS(field[i], "source") || EQUALS(field[i], "html"))
-			continue;
+	if (sqlite3_prepare_v2(sqlite, "SELECT title, datetime(posts.date, 'unixepoch') as date, group_concat(tag, ',') as tags "
+	    "FROM posts, tags_posts, tags "
+	    "WHERE link=?1 and posts.id=tags_posts.post_id and tags_posts.tag_id=tags.id;", -1, &stmt, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
 
-		snprintf(key, BUFSIZ, "%s_%s", post_name, field[i]);
-		if (cdb_find(&cdb, key, strlen(key)) > 0) {
-			val = db_get(&cdb);
-			if (EQUALS(field[i], "ctime")) {
-				time_to_str((time_t)strtoll(val, NULL, 10), "%Y/%m/%d %T", key, BUFSIZ);
-				printf("- %s: %s\n", field[i], key);
-			} else 
-				printf("- %s: %s\n", field[i], val);
-			free(val);
+	sqlite3_bind_text(stmt, 1, post_name, -1, SQLITE_STATIC);
+	while (sqlite3_step(stmt) == SQLITE_ROW) {
+		for (icol = 0; icol < sqlite3_column_count(stmt); icol++) {
+			switch (sqlite3_column_type(stmt, icol)) {
+				case SQLITE_TEXT:
+					printf("%s: %s\n", sqlite3_column_name(stmt, icol), sqlite3_column_text(stmt, icol));
+					break;
+				case SQLITE_INTEGER:
+					printf("%s: %lld\n", sqlite3_column_name(stmt, icol), sqlite3_column_int64(stmt, icol));
+					break;
+				default:
+					/* do nothing */
+					break;
+			}
 		}
 	}
 	printf("\n");
-	cdb_free(&cdb);
-	close(db);
+	sqlite3_finalize(stmt);
+	sqlite3_close(sqlite);
+	sqlite3_shutdown();
 }
 
 void
