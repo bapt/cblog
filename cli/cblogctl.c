@@ -23,24 +23,20 @@ char	cblog_cdb_tmp[PATH_MAX];
 void
 cblogctl_list(void)
 {
-	int					db;
-	struct cdb			cdb;
-	struct cdb_find		cdbf;
-	char				*val;
+	sqlite3 *sqlite;
+	sqlite3_stmt *stmt;
 
-	if ((db = open(cblog_cdb, O_RDONLY)) < 0)
-		err(1, "%s", cblog_cdb);
-	cdb_init(&cdb, db);
+	sqlite3_initialize();
+	sqlite3_open(cblog_cdb, &sqlite);
 
-	cdb_findinit(&cdbf, &cdb, "posts", 5);
-	while (cdb_findnext(&cdbf) > 0) {
-		val=db_get(&cdb);
-		puts(val);
-		free(val);
-	}
+	sqlite3_prepare_v2(sqlite, "SELECT link FROM posts ORDER BY DATE;", -1, &stmt, NULL);
 
-	cdb_free(&cdb);
-	close(db);
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+		printf("%s\n", sqlite3_column_text(stmt, 0));
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(sqlite);
+	sqlite3_shutdown();
 }
 
 int

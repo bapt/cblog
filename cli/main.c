@@ -65,7 +65,7 @@ main(int argc, char *argv[])
 	s = getenv("CBLOG_CDB");
 	if (s == NULL) {
 		/* fallback to default path */
-		s = CDB_PATH"/cblog.cdb";
+		s = CDB_PATH"/cblog.sqlite";
 	}
 	/* check path's size */
 	slen = strlen(s);
