@@ -254,45 +254,22 @@ cblogctl_add(const char *post_path)
 void
 cblogctl_del(const char *post_name)
 {
-	int					olddb, db, i;
-	struct cdb			cdb;
-	struct cdb_make		cdb_make;
-	struct cdb_find		cdbf;
-	char				*val, *valkey;
-	char				key[BUFSIZ];
+	sqlite3 *sqlite;
+	sqlite3_stmt *stmt;
 
-	if ((olddb = open(cblog_cdb, O_RDONLY)) < 0)
-		err(1, "%s", cblog_cdb);
-	if ((db = open(cblog_cdb_tmp, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
-		err(1, "%s", cblog_cdb);
+	sqlite3_initialize();
+	sqlite3_open(cblog_cdb, &sqlite);
 
-	cdb_init(&cdb, olddb);
-	cdb_make_start(&cdb_make, db);
+	if (sqlite3_prepare_v2(sqlite, "DELETE FROM posts WHERE link=?1;", -1, &stmt, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
 
-	cdb_findinit(&cdbf, &cdb, "posts", 5);
-	while (cdb_findnext(&cdbf) > 0) {
-		valkey = db_get(&cdb);
+	sqlite3_bind_text(stmt, 1, post_name, -1, SQLITE_STATIC);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
 
-		if (EQUALS(post_name, valkey))
-			continue;
-		cdb_make_add(&cdb_make, "posts", 5, valkey, strlen(valkey));
-
-		for (i=0; field[i] != NULL; i++) {
-			snprintf(key, BUFSIZ, "%s_%s", valkey, field[i]);
-			if (cdb_find(&cdb, key, strlen(key)) > 0) {
-				val = db_get(&cdb);
-				cdb_make_add(&cdb_make, key, strlen(key), val, strlen(val));
-				free(val);
-			}
-		}
-		free(valkey);
-	}
-	cdb_make_finish(&cdb_make);
-	close(olddb);
-	cdb_free(&cdb);
-	close(db);
-	if (rename(cblog_cdb_tmp, cblog_cdb) < 0)
-		err(1, "%s", cblog_cdb);
+	sql_exec(sqlite, "DELETE from tags where id not in select tag_id from tags_posts;");
+	sqlite3_close(sqlite);
+	sqlite3_shutdown();
 }
 
 void
