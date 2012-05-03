@@ -55,6 +55,7 @@ static void
 print_stmt(sqlite3_stmt *stmt)
 {
 	int icol;
+
 	while (sqlite3_step(stmt) == SQLITE_ROW) {
 		for (icol = 0; icol < sqlite3_column_count(stmt); icol++) {
 			switch (sqlite3_column_type(stmt, icol)) {
