@@ -243,6 +243,7 @@ cblogctl_del(const char *post_name)
 
 	sqlite3_initialize();
 	sqlite3_open(cblog_cdb, &sqlite);
+	sql_exec(sqlite, "PRAGMA foreign_key=on;");
 
 	if (sqlite3_prepare_v2(sqlite, "DELETE FROM posts WHERE link=?1;", -1, &stmt, NULL) != SQLITE_OK)
 		errx(1, "%s", sqlite3_errmsg(sqlite));
