@@ -165,10 +165,14 @@ cblogctl_add(const char *post_path)
 	sqlite3_stmt *stmt, *stmtu;;
 	FILE *post;
 	char *ppath, *val;
+	char *tagbuf;
 	struct buf *ib, *ob;
 	char filebuf[LINE_MAX];
 	bool headers = true;
+	int nbel, i;
+	size_t next;
 
+	tagbuf = NULL;
 	ppath = basename(post_path);
 
 	sqlite3_initialize();
@@ -205,12 +209,9 @@ cblogctl_add(const char *post_path)
 				sqlite3_bind_text(stmtu, 2, val, -1, SQLITE_TRANSIENT);
 
 			} else if (STARTS_WITH(filebuf, "Tags")) {
-/*				while (isspace(filebuf[strlen(filebuf) - 1]))
-					filebuf[strlen(filebuf) - 1] = '\0';
 
 				val = filebuf + strlen("Tags: ");
-				snprintf(key, BUFSIZ, "%s_tags", post_name);
-				cdb_make_put(&cdb_make, key, strlen(key), val, strlen(val), CDB_PUT_REPLACE);*/
+				tagbuf=strdup(val);
 			}
 		} else
 			bufputs(ib, filebuf);
@@ -230,9 +231,42 @@ cblogctl_add(const char *post_path)
 		if (sqlite3_step(stmtu) != SQLITE_DONE)
 			errx(1, "%s", sqlite3_errmsg(sqlite));
 	}
-
+	sqlite3_finalize(stmt);
+	sqlite3_finalize(stmtu);
 	bufrelease(ib);
 	bufrelease(ob);
+
+	if (tagbuf == NULL)
+		return;
+
+	if (sqlite3_prepare_v2(sqlite, "DELETE from tags_posts where post_id IN (select id from posts where link=?1);", -1, &stmt, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
+	sqlite3_bind_text(stmt, 1, ppath, -1, SQLITE_STATIC);
+	sqlite3_step(stmt);
+	sqlite3_finalize(stmt);
+
+	if (sqlite3_prepare_v2(sqlite, "INSERT OR IGNORE into tags (tag) values (trim(?1));", -1, &stmt, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
+
+	if (sqlite3_prepare_v2(sqlite, "INSERT OR IGNORE into tags_posts (tag_id, post_id) values ((select id from tags where tag=trim(?1)), (select id from posts where link=?2));", -1, &stmtu, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
+
+	nbel = splitchr(tagbuf, ',');
+	val = tagbuf;
+	for (i = 0; i <= nbel; i++) {
+		next = strlen(val);
+		sqlite3_bind_text(stmt, 1, val, -1, SQLITE_STATIC);
+		sqlite3_step(stmt);
+		sqlite3_reset(stmt);
+		sqlite3_bind_text(stmtu, 1, val, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmtu, 2, ppath, -1, SQLITE_STATIC);
+		sqlite3_step(stmtu);
+		sqlite3_reset(stmtu);
+		val += next + 1;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_finalize(stmtu);
 }
 
 void
