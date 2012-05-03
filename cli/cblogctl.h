@@ -19,13 +19,11 @@ void cblogctl_info(const char *);
 void cblogctl_get(const char *);
 void cblogctl_add(const char *);
 void cblogctl_del(const char *);
-void cblogctl_set(const char *, char *);
 void cblogctl_version(void);
 void cblogctl_path(void);
 
 /* path the the CDB database file */
 extern char	cblog_cdb[];
-extern char	cblog_cdb_tmp[];
 
 #endif	/* ndef CBLOG_CLI_CBLOGCTL_H */
 /* vim: set sw=4 sts=4 ts=4 : */

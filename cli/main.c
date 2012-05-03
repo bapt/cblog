@@ -16,7 +16,6 @@ static struct command {
 	{ "add", "a", "Add or modify a post", CBLOG_ADD_CMD},
 	{ "del", "d", "Delete a post", CBLOG_DEL_CMD},
 	{ "get", "g", "Get a post in text format", CBLOG_GET_CMD},
-	{ "set", "s", "Set some information in the post", CBLOG_SET_CMD},
 	{ "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
 	{ "create", "c", "Create database", CBLOG_CREATE_CMD},
 	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
@@ -73,7 +72,6 @@ main(int argc, char *argv[])
 		err(-1, "database path is too long.");
 	/* setup cblog_cdb and cblog_cdb_tmp variable */
 	(void)memcpy(cblog_cdb, s, slen + 1);
-	(void)sprintf(cblog_cdb_tmp, "%s.tmp", cblog_cdb);
 
 	if (type != CBLOG_CREATE_CMD && type != CBLOG_VERSION_CMD && type != CBLOG_PATH_CMD) {
 	    if (access(cblog_cdb, F_OK) != 0)
@@ -106,12 +104,6 @@ main(int argc, char *argv[])
 			for (i=2; i < argc; i++)
 				cblogctl_get(argv[i]);
 
-			break;
-		case CBLOG_SET_CMD:
-			if (argc != 4)
-				usage(argv[0]);
-
-			cblogctl_set(argv[2], argv[3]);
 			break;
 		case CBLOG_INFO_CMD:
 			if (argc <= 2 )

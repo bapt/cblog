@@ -1,25 +1,20 @@
-#include <sys/stat.h>
-#include <ctype.h>
 #include <stdio.h>
 #include <libgen.h>
+#include <stdbool.h>
+#include <err.h>
+#include <limits.h>
+#include <unistd.h>
+
 #include "buffer.h"
 #include "markdown.h"
 #include "renderers.h"
-#include <stdbool.h>
-#include <stdlib.h>
-#include <err.h>
-#include <limits.h>
-#include <cdb.h>
-#include <inttypes.h>
-#include <unistd.h>
-#include <fcntl.h>
+
 #include "cblogctl.h"
 #include "cblog_common.h"
 #include "cblog_utils.h"
 
 /* path the the CDB database file */
 char	cblog_cdb[PATH_MAX];
-char	cblog_cdb_tmp[PATH_MAX];
 
 void
 cblogctl_list(void)
@@ -183,7 +178,7 @@ cblogctl_add(const char *post_path)
 	sql_exec(sqlite, "pragma foreign_keys=on;");
 
 	if (post == NULL)
-		errx(EXIT_FAILURE, "Unable to open %s", post_path);
+		errx(1, "Unable to open %s", post_path);
 
 	if (sqlite3_prepare_v2(sqlite, "INSERT INTO posts (link, title, source, html, date) "
 	    "values (?1, trim(?2), ?3, ?4, strftime('%s', 'now'));",
@@ -295,66 +290,6 @@ cblogctl_del(const char *post_name)
 }
 
 void
-cblogctl_set(const char *post_name, char *to_be_set)
-{
-	int					olddb, db, i;
-	char				key[BUFSIZ];
-	char				*val, *newkey, *valkey;
-	struct cdb			cdb;
-	struct cdb_make		cdb_make;
-	struct cdb_find		cdbf;
-	bool				found = false;
-
-	if ((olddb = open(cblog_cdb, O_RDONLY)) < 0)
-		err(1, "%s", cblog_cdb);
-	if ((db = open(cblog_cdb_tmp, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
-		err(1, "%s", cblog_cdb);
-
-	cdb_init(&cdb, olddb);
-	cdb_make_start(&cdb_make, db);
-
-	cdb_findinit(&cdbf, &cdb, "posts", 5);
-	while (cdb_findnext(&cdbf) > 0) {
-		valkey = db_get(&cdb);
-		cdb_make_add(&cdb_make, "posts", 5, valkey, strlen(valkey));
-
-		if (EQUALS(post_name, valkey))
-			found = true;
-
-		for (i=0; field[i] != NULL; i++) {
-			snprintf(key, BUFSIZ, "%s_%s", valkey, field[i]);
-			if (cdb_find(&cdb, key, strlen(key)) > 0) {
-				val = db_get(&cdb);
-				cdb_make_add(&cdb_make, key, strlen(key), val, strlen(val));
-				free(val);
-			}
-		}
-		free(valkey);
-	}
-	if (!found)
-		errx(EXIT_FAILURE, "%s: No such post", post_name);
-
-	newkey = to_be_set;
-	while (to_be_set[0] != '=')
-		to_be_set++;
-
-	to_be_set[0] = '\0';
-	to_be_set++;
-
-	snprintf(key, BUFSIZ, "%s_%s", post_name, newkey);
-
-	cdb_make_put(&cdb_make, key, strlen(key), to_be_set, strlen(to_be_set), CDB_PUT_REPLACE);
-
-	cdb_make_finish(&cdb_make);
-	cdb_free(&cdb);
-	close(db);
-	close(olddb);
-
-	if (rename(cblog_cdb_tmp, cblog_cdb) < 0)
-		err(1, "%s", cblog_cdb);
-}
-
-void
 cblogctl_create(void)
 {
 	sqlite3 *sqlite;
@@ -392,7 +327,7 @@ cblogctl_create(void)
 	if (ret < 0)
 		errx(1, "%s", sqlite3_errmsg(sqlite));
 
-	sqlite_close(sqlite);
+	sqlite3_close(sqlite);
 	sqlite3_shutdown();
 }
 
