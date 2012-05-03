@@ -180,6 +180,8 @@ cblogctl_add(const char *post_path)
 
 	post = fopen(post_path, "r");
 
+	sql_exec(sqlite, "pragma foreign_keys=on;");
+
 	if (post == NULL)
 		errx(EXIT_FAILURE, "Unable to open %s", post_path);
 
@@ -286,7 +288,8 @@ cblogctl_del(const char *post_name)
 	sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
 
-	sql_exec(sqlite, "DELETE from tags where id not in select tag_id from tags_posts;");
+	sql_exec(sqlite, "DELETE from tags_posts where post_id not in (select id from posts)");
+
 	sqlite3_close(sqlite);
 	sqlite3_shutdown();
 }
