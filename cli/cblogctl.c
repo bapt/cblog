@@ -107,7 +107,7 @@ cblogctl_get(const char *post_name)
 	out = fopen(post_name, "w");
 
 	if (sqlite3_prepare_v2(sqlite, "SELECT title as Title, "
-		"group_concat(tag, ', ') as Tags, source "
+	    "group_concat(tag, ', ') as Tags, source "
 	    "FROM posts, tags_posts, tags "
 	    "WHERE link=?1 and posts.id=tags_posts.post_id and tags_posts.tag_id=tags.id;", -1, &stmt, NULL) != SQLITE_OK)
 		errx(1, "%s", sqlite3_errmsg(sqlite));
@@ -140,58 +140,34 @@ cblogctl_get(const char *post_name)
 void
 cblogctl_add(const char *post_path)
 {
-	int					olddb, db, i;
-	FILE				*post;
-	char				key[BUFSIZ], date[11];
-	char				*val, *valkey, *post_name;
-	bool				found = false;
-	struct cdb			cdb;
-	struct cdb_make		cdb_make;
-	struct cdb_find		cdbf;
-	struct buf			*ib, *ob;
-	char				filebuf[LINE_MAX];
-	bool				headers = true;
-	struct stat			filestat;
-	char				*ppath;
+	sqlite3 *sqlite;
+	sqlite3_stmt *stmt, *stmtu;;
+	FILE *post;
+	char *ppath, *val;
+	struct buf *ib, *ob;
+	char filebuf[LINE_MAX];
+	bool headers = true;
 
-	ppath = strdup(post_path);
-	post_name = basename(ppath);
+	ppath = basename(post_path);
+
+	sqlite3_initialize();
+	sqlite3_open(cblog_cdb, &sqlite);
+
 	post = fopen(post_path, "r");
 
 	if (post == NULL)
-		errx(EXIT_FAILURE, "Unable to open %s", post_name);
+		errx(EXIT_FAILURE, "Unable to open %s", post_path);
 
-	if ((olddb = open(cblog_cdb, O_RDONLY)) < 0)
-		err(1, "%s", cblog_cdb);
-	if ((db = open(cblog_cdb_tmp, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
-		err(1, "%s", cblog_cdb);
+	if (sqlite3_prepare_v2(sqlite, "INSERT INTO posts (link, title, source, html, date) "
+	    "values (?1, trim(?2), ?3, ?4, strftime('%s', 'now'));",
+	    -1, &stmt, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
+	if (sqlite3_prepare_v2(sqlite, "UPDATE posts set title=?2, source=?3, html=?4 where link=?1;",
+	    -1, &stmtu, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
 
-	cdb_init(&cdb, olddb);
-	cdb_make_start(&cdb_make, db);
-
-	/* First recopy the whole "posts" entry and determine if the post already exist or not */
-	cdb_findinit(&cdbf, &cdb, "posts", 5);
-	while (cdb_findnext(&cdbf) > 0) {
-		valkey = db_get(&cdb);
-
-		cdb_make_add(&cdb_make, "posts", 5, valkey, strlen(valkey));
-
-		if (EQUALS(post_name, valkey))
-			found = true;
-
-		for (i=0; field[i] != NULL; i++) {
-			snprintf(key, BUFSIZ, "%s_%s", valkey, field[i]);
-			if (cdb_find(&cdb, key, strlen(key)) > 0) {
-				val = db_get(&cdb);
-				cdb_make_add(&cdb_make, key, strlen(key), val, strlen(val));
-				free(val);
-			}
-		}
-		free(valkey);
-	}
-	if (!found)
-		cdb_make_add(&cdb_make, "posts", 5, post_name, strlen(post_name));
-
+	sqlite3_bind_text(stmt, 1, ppath, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmtu, 1, ppath, -1, SQLITE_STATIC);
 	ib = bufnew(BUFSIZ);
 
 	while (fgets(filebuf, LINE_MAX, post) != NULL) {
@@ -203,52 +179,39 @@ cblogctl_add(const char *post_path)
 		if (headers) {
 			trimcr(filebuf);
 			if (STARTS_WITH(filebuf, "Title: ")) {
-				while (isspace(filebuf[strlen(filebuf) - 1]))
-					filebuf[strlen(filebuf) - 1] = '\0';
-
-				snprintf(key, BUFSIZ, "%s_title", post_name);
 				val = filebuf + strlen("Title: ");
-				cdb_make_put(&cdb_make, key, strlen(key), val, strlen(val), CDB_PUT_REPLACE);
+				sqlite3_bind_text(stmt, 2, val, -1, SQLITE_TRANSIENT);
+				sqlite3_bind_text(stmtu, 2, val, -1, SQLITE_TRANSIENT);
 
 			} else if (STARTS_WITH(filebuf, "Tags")) {
-				while (isspace(filebuf[strlen(filebuf) - 1]))
+/*				while (isspace(filebuf[strlen(filebuf) - 1]))
 					filebuf[strlen(filebuf) - 1] = '\0';
 
 				val = filebuf + strlen("Tags: ");
 				snprintf(key, BUFSIZ, "%s_tags", post_name);
-				cdb_make_put(&cdb_make, key, strlen(key), val, strlen(val), CDB_PUT_REPLACE);
+				cdb_make_put(&cdb_make, key, strlen(key), val, strlen(val), CDB_PUT_REPLACE);*/
 			}
 		} else
 			bufputs(ib, filebuf);
 	}
 	fclose(post);
 
-	stat(post_path, &filestat);
-	snprintf(date, 11, "%lld", (long long int)filestat.st_mtime);
-	snprintf(key, BUFSIZ, "%s_ctime", post_name);
-	cdb_make_put(&cdb_make, key, strlen(key), date, strlen(date), CDB_PUT_INSERT);
-
 	ob = bufnew(BUFSIZ);
 	markdown(ob, ib, &mkd_xhtml);
 	bufnullterm(ob);
 	bufnullterm(ib);
 
-	snprintf(key, BUFSIZ, "%s_source", post_name);
-	cdb_make_put(&cdb_make, key, strlen(key), ib->data, strlen(ib->data), CDB_PUT_REPLACE);
+	sqlite3_bind_text(stmt, 3, ib->data, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmtu, 3, ib->data, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 4, ob->data, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmtu, 4, ob->data, -1, SQLITE_STATIC);
+	if (sqlite3_step(stmt) != SQLITE_DONE) {
+		if (sqlite3_step(stmtu) != SQLITE_DONE)
+			errx(1, "%s", sqlite3_errmsg(sqlite));
+	}
+
 	bufrelease(ib);
-
-	snprintf(key, BUFSIZ, "%s_html", post_name);
-	cdb_make_put(&cdb_make, key, strlen(key), ob->data, strlen(ob->data), CDB_PUT_REPLACE);
 	bufrelease(ob);
-
-	cdb_make_finish(&cdb_make);
-	close(olddb);
-	cdb_free(&cdb);
-	close(db);
-	if (rename(cblog_cdb_tmp, cblog_cdb) < 0)
-		err(1, "%s", cblog_cdb);
-
-	free(ppath);
 }
 
 void
