@@ -357,17 +357,43 @@ cblogctl_set(const char *post_name, char *to_be_set)
 void
 cblogctl_create(void)
 {
-	int					db;
-	struct cdb_make		cdb_make;
+	sqlite3 *sqlite;
+	sqlite3_stmt *stmt;
+	int ret;
 
-	if (access(cblog_cdb, F_OK) == 0)
-		errx(1, "%s already exists", cblog_cdb);
-	if ((db = open(cblog_cdb, O_CREAT|O_RDWR|O_TRUNC, 0644)) < 0)
-		err(1, "%s", cblog_cdb);
+	sqlite3_initialize();
+	if (sqlite3_open(cblog_cdb, &sqlite) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
 
-	cdb_make_start(&cdb_make, db);
-	cdb_make_finish(&cdb_make);
-	close(db);
+	ret = sql_exec(sqlite,
+		"CREATE TABLE posts "
+		    "(id INTEGER PRIMARY KEY, "
+		    "link TEXT NOT NULL UNIQUE," 
+		    "title TEXT NOT NULL, "
+		    "source TEXT NOT NULL, "
+		    "html TEXT NOT NULL, "
+		    "date INTEGER, "
+		    "published INTEGER); "
+		"CREATE TABLE comments ("
+		    "id INTEGER PRIMARY KEY, "
+		    "post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE, "
+		    "author TEXT NOT NULL, "
+		    "url TEXT, "
+		    "date INTEGER, "
+		    "comment TEXT NOT NULL); "
+		"CREATE TABLE tags ("
+		    "id INTEGER PRIMARY KEY, "
+		    "tag TEXT NOT NULL UNIQUE); "
+		"CREATE TABLE tags_posts ("
+		    "tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE ON UPDATE CASCADE, "
+		    "post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE) "
+		    "PRIMARY KEY (tag_id, post_id);"
+		);
+	if (ret < 0)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
+
+	sqlite_close(sqlite);
+	sqlite3_shutdown();
 }
 
 void
