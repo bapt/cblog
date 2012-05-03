@@ -56,22 +56,10 @@ trimcr(char *str)
 	return 0;
 }
 
-void
-cblogctl_info(const char *post_name)
+static void
+print_stmt(sqlite3_stmt *stmt)
 {
-	sqlite3 *sqlite;
-	sqlite3_stmt *stmt;
 	int icol;
-
-	sqlite3_initialize();
-	sqlite3_open(cblog_cdb, &sqlite);
-
-	if (sqlite3_prepare_v2(sqlite, "SELECT title, datetime(posts.date, 'unixepoch') as date, group_concat(tag, ', ') as tags "
-	    "FROM posts, tags_posts, tags "
-	    "WHERE link=?1 and posts.id=tags_posts.post_id and tags_posts.tag_id=tags.id;", -1, &stmt, NULL) != SQLITE_OK)
-		errx(1, "%s", sqlite3_errmsg(sqlite));
-
-	sqlite3_bind_text(stmt, 1, post_name, -1, SQLITE_STATIC);
 	while (sqlite3_step(stmt) == SQLITE_ROW) {
 		for (icol = 0; icol < sqlite3_column_count(stmt); icol++) {
 			switch (sqlite3_column_type(stmt, icol)) {
@@ -87,8 +75,41 @@ cblogctl_info(const char *post_name)
 			}
 		}
 	}
-	printf("\n");
+}
+
+void
+cblogctl_info(const char *post_name)
+{
+	sqlite3 *sqlite;
+	sqlite3_stmt *stmt;
+
+	sqlite3_initialize();
+	sqlite3_open(cblog_cdb, &sqlite);
+
+	if (sqlite3_prepare_v2(sqlite, "SELECT title, datetime(posts.date, 'unixepoch') as date "
+	    "FROM posts "
+	    "WHERE link=?1;", -1, &stmt, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
+
+	sqlite3_bind_text(stmt, 1, post_name, -1, SQLITE_STATIC);
+	print_stmt(stmt);
 	sqlite3_finalize(stmt);
+	if (sqlite3_prepare_v2(sqlite,
+	    "SELECT group_concat(tag, ', ') as tags "
+	    "FROM tags, tags_posts, posts WHERE link=?1 and posts.id=tags_posts.post_id and tags_posts.tag_id=tags.id;",
+	    -1 , &stmt, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
+	sqlite3_bind_text(stmt, 1, post_name, -1, SQLITE_STATIC);
+	print_stmt(stmt);
+	sqlite3_finalize(stmt);
+	if (sqlite3_prepare_v2(sqlite,
+	    "SELECT count(comment) as 'Number of comments' FROM comments, posts where posts.id = post_id and link=?1;",
+	    -1 , &stmt, NULL) != SQLITE_OK)
+		errx(1, "%s", sqlite3_errmsg(sqlite));
+	sqlite3_bind_text(stmt, 1, post_name, -1, SQLITE_STATIC);
+	print_stmt(stmt);
+	sqlite3_finalize(stmt);
+	printf("\n");
 	sqlite3_close(sqlite);
 	sqlite3_shutdown();
 }
