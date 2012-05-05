@@ -45,7 +45,7 @@ add_posts_to_hdf(HDF *hdf, sqlite3_stmt *stmt, sqlite3 *sqlite)
 {
 	char *filename;
 	int icol;
-	int nb_post, pos, nb_tags;
+	int nb_post, nb_tags;
 	nb_post = 0;
 	sqlite3_stmt *stmt2;
 
@@ -114,12 +114,12 @@ int
 build_post(HDF *hdf, char *postname, sqlite3 *sqlite)
 {
 	sqlite3_stmt *stmt;
-	int icol, nb_tags, ret=0;
-	char *submit, *filename;
+	int ret=0;
+	char *submit;
 
 	submit = get_query_str(hdf, "submit");
 	if (submit != NULL && EQUALS(submit, "Post"))
-			set_comment(hdf, postname);
+			set_comment(hdf, postname, sqlite);
 
 	if (sqlite3_prepare_v2(sqlite, 
 		"SELECT link as filename, title, source, html, date from posts "
@@ -133,7 +133,7 @@ build_post(HDF *hdf, char *postname, sqlite3 *sqlite)
 
 	ret = add_posts_to_hdf(hdf, stmt, sqlite);
 	sqlite3_finalize(stmt);
-	get_comments(hdf, postname);
+	get_comments(hdf, postname, sqlite);
 
 	return ret;
 }
@@ -143,11 +143,9 @@ build_index(HDF *hdf, struct criteria *criteria, sqlite3 *sqlite)
 {
 	sqlite3_stmt *stmt, *stmtcnt;
 
-	int nb_post = 0, first_post = 0, max_post, nb_tags, total_posts, nb_pages;
+	int nb_post = 0, first_post = 0, max_post, total_posts, nb_pages;
 	int page = 0;
-	int icol;
 
-	char *filename;
 	const char *baseurl, *counturl;
 
 	max_post = hdf_get_int_value(hdf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);

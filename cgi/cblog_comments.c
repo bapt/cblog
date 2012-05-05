@@ -6,134 +6,67 @@
 #include <fcntl.h>
 #include <sys/param.h>
 #include <sys/stat.h>
+#include <sqlite3.h>
 
 #include "cblog_cgi.h"
 #include "cblog_utils.h"
 #include <syslog.h>
 
 int
-get_comments_count(char *postname)
+get_comments_count(char *postname, sqlite3 *sqlite)
 {
-	char		comment_file[MAXPATHLEN];
-	int			commentfd;
-	int			count = 0, j = 0, nbel = 0;
-	struct stat	comment_stat;
-	size_t		next;
-	char		*buffer = NULL, *bufstart;
+	sqlite3_stmt *stmt;
+	int nb;
 
-	snprintf(comment_file, MAXPATHLEN, CDB_PATH"/comments/%s", postname);
-
-	if (stat(comment_file, &comment_stat) == -1)
-		return count;
-
-	if ((buffer = malloc((comment_stat.st_size + 1) * sizeof(char))) == NULL)
-		return count;
-
-	if ((commentfd = open(comment_file, O_RDONLY)) == -1 ) {
-		free(buffer);
-		return count;
+	if (sqlite3_prepare_v2(sqlite,
+	    "SELECT count(comment) FROM comments, posts where posts.id = post_id and link=?1;",
+	    -1 , &stmt, NULL) != SQLITE_OK) {
+		cblog_log("%s", sqlite3_errmsg(sqlite));
+		return (0);
 	}
 
-	if (read(commentfd, buffer, comment_stat.st_size) != comment_stat.st_size) {
-		free(buffer);
-		return count;
-	}
+	sqlite3_bind_text(stmt, 1, postname, -1, SQLITE_STATIC);
+	nb = sqlite3_column_int(stmt, 0);
+	sqlite3_finalize(stmt);
 
-	buffer[comment_stat.st_size] = '\0';
-
-	if (close(commentfd) == -1) {
-		free(buffer);
-		return count;
-	}
-
-	bufstart = buffer;
-	nbel = splitchr(buffer, '\n');
-	next = strlen(buffer);
-
-	for (j=0; j <= nbel; j++) {
-		if (STARTS_WITH(buffer, "--"))
-			count++;
-
-		buffer += next + 1;
-		next = strlen(buffer);
-	}
-
-	free(buffer);
-
-	return count;
+	return (nb);
 }
 
 void
-get_comments(HDF *hdf, char *postname)
+get_comments(HDF *hdf, char *postname, sqlite3 *sqlite)
 {
-	char		comment_file[MAXPATHLEN];
-	int			commentfd;
-	char		*date_format;
-	time_t		comment_date;
-	char		date[256];
-	int			count = 0;
-	int			nbel = 0, j = 0;
-	char		*buffer = NULL, *bufstart;
-	struct stat	comment_stat;
-	size_t		next;
+	sqlite3_stmt *stmt;
+	int icol;
+	int i = 0;
 
-	date_format = get_dateformat(hdf);
-
-	snprintf(comment_file, MAXPATHLEN, CDB_PATH"/comments/%s", postname);
-	if (stat(comment_file, &comment_stat) == -1)
-		return;
-
-	if ((buffer = malloc((comment_stat.st_size + 1) * sizeof(char))) == NULL)
-		return;
-
-	if ((commentfd = open(comment_file, O_RDONLY)) == -1 ) {
-		free(buffer);
+	if (sqlite3_prepare_v2(sqlite,
+	    "SELECT author, url, strftime(?1, comments.date), comment as content FROM comments, posts where post_id=posts.id and link=?2 ORDER by comments.date DESC;",
+	    -1, &stmt, NULL) != SQLITE_OK) {
+		cblog_log("%s", sqlite3_errmsg(sqlite));
 		return;
 	}
 
-	if (read(commentfd, buffer, comment_stat.st_size) != comment_stat.st_size) {
-		free(buffer);
-		return;
+	sqlite3_bind_text(stmt, 1, get_dateformat(hdf), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 2, postname, -1, SQLITE_STATIC);
+
+	while (sqlite3_step(stmt) == SQLITE_ROW) {
+		for (icol = 0; icol < sqlite3_column_count(stmt); icol++) {
+			switch (sqlite3_column_type(stmt, icol)) {
+			case SQLITE_TEXT:
+				hdf_set_valuef(hdf, "Posts.0.comments.%i.%s=%s", i, sqlite3_column_name(stmt, icol), sqlite3_column_text(stmt, icol));
+				break;
+			default:
+				break;
+			}
+		}
+		i++;
 	}
 
-	buffer[comment_stat.st_size] = '\0';
-
-	if (close(commentfd) == -1) {
-		free(buffer);
-		return;
-	}
-
-	bufstart = buffer;
-	nbel = splitchr(buffer, '\n');
-	next = strlen(buffer);
-	while (j <= nbel) {
-		if (STARTS_WITH(buffer, "comment: "))
-			hdf_set_valuef(hdf, "Posts.0.comments.%i.content=%s", count, cgi_url_unescape(buffer + 9));
-
-		else if (STARTS_WITH(buffer, "name: "))
-			hdf_set_valuef(hdf, "Posts.0.comments.%i.author=%s", count, buffer + 6);
-
-		else if (STARTS_WITH(buffer, "url: "))
-			hdf_set_valuef(hdf, "Posts.0.comments.%i.url=%s", count, buffer + 5);
-
-
-		else if (STARTS_WITH(buffer, "date: ")) {
-			comment_date = (time_t)strtol(buffer + 6, NULL, 10);
-			time_to_str(comment_date, date_format, date, 256);
-			hdf_set_valuef(hdf, "Posts.0.comments.%i.date=%s", count, date);
-		} else if (STARTS_WITH(buffer, "--"))
-			count++;
-
-		buffer += next + 1;
-		j++;
-		next = strlen(buffer);
-	}
-	
-	free(bufstart);
+	sqlite3_finalize(stmt);
 }
 
 void
-set_comment(HDF *hdf, char *postname)
+set_comment(HDF *hdf, char *postname, sqlite3 *sqlite)
 {
 	char	comment_file[MAXPATHLEN];
 	char    *nospam, *comment, *name, *url;
