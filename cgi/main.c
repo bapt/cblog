@@ -227,13 +227,9 @@ main(int argc, char **argv, char **envp)
 		bind_socket(argv[1]);
 	}
 
-	while (FCGI_Accept() >= 0) {
-		/*	cgi_init(&cgi, NULL);
-		cgi_parse(cgi); */
+	while (FCGI_Accept() >= 0)
 		cblogcgi(conf);
-		/*	cgi_destroy(&cgi);
-		syslog(LOG_ERR, "coucou"); */
-	}
+
 	closelog();
 	return EXIT_SUCCESS;
 }

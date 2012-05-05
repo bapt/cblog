@@ -3,6 +3,7 @@
 
 #include <fcgi_stdio.h>
 #include <ClearSilver.h>
+#include <sqlite3.h>
 
 #define CBLOG_POST 0
 #define CBLOG_TAG 1

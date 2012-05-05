@@ -79,6 +79,7 @@ add_posts_to_hdf(HDF *hdf, sqlite3_stmt *stmt, sqlite3 *sqlite)
 			hdf_set_valuef(hdf, "Posts.%i.tags.%i.name=%s", nb_post, nb_tags, sqlite3_column_text(stmt2, 0));
 			nb_tags++;
 		}
+		hdf_set_valuef(hdf, "Posts.%i.nb_comments=%i", nb_post, get_comments_count(filename, sqlite));
 		nb_post++;
 	}
 

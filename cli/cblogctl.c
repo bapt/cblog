@@ -294,7 +294,6 @@ void
 cblogctl_create(void)
 {
 	sqlite3 *sqlite;
-	sqlite3_stmt *stmt;
 	int ret;
 
 	sqlite3_initialize();

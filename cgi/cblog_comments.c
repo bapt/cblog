@@ -26,6 +26,7 @@ get_comments_count(char *postname, sqlite3 *sqlite)
 	}
 
 	sqlite3_bind_text(stmt, 1, postname, -1, SQLITE_STATIC);
+	sqlite3_step(stmt);
 	nb = sqlite3_column_int(stmt, 0);
 	sqlite3_finalize(stmt);
 

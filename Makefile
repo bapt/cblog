@@ -17,8 +17,8 @@ CLI=	cblogctl
 CONVERT=	cblogconvert
 LIB=	libcblog_utils.a
 
-CGILIBS=	-lfcgi -lcblog_utils -lcdb -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3
-CLILIBS=	-lcblog_utils -lsqlite3 -lcdb
+CGILIBS=	-lfcgi -lcblog_utils -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3
+CLILIBS=	-lcblog_utils -lsqlite3
 CONVERTLIBS=	-lcblog_utils -lcdb -lsqlite3 -lneo_cgi -lneo_utl -lneo_cs -lz
 
 all:	${CLI} ${CGI} ${CONVERT}
