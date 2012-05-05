@@ -41,7 +41,7 @@ get_comments(HDF *hdf, char *postname, sqlite3 *sqlite)
 	int i = 0;
 
 	if (sqlite3_prepare_v2(sqlite,
-	    "SELECT author, url, strftime(?1, comments.date), comment as content FROM comments, posts where post_id=posts.id and link=?2 ORDER by comments.date DESC;",
+	    "SELECT author, url, strftime(?1, comments.date), comment as content FROM comments, posts where post_id=posts.id and link=?2 ORDER by comments.date ASC;",
 	    -1, &stmt, NULL) != SQLITE_OK) {
 		cblog_log("%s", sqlite3_errmsg(sqlite));
 		return;
@@ -103,6 +103,8 @@ set_comment(HDF *hdf, char *postname, sqlite3 *sqlite)
 	sqlite3_bind_text(stmt, 2, get_query_str(hdf, "name"), -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 3, url, -1, SQLITE_STATIC);
 	sqlite3_bind_text(stmt, 4, get_query_str(hdf, "comment"), -1, SQLITE_STATIC);
+
+	sqlite3_step(stmt);
 
 	free(url);
 
