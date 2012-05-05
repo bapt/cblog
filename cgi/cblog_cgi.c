@@ -243,30 +243,17 @@ int
 build_index(HDF *hdf, struct criteria *criteria)
 {
 	sqlite3 *sqlite;
-	sqlite3_stmt *stmt, *stmt2;
+	sqlite3_stmt *stmt, *stmt2, *stmtcnt;
 
-	int nb_post = 0, first_post = 0, max_post, nb_tags;
+	int nb_post = 0, first_post = 0, max_post, nb_tags, total_posts, nb_pages;
 	int page = 0;
 	int icol;
 
 	char *filename;
-	const char *baseurl;
+	const char *baseurl, *counturl;
 
 	sqlite3_initialize();
 	sqlite3_open(get_cblog_db(hdf), &sqlite);
-
-/*	int					first_post = 0, nb_posts = 0, max_post, total_posts = 0;
-	int					nb_pages = 0, page, nbel, nbtags = 0;
-	int					i, j = 0, k;
-	struct cdb			cdb;
-	struct cdb_find		cdbf;
-	char				*val, *tag, *tagcmp, *valtrimed, *val_to_free;
-	struct tags			**taglist = NULL, *tags;
-	char				key[BUFSIZ];
-	struct posts		**posts = NULL;
-	struct posts		*post;
-	size_t				next;
-	bool				found;*/
 
 	max_post = hdf_get_int_value(hdf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
 	page = hdf_get_int_value(hdf, "Query.page", 1);
@@ -279,19 +266,29 @@ build_index(HDF *hdf, struct criteria *criteria)
 	    "SELECT link as filename, title, source, html, date from posts, tags_posts, tags "
 		"WHERE posts.id=post_id and tag_id=tags.id and tag=?3 "
 		"ORDER BY DATE DESC LIMIT ?1 OFFSET ?2 ";
+		counturl =
+	    "SELECT count(*) from posts, tags_posts, tags "
+		"WHERE posts.id=post_id and tag_id=tags.id and tag=?1;";
 		break;
 	case CRITERIA_TIME_T:
 		baseurl = "SELECT link as filename, title, source, html, date from posts "
 			"WHERE date BETWEEN ?3 and ?4 "
 			"ORDER BY date DESC LIMIT ?1 OFFSET ?2;";
+		counturl = "SELECT count(*) from posts WHERE date BETWEEN ?1 and ?2 ";
 		break;
 	default:
 		baseurl = "SELECT link as filename, title, source, html, date from posts ORDER BY DATE DESC LIMIT ?1 OFFSET ?2;";
+		counturl = "SELECT count(*) from posts;";
 		break;
 	}
 	if (sqlite3_prepare_v2(sqlite,
 		baseurl,
 	    -1, &stmt, NULL) != SQLITE_OK) {
+		warnx("%s", sqlite3_errmsg(sqlite));
+		return 0;
+	}
+
+	if (sqlite3_prepare_v2(sqlite, counturl, -1, &stmtcnt, NULL) != SQLITE_OK) {
 		warnx("%s", sqlite3_errmsg(sqlite));
 		return 0;
 	}
@@ -308,17 +305,24 @@ build_index(HDF *hdf, struct criteria *criteria)
 	sqlite3_bind_int(stmt, 2, first_post);
 	switch (criteria->type) {
 	case CRITERIA_TAGNAME:
-		sqlite3_bind_text(stmt, 3, criteria->tagname, -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 3, criteria->tagname, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmtcnt, 1, criteria->tagname, -1, SQLITE_STATIC);
 		break;
 	case CRITERIA_TIME_T:
 		sqlite3_bind_int64(stmt, 3, criteria->start);
 		sqlite3_bind_int64(stmt, 4, criteria->end);
+		sqlite3_bind_int64(stmtcnt, 1, criteria->start);
+		sqlite3_bind_int64(stmtcnt, 2, criteria->end);
 		warnx("%ld  -  %ld\n", criteria->start, criteria->end);
 		warnx("%s", baseurl);
 		break;
 	default:
 		break;
 	}
+
+	sqlite3_step(stmtcnt);
+	total_posts = sqlite3_column_int64(stmtcnt, 0);
+	sqlite3_finalize(stmtcnt);
 
 	while (sqlite3_step(stmt) == SQLITE_ROW) {
 		sqlite3_reset(stmt2);
@@ -363,11 +367,11 @@ build_index(HDF *hdf, struct criteria *criteria)
 		sqlite3_finalize(stmt);
 	}
 
-	/*nb_pages = j / max_post;
-	if (j % max_post > 0)
+	nb_pages = total_posts / max_post;
+	if (total_posts % max_post > 0)
 		nb_pages++;
 
-	set_nb_pages(hdf, nb_pages);*/
+	set_nb_pages(hdf, nb_pages);
 
 	return nb_post;
 }
