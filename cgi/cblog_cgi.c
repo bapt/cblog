@@ -278,15 +278,15 @@ build_index(HDF *hdf, struct criteria *criteria)
 		baseurl = 
 	    "SELECT link as filename, title, source, html, date from posts, tags_posts, tags "
 		"WHERE posts.id=post_id and tag_id=tags.id and tag=?3 "
-		"ORDER BY DATE LIMIT ?1 OFFSET ?2 ";
+		"ORDER BY DATE DESC LIMIT ?1 OFFSET ?2 ";
 		break;
 	case CRITERIA_TIME_T:
 		baseurl = "SELECT link as filename, title, source, html, date from posts "
-			"WHERE date ?3 and ?4 "
-			"ORDER BY date LIMIT ?1 OFFSET ?2;";
+			"WHERE date BETWEEN ?3 and ?4 "
+			"ORDER BY date DESC LIMIT ?1 OFFSET ?2;";
 		break;
 	default:
-		baseurl = "SELECT link as filename, title, source, html, date from posts ORDER BY DATE LIMIT ?1 OFFSET ?2;";
+		baseurl = "SELECT link as filename, title, source, html, date from posts ORDER BY DATE DESC LIMIT ?1 OFFSET ?2;";
 		break;
 	}
 	if (sqlite3_prepare_v2(sqlite,
@@ -308,11 +308,13 @@ build_index(HDF *hdf, struct criteria *criteria)
 	sqlite3_bind_int(stmt, 2, first_post);
 	switch (criteria->type) {
 	case CRITERIA_TAGNAME:
-		sqlite3_bind_text(stmt, 3, criteria->tagname, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 3, criteria->tagname, -1, SQLITE_TRANSIENT);
 		break;
 	case CRITERIA_TIME_T:
 		sqlite3_bind_int64(stmt, 3, criteria->start);
 		sqlite3_bind_int64(stmt, 4, criteria->end);
+		warnx("%ld  -  %ld\n", criteria->start, criteria->end);
+		warnx("%s", baseurl);
 		break;
 	default:
 		break;
@@ -358,8 +360,8 @@ build_index(HDF *hdf, struct criteria *criteria)
 			hdf_set_valuef(hdf, "Tags.%i.count=%lld", nb_tags, sqlite3_column_int64(stmt, 0));
 			nb_tags++;
 		}
+		sqlite3_finalize(stmt);
 	}
-	sqlite3_finalize(stmt);
 
 	/*nb_pages = j / max_post;
 	if (j % max_post > 0)
@@ -392,6 +394,7 @@ cblogcgi(HDF *conf)
 	criteria.type = 0;
 	criteria.feed = false;
 
+	memset(&calc_time, 0, sizeof(struct tm));
 	neoerr = cgi_init(&cgi, NULL);
 
 	nerr_ignore(&neoerr);
@@ -399,10 +402,10 @@ cblogcgi(HDF *conf)
 	method = get_cgi_str(cgi->hdf, "RequestMethod");
 
 	/* only parse ig necessary */
-	/*if (EQUALS(method, "POST") || EQUALS(method,"PUT" )) {
+	if (EQUALS(method, "POST") || EQUALS(method,"PUT" )) {
 			neoerr = cgi_parse(cgi);
 			nerr_ignore(&neoerr);
-	}*/
+	}
 
 	neoerr = hdf_copy(cgi->hdf, "", conf);
 	nerr_ignore(&neoerr);
@@ -410,7 +413,6 @@ cblogcgi(HDF *conf)
 	hdf_set_valuef(cgi->hdf, "CBlog.version=%s", cblog_version);
 	hdf_set_valuef(cgi->hdf, "CBlog.url=%s", cblog_url);
 
-/*	requesturi = getenv("REQUEST_URI");*/
 	requesturi = get_cgi_str(cgi->hdf, "RequestURI");
 
 	typefeed = get_query_str(cgi->hdf, "feed");
@@ -452,7 +454,6 @@ cblogcgi(HDF *conf)
 		}
 	}
 
-	build_index(cgi->hdf, &criteria);
 	switch (type) {
 		case CBLOG_POST:
 			requesturi++;
@@ -492,6 +493,7 @@ cblogcgi(HDF *conf)
 			calc_time.tm_mon = 0;
 			calc_time.tm_mday = 1;
 			criteria.start = mktime(&calc_time);
+			warnx("%s\n", asctime(&calc_time));
 			calc_time.tm_mon = 11;
 			calc_time.tm_mday = 31;
 			calc_time.tm_hour = 23;
@@ -573,11 +575,11 @@ cblogcgi(HDF *conf)
 			break;
 	}
 
-/*	if (neoerr != STATUS_OK && EQUALS(method, "HEAD") ) {
+	if (neoerr != STATUS_OK && EQUALS(method, "HEAD") ) {
 		nerr_error_string(neoerr, &neoerr_str);
 		cblog_err(-1, neoerr_str.buf);
 		string_clear(&neoerr_str);
-	}*/
+	}
 	nerr_ignore(&neoerr);
 	cgi_destroy(&cgi);
 }
