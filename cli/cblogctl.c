@@ -322,8 +322,8 @@ cblogctl_create(void)
 		    "tag TEXT NOT NULL UNIQUE); "
 		"CREATE TABLE tags_posts ("
 		    "tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE ON UPDATE CASCADE, "
-		    "post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE) "
-		    "PRIMARY KEY (tag_id, post_id);"
+		    "post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE, "
+		    "PRIMARY KEY (tag_id, post_id));"
 		);
 	if (ret < 0)
 		errx(1, "%s", sqlite3_errmsg(sqlite));
