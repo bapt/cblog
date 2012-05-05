@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <cdb.h>
 #include <ClearSilver.h>
 
 #include "cblog_utils.h"
