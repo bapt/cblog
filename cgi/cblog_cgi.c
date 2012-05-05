@@ -95,155 +95,108 @@ db_open(HDF *hdf, struct cdb *cdb, int flags)
 	return db;
 }
 
-void
-add_post_to_hdf(HDF *hdf, struct cdb *cdb, char *name, int pos)
+int
+add_posts_to_hdf(HDF *hdf, sqlite3_stmt *stmt, sqlite3 *sqlite)
 {
-	int		i, j;
-	char	key[BUFSIZ];
-	char	*val;
+	char *filename;
+	int icol;
+	int nb_post, pos, nb_tags;
+	nb_post = 0;
+	sqlite3_stmt *stmt2;
 
-	hdf_set_valuef(hdf, "Posts.%i.filename=%s", pos, name);
-	for (i=0; field[i] != NULL; i++) {
-		char *val_to_free;
-
-		snprintf(key, BUFSIZ, "%s_%s", name, field[i]);
-		cdb_find(cdb, key, strlen(key));
-		val = db_get(cdb);
-		val_to_free = val;
-
-		if (EQUALS(field[i], "tags")) {
-			int nbel = splitchr(val, ',');
-
-			for (j=0; j <= nbel; j++) {
-				size_t	next = strlen(val);
-				char	*valtrimed = trimspace(val);
-
-				hdf_set_valuef(hdf, "Posts.%i.tags.%i.name=%s", pos, j, valtrimed);
-				val += next + 1;
-			}
-		} else if (EQUALS(field[i], "ctime")) {
-			set_post_date(hdf, pos, val);
-		} else
-			hdf_set_valuef(hdf, "Posts.%i.%s=%s", pos, field[i], val);
-
-		free(val_to_free);
+	if (sqlite3_prepare_v2(sqlite,
+	    "SELECT tag FROM tags, tags_posts, posts WHERE link=?1 AND posts.id=post_id and tag_id=tags.id;",
+	    -1, &stmt2, NULL) != SQLITE_OK) {
+		warnx("%s", sqlite3_errmsg(sqlite));
+		return 0;
 	}
-	hdf_set_valuef(hdf, "Posts.%i.nb_comments=%i", pos, get_comments_count(name));
+
+	while (sqlite3_step(stmt) == SQLITE_ROW) {
+		sqlite3_reset(stmt2);
+		for (icol = 0; icol < sqlite3_column_count(stmt); icol++) {
+			switch (sqlite3_column_type(stmt, icol)) {
+			case SQLITE_TEXT:
+				if (strcmp(sqlite3_column_name(stmt, icol), "filename") == 0) {
+					filename = (char*)sqlite3_column_text(stmt, icol);
+					sqlite3_bind_text(stmt2, 1, filename, -1, SQLITE_STATIC);
+				}
+				hdf_set_valuef(hdf, "Posts.%i.%s=%s", nb_post, sqlite3_column_name(stmt, icol), sqlite3_column_text(stmt, icol));
+				break;
+			case SQLITE_INTEGER:
+				hdf_set_valuef(hdf, "Posts.%i.%s=%lld", nb_post, sqlite3_column_name(stmt, icol), sqlite3_column_int64(stmt, icol));
+				break;
+			default:
+				break;
+			}
+		}
+		nb_tags = 0;
+		while (sqlite3_step(stmt2) == SQLITE_ROW) {
+			hdf_set_valuef(hdf, "Posts.%i.tags.%i.name=%s", nb_post, nb_tags, sqlite3_column_text(stmt2, 0));
+			nb_tags++;
+		}
+		nb_post++;
+	}
+
+	sqlite3_finalize(stmt2);
+
+	return (nb_post);
 }
 
 void
-set_tags(HDF *hdf)
+set_tags(HDF *hdf, sqlite3 *sqlite)
 {
-	int					i, nbtags = 0, nbel;
-	struct cdb			cdb;
-	struct cdb_find		cdbf;
-	char				key[BUFSIZ];
-	char				*val;
-	bool				found;
-	struct tags			**taglist = NULL;
-	struct tags			*tag;
-	char				*tagcmp, *val_to_free;
-	size_t				next;
+	sqlite3_stmt *stmt;
+	int nb_tags;
 
-	SLIST_HEAD(, tags) tagshead;
-	SLIST_INIT(&tagshead);
-
-	if (db_open(hdf, &cdb, O_RDONLY) < 0)
+	if (sqlite3_prepare_v2(sqlite, "select count(*), tag from tags, tags_posts where id=tag_id group by tag order by tag;",
+				-1, &stmt, NULL) != SQLITE_OK) {
+		warnx("%s", sqlite3_errmsg(sqlite));
 		return;
-
-	cdb_findinit(&cdbf, &cdb, "posts", 5);
-	while (cdb_findnext(&cdbf) > 0) {
-		val = db_get(&cdb);
-		snprintf(key, BUFSIZ, "%s_tags", val);
-		free(val);
-
-		cdb_find(&cdb, key, strlen(key));
-		val = db_get(&cdb);
-
-		val_to_free = val;
-		nbel = splitchr(val, ',');
-		for (i=0; i <= nbel; i++) {
-			next = strlen(val);
-			tagcmp = trimspace(val);
-
-			found = false;
-
-			SLIST_FOREACH(tag, &tagshead, next) {
-				if (EQUALS(tagcmp, tag->name)) {
-					found = true;
-					tag->count++;
-					break;
-				}
-			}
-			if (!found) {
-				nbtags++;
-				tag = malloc(sizeof(struct tags));
-				tag->name = strdup(tagcmp);
-
-				tag->count = 1;
-				SLIST_INSERT_HEAD(&tagshead, tag, next);
-			}
-			val+= next + 1;
-		}
-		free(val_to_free);
 	}
 
-	taglist = malloc(nbtags * sizeof(struct tags *));
+	nb_tags = 0;
 
-	i = 0;
-	SLIST_FOREACH(tag, &tagshead, next) {
-		taglist[i] = tag;
-		i++;
+	while (sqlite3_step(stmt) == SQLITE_ROW) {
+		hdf_set_valuef(hdf, "Tags.%i.name=%s", nb_tags, sqlite3_column_text(stmt, 1));
+		hdf_set_valuef(hdf, "Tags.%i.count=%lld", nb_tags, sqlite3_column_int64(stmt, 0));
+		nb_tags++;
 	}
 
-	qsort(taglist, nbtags, sizeof(struct tags *), sort_by_name);
-
-	for (i=0; i<nbtags; i++) {
-		set_tag_name(hdf, i, taglist[i]->name);
-		set_tag_count(hdf, i, taglist[i]->count);
-		free(taglist[i]->name);
-		free(taglist[i]);
-	}
-	free(taglist);
-
-	close(cdb_fileno(&cdb));
-	cdb_free(&cdb);
+	sqlite3_finalize(stmt);
 }
 
 int
-build_post(HDF *hdf, char *postname)
+build_post(HDF *hdf, char *postname, sqlite3 *sqlite)
 {
-	int			ret = 0;
-	struct cdb	cdb;
-	char		key[BUFSIZ];
-	char		*submit;
+	sqlite3_stmt *stmt;
+	int icol, nb_tags, ret=0;
+	char *submit, *filename;
 
 	submit = get_query_str(hdf, "submit");
 	if (submit != NULL && EQUALS(submit, "Post"))
 			set_comment(hdf, postname);
 
-	if (db_open(hdf, &cdb, O_RDONLY) < 0)
+	if (sqlite3_prepare_v2(sqlite, 
+		"SELECT link as filename, title, source, html, date from posts "
+		"WHERE link=?1 ;",
+		-1, &stmt, NULL) != SQLITE_OK) {
+		warnx("%s", sqlite3_errmsg(sqlite));
 		return 0;
-
-	snprintf(key, BUFSIZ, "%s_title", postname);
-
-	if (cdb_find(&cdb, key, strlen(key)) > 0) {
-		add_post_to_hdf(hdf, &cdb, postname, 0);
-		ret++;
 	}
 
+	sqlite3_bind_text(stmt, 1, postname, -1, SQLITE_STATIC);
+
+	ret = add_posts_to_hdf(hdf, stmt, sqlite);
+	sqlite3_finalize(stmt);
 	get_comments(hdf, postname);
 
-	close(cdb_fileno(&cdb));
-	cdb_free(&cdb);
 	return ret;
 }
 
 int
-build_index(HDF *hdf, struct criteria *criteria)
+build_index(HDF *hdf, struct criteria *criteria, sqlite3 *sqlite)
 {
-	sqlite3 *sqlite;
-	sqlite3_stmt *stmt, *stmt2, *stmtcnt;
+	sqlite3_stmt *stmt, *stmtcnt;
 
 	int nb_post = 0, first_post = 0, max_post, nb_tags, total_posts, nb_pages;
 	int page = 0;
@@ -251,9 +204,6 @@ build_index(HDF *hdf, struct criteria *criteria)
 
 	char *filename;
 	const char *baseurl, *counturl;
-
-	sqlite3_initialize();
-	sqlite3_open(get_cblog_db(hdf), &sqlite);
 
 	max_post = hdf_get_int_value(hdf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
 	page = hdf_get_int_value(hdf, "Query.page", 1);
@@ -293,13 +243,6 @@ build_index(HDF *hdf, struct criteria *criteria)
 		return 0;
 	}
 
-	if (sqlite3_prepare_v2(sqlite,
-	    "SELECT tag FROM tags, tags_posts, posts WHERE link=?1 AND posts.id=post_id and tag_id=tags.id;",
-	    -1, &stmt2, NULL) != SQLITE_OK) {
-		warnx("%s", sqlite3_errmsg(sqlite));
-		return 0;
-	}
-
 	first_post = (page * max_post) - max_post;
 	sqlite3_bind_int(stmt, 1, max_post);
 	sqlite3_bind_int(stmt, 2, first_post);
@@ -313,8 +256,6 @@ build_index(HDF *hdf, struct criteria *criteria)
 		sqlite3_bind_int64(stmt, 4, criteria->end);
 		sqlite3_bind_int64(stmtcnt, 1, criteria->start);
 		sqlite3_bind_int64(stmtcnt, 2, criteria->end);
-		warnx("%ld  -  %ld\n", criteria->start, criteria->end);
-		warnx("%s", baseurl);
 		break;
 	default:
 		break;
@@ -324,48 +265,11 @@ build_index(HDF *hdf, struct criteria *criteria)
 	total_posts = sqlite3_column_int64(stmtcnt, 0);
 	sqlite3_finalize(stmtcnt);
 
-	while (sqlite3_step(stmt) == SQLITE_ROW) {
-		sqlite3_reset(stmt2);
-		for (icol = 0; icol < sqlite3_column_count(stmt); icol++) {
-			switch (sqlite3_column_type(stmt, icol)) {
-			case SQLITE_TEXT:
-				if (strcmp(sqlite3_column_name(stmt, icol), "filename") == 0) {
-					filename = (char*)sqlite3_column_text(stmt, icol);
-					sqlite3_bind_text(stmt2, 1, filename, -1, SQLITE_STATIC);
-				}
-				hdf_set_valuef(hdf, "Posts.%i.%s=%s", nb_post, sqlite3_column_name(stmt, icol), sqlite3_column_text(stmt, icol));
-				break;
-			case SQLITE_INTEGER:
-				hdf_set_valuef(hdf, "Posts.%i.%s=%lld", nb_post, sqlite3_column_name(stmt, icol), sqlite3_column_int64(stmt, icol));
-				break;
-			default:
-				break;
-			}
-		}
-		nb_tags = 0;
-		while (sqlite3_step(stmt2) == SQLITE_ROW) {
-			hdf_set_valuef(hdf, "Posts.%i.tags.%i.name=%s", nb_post, nb_tags, sqlite3_column_text(stmt2, 0));
-			nb_tags++;
-		}
-		nb_post++;
-	}
+	nb_post = add_posts_to_hdf(hdf, stmt, sqlite);
 	sqlite3_finalize(stmt);
-	sqlite3_finalize(stmt2);
 
-	if (!criteria->feed) {
-		if (sqlite3_prepare_v2(sqlite, "select count(*), tag from tags, tags_posts where id=tag_id group by tag order by tag;",
-		   -1, &stmt, NULL) != SQLITE_OK) {
-			warnx("%s", sqlite3_errmsg(sqlite));
-			return 0;
-		}
-		nb_tags = 0;
-		while (sqlite3_step(stmt) == SQLITE_ROW) {
-			hdf_set_valuef(hdf, "Tags.%i.name=%s", nb_tags, sqlite3_column_text(stmt, 1));
-			hdf_set_valuef(hdf, "Tags.%i.count=%lld", nb_tags, sqlite3_column_int64(stmt, 0));
-			nb_tags++;
-		}
-		sqlite3_finalize(stmt);
-	}
+	if (!criteria->feed)
+		set_tags(hdf, sqlite);
 
 	nb_pages = total_posts / max_post;
 	if (total_posts % max_post > 0)
@@ -391,6 +295,7 @@ cblogcgi(HDF *conf)
 	struct tm			calc_time, *date;
 	char				buf[BUFSIZ];
 	const char			*typefeed;
+	sqlite3 *sqlite;
 
 	/* read the configuration file */
 
@@ -458,6 +363,9 @@ cblogcgi(HDF *conf)
 		}
 	}
 
+	sqlite3_initialize();
+	sqlite3_open(get_cblog_db(cgi->hdf), &sqlite);
+
 	switch (type) {
 		case CBLOG_POST:
 			requesturi++;
@@ -465,7 +373,7 @@ cblogcgi(HDF *conf)
 				requesturi++;
 			requesturi++;
 
-			nb_posts = build_post(cgi->hdf, requesturi);
+			nb_posts = build_post(cgi->hdf, requesturi, sqlite);
 			if (nb_posts == 0) {
 				hdf_set_valuef(cgi->hdf, "err_msg=Unknown post: %s", requesturi);
 				cgiwrap_writef("Status: 404\n");
@@ -479,7 +387,7 @@ cblogcgi(HDF *conf)
 			requesturi++;
 			criteria.type = CRITERIA_TAGNAME;
 			criteria.tagname = requesturi;
-			nb_posts = build_index(cgi->hdf, &criteria);
+			nb_posts = build_index(cgi->hdf, &criteria, sqlite);
 			if (nb_posts == 0) {
 				hdf_set_valuef(cgi->hdf, "err_msg=Unknown tag: %s", requesturi);
 				type = CBLOG_ERR;
@@ -487,10 +395,10 @@ cblogcgi(HDF *conf)
 			break;
 		case CBLOG_ATOM:
 			criteria.feed = true;
-			build_index(cgi->hdf, &criteria);
+			build_index(cgi->hdf, &criteria, sqlite);
 			break;
 		case CBLOG_ROOT:
-			build_index(cgi->hdf, &criteria);
+			build_index(cgi->hdf, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY:
 			calc_time.tm_year = yyyy - 1900;
@@ -504,7 +412,7 @@ cblogcgi(HDF *conf)
 			calc_time.tm_min = 59;
 			calc_time.tm_sec = 59;
 			criteria.end = mktime(&calc_time);
-			build_index(cgi->hdf, &criteria);
+			build_index(cgi->hdf, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY_MM:
 			calc_time.tm_year = yyyy - 1900;
@@ -517,7 +425,7 @@ cblogcgi(HDF *conf)
 			calc_time.tm_sec = 59;
 			criteria.end = mktime(&calc_time);
 			criteria.end -= 60 * 60 * 24;
-			build_index(cgi->hdf, &criteria);
+			build_index(cgi->hdf, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY_MM_DD:
 			calc_time.tm_year = yyyy - 1900;
@@ -528,7 +436,7 @@ cblogcgi(HDF *conf)
 			calc_time.tm_min = 59;
 			calc_time.tm_sec = 59;
 			criteria.end = mktime(&calc_time);
-			build_index(cgi->hdf, &criteria);
+			build_index(cgi->hdf, &criteria, sqlite);
 			break;
 	}
 
@@ -560,12 +468,12 @@ cblogcgi(HDF *conf)
 			break;
 		case CBLOG_ERR:
 			cgiwrap_writef("Status: 404\n");
-			set_tags(cgi->hdf);
+			set_tags(cgi->hdf, sqlite);
 			neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
 			break;
 		default:
 			if (type == CBLOG_POST)
-				set_tags(cgi->hdf);
+				set_tags(cgi->hdf, sqlite);
 
 			date_format = get_dateformat(cgi->hdf);
 
@@ -586,5 +494,8 @@ cblogcgi(HDF *conf)
 	}
 	nerr_ignore(&neoerr);
 	cgi_destroy(&cgi);
+
+	sqlite3_close(sqlite);
+	sqlite3_shutdown();
 }
 /* vim: set sw=4 sts=4 ts=4 : */
