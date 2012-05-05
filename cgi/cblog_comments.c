@@ -68,11 +68,10 @@ get_comments(HDF *hdf, char *postname, sqlite3 *sqlite)
 void
 set_comment(HDF *hdf, char *postname, sqlite3 *sqlite)
 {
-	char	comment_file[MAXPATHLEN];
-	char    *nospam, *comment, *name, *url;
+	char    *nospam, *url;
 	char	*from, *to;
 	char	subject[LINE_MAX];
-	FILE	*comment_fd;
+	sqlite3_stmt *stmt;
 
 	/* very simple antispam */
 	if (strlen(get_query_str(hdf, "test1")) != 0)
@@ -92,30 +91,19 @@ set_comment(HDF *hdf, char *postname, sqlite3 *sqlite)
 	if (strlen(get_query_str(hdf, "name")) == 0 || strlen(get_query_str(hdf, "comment")) == 0)
 		return;
 
-	snprintf(comment_file, MAXPATHLEN, CDB_PATH"/comments/%s", postname);
-
-	comment_fd = fopen(comment_file, "a");
-
 	/* TODO Log here */
-
-	if (comment_fd == NULL)
+	if (sqlite3_prepare_v2(sqlite, "INSERT INTO comments (post_id, author, url, comment, date) values((select id from posts where link=?1), ?2, ?3, ?4, strftime('%s', 'now'));", -1, &stmt, NULL) != SQLITE_OK) {
+		cblog_log("%s", sqlite3_errmsg(sqlite));
 		return;
+	}
 
-	cgi_url_escape(get_query_str(hdf, "name"), &name);
 	cgi_url_escape(get_query_str(hdf, "url"), &url);
-	cgi_url_escape(get_query_str(hdf, "comment"), &comment);
-	fprintf(comment_fd, "comment: %s\n", comment);
-	fprintf(comment_fd, "name: %s\n", name);
-	fprintf(comment_fd, "url: %s\n", url);
-	fprintf(comment_fd, "date: %lld\n", (long long int)time(NULL));
-	fprintf(comment_fd, "ip: %s\n", get_cgi_str(hdf, "RemoteAddress"));
-	fprintf(comment_fd, "-----\n");
+	sqlite3_bind_text(stmt, 1, postname, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 2, get_query_str(hdf, "name"), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 3, url, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 4, get_query_str(hdf, "comment"), -1, SQLITE_STATIC);
 
-	free(comment);
 	free(url);
-	free(name);
-
-	fclose(comment_fd);
 
 	/* All is good, send an email for the new comment */
 	if (hdf_get_int_value(hdf, "email.enable", 0) == 1) {
@@ -136,4 +124,5 @@ set_comment(HDF *hdf, char *postname, sqlite3 *sqlite)
 	hdf_remove_tree(hdf, "Query.name");
 	hdf_remove_tree(hdf, "Query.url");
 	hdf_remove_tree(hdf, "Query.comment");
+	sqlite3_finalize(stmt);
 }
