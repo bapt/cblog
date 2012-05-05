@@ -29,18 +29,6 @@ static struct pages {
 	{ NULL, -1 },
 };
 
-struct posts {
-	char	*name;
-	time_t	ctime;
-	SLIST_ENTRY(posts) next;
-};
-
-struct tags {
-	char	*name;
-	int		count;
-	SLIST_ENTRY(tags) next;
-};
-
 struct criteria {
 	int		type;
 	bool	feed;
@@ -49,25 +37,6 @@ struct criteria {
 	time_t	end;
 };
 
-static int
-sort_by_name(const void *a, const void *b)
-{
-	struct tags *ta = *((struct tags **)a);
-	struct tags *tb = *((struct tags **)b);
-
-	return strcasecmp(ta->name, tb->name);
-}
-
-
-static int
-sort_by_ctime(const void *a, const void *b)
-{
-	struct posts *post_a = *((struct posts **)a);
-	struct posts *post_b = *((struct posts **)b);
-
-	return post_b->ctime - post_a->ctime;
-}
-
 void
 cblog_err(int eval, const char * message, ...)
 {
@@ -75,24 +44,7 @@ cblog_err(int eval, const char * message, ...)
 
 	va_start(args, message);
 	vsyslog(LOG_ERR, message, args);
-}
-
-static int
-db_open(HDF *hdf, struct cdb *cdb, int flags)
-{
-	int fd, db;
-
-	fd = db = open(get_cblog_db(hdf), flags);
-
-	if (fd >= 0 && (db = cdb_init(cdb, fd)) < 0)
-		close(fd);
-
-	if (db < 0) {
-		cblog_err(-1, "%s: %s", get_cblog_db(hdf), strerror(errno));
-		hdf_set_value(hdf, "err_msg", strerror(errno));
-	}
-
-	return db;
+	va_end(args);
 }
 
 int
