@@ -1,12 +1,5 @@
-#include <fcntl.h>
-#include <locale.h>
-#include <unistd.h>
-#include <cdb.h>
-#include <time.h>
-#include <ctype.h>
 #include <stdbool.h>
 #include <string.h>
-#include <err.h>
 #include <sqlite3.h>
 #include <syslog.h>
 #include <sys/queue.h>
@@ -38,7 +31,7 @@ struct criteria {
 };
 
 void
-cblog_err(int eval, const char * message, ...)
+cblog_log(const char * message, ...)
 {
 	va_list		args;
 
@@ -59,7 +52,7 @@ add_posts_to_hdf(HDF *hdf, sqlite3_stmt *stmt, sqlite3 *sqlite)
 	if (sqlite3_prepare_v2(sqlite,
 	    "SELECT tag FROM tags, tags_posts, posts WHERE link=?1 AND posts.id=post_id and tag_id=tags.id;",
 	    -1, &stmt2, NULL) != SQLITE_OK) {
-		warnx("%s", sqlite3_errmsg(sqlite));
+		cblog_log("%s", sqlite3_errmsg(sqlite));
 		return 0;
 	}
 
@@ -102,7 +95,7 @@ set_tags(HDF *hdf, sqlite3 *sqlite)
 
 	if (sqlite3_prepare_v2(sqlite, "select count(*), tag from tags, tags_posts where id=tag_id group by tag order by tag;",
 				-1, &stmt, NULL) != SQLITE_OK) {
-		warnx("%s", sqlite3_errmsg(sqlite));
+		cblog_log("%s", sqlite3_errmsg(sqlite));
 		return;
 	}
 
@@ -132,7 +125,7 @@ build_post(HDF *hdf, char *postname, sqlite3 *sqlite)
 		"SELECT link as filename, title, source, html, date from posts "
 		"WHERE link=?1 ;",
 		-1, &stmt, NULL) != SQLITE_OK) {
-		warnx("%s", sqlite3_errmsg(sqlite));
+		cblog_log("%s", sqlite3_errmsg(sqlite));
 		return 0;
 	}
 
@@ -186,12 +179,12 @@ build_index(HDF *hdf, struct criteria *criteria, sqlite3 *sqlite)
 	if (sqlite3_prepare_v2(sqlite,
 		baseurl,
 	    -1, &stmt, NULL) != SQLITE_OK) {
-		warnx("%s", sqlite3_errmsg(sqlite));
+		cblog_log("%s", sqlite3_errmsg(sqlite));
 		return 0;
 	}
 
 	if (sqlite3_prepare_v2(sqlite, counturl, -1, &stmtcnt, NULL) != SQLITE_OK) {
-		warnx("%s", sqlite3_errmsg(sqlite));
+		cblog_log("%s", sqlite3_errmsg(sqlite));
 		return 0;
 	}
 
@@ -357,7 +350,6 @@ cblogcgi(HDF *conf)
 			calc_time.tm_mon = 0;
 			calc_time.tm_mday = 1;
 			criteria.start = mktime(&calc_time);
-			warnx("%s\n", asctime(&calc_time));
 			calc_time.tm_mon = 11;
 			calc_time.tm_mday = 31;
 			calc_time.tm_hour = 23;
@@ -441,7 +433,7 @@ cblogcgi(HDF *conf)
 
 	if (neoerr != STATUS_OK && EQUALS(method, "HEAD") ) {
 		nerr_error_string(neoerr, &neoerr_str);
-		cblog_err(-1, neoerr_str.buf);
+		cblog_log(neoerr_str.buf);
 		string_clear(&neoerr_str);
 	}
 	nerr_ignore(&neoerr);

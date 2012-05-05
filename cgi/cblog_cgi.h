@@ -45,6 +45,6 @@ void	cblogcgi(HDF *conf);
 int		get_comments_count(char *postname);
 void	get_comments(HDF *hdf, char *postname);
 void	set_comment(HDF *hdf, char *postname);
-void	cblog_err(int eval, const char * message, ...);
+void	cblog_log(const char * message, ...);
 
 #endif	/* ndef CBLOG_CGI_CBLOG_CGI_H */

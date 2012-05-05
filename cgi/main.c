@@ -50,29 +50,29 @@ read_conf(int signal /* unused */)
 	int ret;
 
 	if (access(CONFFILE, R_OK) != 0) {
-		cblog_err(-1, "%s: can't access file", CONFFILE);
+		cblog_log("%s: can't access file", CONFFILE);
 		return;
 	}
 	neoerr = hdf_init(&hdf);
 	if (neoerr != STATUS_OK) {
-		cblog_err(-1, "%s: hdf_init hdf", CONFFILE);
+		cblog_log("%s: hdf_init hdf", CONFFILE);
 	}
 	nerr_ignore(&neoerr);
 
 	neoerr = hdf_read_file(hdf, CONFFILE);
 	if (neoerr != STATUS_OK) {
-		cblog_err(-1, "%s: hdf_read_file error", CONFFILE);
+		cblog_log("%s: hdf_read_file error", CONFFILE);
 		return;
 	}
 	nerr_ignore(&neoerr);
 
 	if ((ret = check_conf(hdf)) != -1) {
-		cblog_err(-1, "%s: %s is mandatory", CONFFILE, mandatory_config[ret]);
+		cblog_log("%s: %s is mandatory", CONFFILE, mandatory_config[ret]);
 		return;
 	}
 	neoerr = hdf_copy(conf, "", hdf);
 	if (neoerr != STATUS_OK) {
-		cblog_err(-1, "%s: hdf_copy error", CONFFILE);
+		cblog_log("%s: hdf_copy error", CONFFILE);
 		return;
 	}
 }
@@ -118,8 +118,10 @@ bind_socket(char *url) {
 	if (!strncmp(p, "unix:", sizeof("unix:") - 1)) {
 		p += sizeof("unix:") - 1;
 
-		if (strlen(p) >= UNIX_PATH_MAX)
-			cblog_err(-1, "Socket path too long, exceeds %d characters\n", UNIX_PATH_MAX);
+		if (strlen(p) >= UNIX_PATH_MAX) {
+			cblog_log("Socket path too long, exceeds %d characters\n", UNIX_PATH_MAX);
+			exit(1);
+		}
 		
 		memset(&un, 0, sizeof(struct sockaddr_un));
 		if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
@@ -139,8 +141,10 @@ bind_socket(char *url) {
 		p += sizeof("tcp:") - 1;
 
 		port = strchr(p, ':');
-		if (!port)
-			cblog_err(-1, "invalid url\n");
+		if (!port) {
+			cblog_log("invalid url\n");
+			exit(1);
+		}
 
 		port[0] = '\n';
 		port++;
@@ -150,8 +154,10 @@ bind_socket(char *url) {
 		hints.ai_family = PF_UNSPEC;
 		hints.ai_flags = AI_PASSIVE;
 		hints.ai_socktype = SOCK_STREAM;
-		if ((er = getaddrinfo(p, port, &hints, &ai)) != 0)
-			cblog_err(-1, "getaddrinfo(): %s", gai_strerror(er));
+		if ((er = getaddrinfo(p, port, &hints, &ai)) != 0) {
+			cblog_log("getaddrinfo(): %s", gai_strerror(er));
+			exit(1);
+		}
 
 		if ((fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1)
 			err(-1, "socket()");
