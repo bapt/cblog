@@ -32,7 +32,6 @@ usage(const char *s)
 			add file_post\n\
 			del file_post\n\
 			get file_post1 file_post2 ... file_postN\n\
-			set file_post key=value\n\
 			info file_post1 file_post2 ... file_postN\n\
 			list\n\
 			path\n\
