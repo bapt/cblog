@@ -7,5 +7,4 @@ it features :
   *  clearsilver template engine,
   *  markdown text format for posts using Natacha's markdown parser (embeded see markdown.{c,h})
   *  tags support,
-  *  no SQL engine,
   *  plain text format
