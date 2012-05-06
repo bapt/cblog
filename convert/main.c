@@ -171,6 +171,7 @@ main(int argc, char *argv[])
 			nbel = splitchr(buffer, '\n');
 			next = strlen(buffer);
 			sqlite3_bind_int64(stmt_comments, 1, id);
+			j=0;
 			while (j <= nbel) {
 				if (STARTS_WITH(buffer, "comment: "))
 					sqlite3_bind_text(stmt_comments, 4, cgi_url_unescape(buffer + 9), -1, SQLITE_TRANSIENT);
