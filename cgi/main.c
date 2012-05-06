@@ -195,6 +195,7 @@ main(int argc, char **argv, char **envp)
 {
 	NEOERR *neoerr;
 	int ret;
+	sqlite3 *sqlite;
 
 	signal(SIGHUP, read_conf);
 	signal(SIGPIPE, SIG_IGN);
@@ -227,9 +228,14 @@ main(int argc, char **argv, char **envp)
 		bind_socket(argv[1]);
 	}
 
-	while (FCGI_Accept() >= 0)
-		cblogcgi(conf);
+	sqlite3_initialize();
+	sqlite3_open(get_cblog_db(conf), &sqlite);
 
+	while (FCGI_Accept() >= 0)
+		cblogcgi(conf, sqlite);
+
+	sqlite3_close(sqlite);
+	sqlite3_shutdown();
 	closelog();
 	return EXIT_SUCCESS;
 }

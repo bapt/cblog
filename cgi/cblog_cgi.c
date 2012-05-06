@@ -225,7 +225,7 @@ build_index(HDF *hdf, struct criteria *criteria, sqlite3 *sqlite)
 }
 
 void
-cblogcgi(HDF *conf)
+cblogcgi(HDF *conf, sqlite3 *sqlite)
 {
 	CGI					*cgi;
 	NEOERR				*neoerr;
@@ -239,7 +239,7 @@ cblogcgi(HDF *conf)
 	struct tm			calc_time, *date;
 	char				buf[BUFSIZ];
 	const char			*typefeed;
-	sqlite3 *sqlite;
+	/*sqlite3 *sqlite;*/
 
 	/* read the configuration file */
 
@@ -306,9 +306,6 @@ cblogcgi(HDF *conf)
 			}
 		}
 	}
-
-	sqlite3_initialize();
-	sqlite3_open(get_cblog_db(cgi->hdf), &sqlite);
 
 	switch (type) {
 		case CBLOG_POST:
@@ -437,8 +434,5 @@ cblogcgi(HDF *conf)
 	}
 	nerr_ignore(&neoerr);
 	cgi_destroy(&cgi);
-
-	sqlite3_close(sqlite);
-	sqlite3_shutdown();
 }
 /* vim: set sw=4 sts=4 ts=4 : */

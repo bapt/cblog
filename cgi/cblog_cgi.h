@@ -42,7 +42,7 @@
 	    (var);				    \
 	    (var) = hdf_obj_next((var)))
 
-void cblogcgi(HDF *conf);
+void cblogcgi(HDF *conf, sqlite3 *sqlite);
 int get_comments_count(char *postname, sqlite3 *sqlite);
 void get_comments(HDF *hdf, char *postname, sqlite3 *sqlite);
 void set_comment(HDF *hdf, char *postname, sqlite3 *sqlite);
