@@ -17,7 +17,7 @@ CLI=	cblogctl
 CONVERT=	cblogconvert
 LIB=	libcblog_utils.a
 
-WEBLIBS=	-lcblog_utils -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3 -levent
+WEBLIBS=	-lcblog_utils -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3 -levent-2.0
 CLILIBS=	-lcblog_utils -lsqlite3
 CONVERTLIBS=	-lcblog_utils -lcdb -lsqlite3 -lneo_cgi -lneo_utl -lneo_cs -lz
 

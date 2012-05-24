@@ -300,7 +300,6 @@ cblog(struct evhttp_request* req, void* args)
 	if (method == EVHTTP_REQ_POST) {
 		/* parse the post and set everything into the hdf */
 		struct evbuffer *postbuf = evhttp_request_get_input_buffer(req);
-		size_t sz, a;
 		if (evbuffer_get_length(postbuf) > 0) {
 			int len = evbuffer_get_length(postbuf);
 			char *tmp = malloc(len+1);
