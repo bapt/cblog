@@ -94,7 +94,6 @@ main(int argc, char **argv, char **envp)
 	struct evhttp *eh;
 	NEOERR *neoerr;
 	int ret;
-	sqlite3 *sqlite;
 
 	signal(SIGHUP, read_conf);
 	signal(SIGPIPE, SIG_IGN);
@@ -126,16 +125,22 @@ main(int argc, char **argv, char **envp)
 
 	evhttp_set_gencb(eh, cblog, conf);
 
+	sqlite3_initialize();
 	evhttp_bind_socket(eh, "0.0.0.0", 8080);
 
-	if (argc == 2)
-		daemon(0,0);
+	if (argc == 2) {
+		if (strcmp(argv[1], "-d") == 0)
+			daemon(0,0);
+		else
+			err(EXIT_FAILURE, "unknown option: %s", argv[1]);
+	} else if (argc > 2) {
+			err(EXIT_FAILURE, "Too many options");
+	}
 
 	event_base_dispatch(eb);
 	evhttp_free(eh);
 	event_base_free(eb);
 
-	sqlite3_close(sqlite);
 	sqlite3_shutdown();
 	closelog();
 	return EXIT_SUCCESS;
