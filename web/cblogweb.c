@@ -432,6 +432,7 @@ cblog(struct evhttp_request* req, void* args)
 	cs_init(&parse, out);
 	string_init(&str);
 	cgi_register_strfuncs(parse);
+	evhttp_add_header(req->output_headers, "Content-Type", "text/html; charset=UTF-8");  
 	/* work set the good date format and display everything */
 	switch (type) {
 		case CBLOG_ATOM:
