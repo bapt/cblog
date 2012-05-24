@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <sqlite3.h>
 
-#include "cblog_cgi.h"
+#include "cblogweb.h"
 #include "cblog_utils.h"
 #include <syslog.h>
 

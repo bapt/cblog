@@ -258,12 +258,12 @@ cblog(struct evhttp_request* req, void* args)
 	struct evkeyvalq *h;
 	CSPARSE *parse;
 	int method;
-	int					type, i, nb_posts;
-	time_t				gentime, posttime;
-	int					yyyy, mm, dd, datenum;
-	struct criteria		criteria;
-	struct tm			calc_time, *date;
-	char				buf[BUFSIZ];
+	int type, i, nb_posts;
+	time_t gentime, posttime;
+	int yyyy, mm, dd, datenum;
+	struct criteria criteria;
+	struct tm calc_time, *date;
+	char buf[BUFSIZ];
 	const char *typefeed;
 	const char *var;
 	struct evbuffer *evb = NULL;
