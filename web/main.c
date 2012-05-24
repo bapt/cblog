@@ -126,7 +126,9 @@ main(int argc, char **argv, char **envp)
 	evhttp_set_gencb(eh, cblog, conf);
 
 	sqlite3_initialize();
-	evhttp_bind_socket(eh, "0.0.0.0", 8080);
+	const char *interface = hdf_get_valuef(conf, "interface");
+	int port = hdf_get_int_value(conf, "port", 8080);
+	evhttp_bind_socket(eh, interface, port);
 
 	if (argc == 2) {
 		if (strcmp(argv[1], "-d") == 0)

@@ -353,7 +353,6 @@ cblog(struct evhttp_request* req, void* args)
 		}
 	}
 
-	sqlite3_initialize();
 	sqlite3_open(get_cblog_db(out), &sqlite);
 	switch (type) {
 		case CBLOG_POST:
