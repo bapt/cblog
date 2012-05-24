@@ -330,10 +330,10 @@ cblog(struct evhttp_request* req, void* args)
 					EQUALS(typefeed, "rss") ||
 					EQUALS(typefeed, "atom")))
 			criteria.feed=true;
-	}
 
-	if ((var = evhttp_find_header(h, "source")) != NULL)
-		hdf_set_valuef(out, "Query.source=%s", var);
+		if ((var = evhttp_find_header(h, "source")) != NULL)
+			hdf_set_valuef(out, "Query.source=%s", var);
+	}
 
 	for (i=0; page[i].name != NULL; i++) {
 		if (STARTS_WITH(reqpath, page[i].name)) {
