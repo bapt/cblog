@@ -69,9 +69,10 @@ get_comments(HDF *hdf, const char *postname, sqlite3 *sqlite)
 void
 set_comment(HDF *hdf, const char *postname, sqlite3 *sqlite)
 {
-	char    *nospam, *url;
-	char	*from, *to;
-	char	subject[LINE_MAX];
+	char *nospam;
+	char *var;
+	char *from, *to;
+	char subject[LINE_MAX];
 	sqlite3_stmt *stmt;
 
 	/* very simple antispam */
@@ -98,15 +99,24 @@ set_comment(HDF *hdf, const char *postname, sqlite3 *sqlite)
 		return;
 	}
 
-	cgi_url_escape(get_query_str(hdf, "url"), &url);
 	sqlite3_bind_text(stmt, 1, postname, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 2, get_query_str(hdf, "name"), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 3, url, -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 4, get_query_str(hdf, "comment"), -1, SQLITE_STATIC);
+	var = evhttp_htmlescape(get_query_str(hdf, "name"));
+	if (var != NULL) {
+		sqlite3_bind_text(stmt, 2, var, -1, SQLITE_STATIC);
+		free(var);
+	}
+	var = evhttp_htmlescape(get_query_str(hdf, "url"));
+	if (var != NULL) {
+		sqlite3_bind_text(stmt, 3, var, -1, SQLITE_STATIC);
+		free(var);
+	}
+	var = evhttp_htmlescape(get_query_str(hdf, "comment"));
+	if (var != NULL) {
+		sqlite3_bind_text(stmt, 4, var, -1, SQLITE_STATIC);
+		free(var);
+	}
 
 	sqlite3_step(stmt);
-
-	free(url);
 
 	/* All is good, send an email for the new comment */
 	if (hdf_get_int_value(hdf, "email.enable", 0) == 1) {
