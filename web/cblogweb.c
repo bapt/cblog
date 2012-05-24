@@ -3,13 +3,20 @@
 #include <sqlite3.h>
 #include <syslog.h>
 #include <sys/queue.h>
+#include <sys/param.h>
 
 #include "cblog_utils.h"
 #include "cblog_common.h"
-#include "cblog_cgi.h"
+#include "cblogweb.h"
 
 /*extern int errno;*/
 #include <errno.h>
+
+#include <event2/event.h>
+#include <event2/http.h>
+#include <event2/buffer.h>
+#include <event2/http_struct.h>
+#include <event2/event_struct.h>
 
 static struct pages {
 	const char	*name;
@@ -23,11 +30,11 @@ static struct pages {
 };
 
 struct criteria {
-	int		type;
-	bool	feed;
-	char	*tagname;
-	time_t	start;
-	time_t	end;
+	int  type;
+	bool feed;
+	const char *tagname;
+	time_t start;
+	time_t end;
 };
 
 void
@@ -112,13 +119,15 @@ set_tags(HDF *hdf, sqlite3 *sqlite)
 }
 
 int
-build_post(HDF *hdf, char *postname, sqlite3 *sqlite)
+build_post(HDF *hdf, const char *postname, sqlite3 *sqlite)
 {
 	sqlite3_stmt *stmt;
 	int ret=0;
 	char *submit;
 
 	submit = get_query_str(hdf, "submit");
+	if (submit)
+		printf("%s\n", submit);
 	if (submit != NULL && EQUALS(submit, "Post"))
 			set_comment(hdf, postname, sqlite);
 
@@ -224,22 +233,41 @@ build_index(HDF *hdf, struct criteria *criteria, sqlite3 *sqlite)
 	return nb_post;
 }
 
-void
-cblogcgi(HDF *conf, sqlite3 *sqlite)
+static NEOERR *
+cblog_output(void *ctx, char *s)
 {
-	CGI					*cgi;
+	STRING *str = ctx;
+	NEOERR *neoerr;
+
+	neoerr = nerr_pass(string_append(str, s));
+
+	return neoerr;
+}
+
+void
+cblog(struct evhttp_request* req, void* args)
+{
 	NEOERR				*neoerr;
-	HDF					*hdf;
-	STRING				neoerr_str;
-	char				*requesturi, *method, *date_format;
+	HDF *hdf, *out;
+	STRING str, neoerr_str;
+	char *date_format;
+	const char *reqpath, *requesturi, *tplpath;
+	const struct evhttp_uri *uri;
+	const char *q;
+	char cspath[MAXPATHLEN];
+	struct evkeyvalq *h;
+	CSPARSE *parse;
+	int method;
 	int					type, i, nb_posts;
 	time_t				gentime, posttime;
 	int					yyyy, mm, dd, datenum;
 	struct criteria		criteria;
 	struct tm			calc_time, *date;
 	char				buf[BUFSIZ];
-	const char			*typefeed;
-	/*sqlite3 *sqlite;*/
+	const char *typefeed;
+	const char *var;
+	struct evbuffer *evb = NULL;
+	sqlite3 *sqlite;
 
 	/* read the configuration file */
 
@@ -248,98 +276,117 @@ cblogcgi(HDF *conf, sqlite3 *sqlite)
 	criteria.feed = false;
 
 	memset(&calc_time, 0, sizeof(struct tm));
-	neoerr = cgi_init(&cgi, NULL);
+	h = malloc(sizeof(struct evkeyvalq));
 
+	method = evhttp_request_get_command(req);
+	uri = evhttp_request_get_evhttp_uri(req);
+
+
+	hdf_init(&out);
+	neoerr = hdf_copy(out, "", args);
 	nerr_ignore(&neoerr);
 
-	method = get_cgi_str(cgi->hdf, "RequestMethod");
+	tplpath = hdf_get_valuef(out, "templates");
+	strlcpy(cspath, tplpath, MAXPATHLEN);
+	hdf_set_valuef(out, "CBlog.version=%s", cblog_version);
+	hdf_set_valuef(out, "CBlog.url=%s", cblog_url);
 
-	/* only parse ig necessary */
-	if (EQUALS(method, "POST") || EQUALS(method,"PUT" )) {
-			neoerr = cgi_parse(cgi);
-			nerr_ignore(&neoerr);
-	}
+	requesturi = evhttp_request_get_uri(req);
+	reqpath = evhttp_uri_get_path(uri);
+	evb = evbuffer_new();
+	if ((q = evhttp_uri_get_query(uri)) != NULL)
+		evhttp_parse_query_str(q, h);
 
-	neoerr = hdf_copy(cgi->hdf, "", conf);
-	nerr_ignore(&neoerr);
-
-	hdf_set_valuef(cgi->hdf, "CBlog.version=%s", cblog_version);
-	hdf_set_valuef(cgi->hdf, "CBlog.url=%s", cblog_url);
-
-	requesturi = get_cgi_str(cgi->hdf, "RequestURI");
-
-	typefeed = get_query_str(cgi->hdf, "feed");
-
-	if (typefeed != NULL && (
-				EQUALS(typefeed, "rss") ||
-				EQUALS(typefeed, "atom")))
-		criteria.feed=true;
-
-	/* find the beginig of the request */
-	if (requesturi != NULL) {
-
-		splitchr(requesturi, '?');
-		if (requesturi[1] != '\0') {
-
-			for (i=0; page[i].name != NULL; i++) {
-				if (STARTS_WITH(requesturi, page[i].name)) {
-					type = page[i].type;
-					break;
-				}
-			}
-
-			if (type == CBLOG_ROOT) {
-				if (sscanf(requesturi, "/%4d/%02d/%02d", &yyyy, &mm, &dd) == 3) {
-					type = CBLOG_YYYY_MM_DD;
-					criteria.type = CRITERIA_TIME_T;
-				} else if (sscanf(requesturi, "/%4d/%02d", &yyyy, &mm) == 2) {
-					type = CBLOG_YYYY_MM;
-					criteria.type = CRITERIA_TIME_T;
-				} else if (sscanf(requesturi, "/%4d", &yyyy) == 1) {
-					type = CBLOG_YYYY;
-					criteria.type = CRITERIA_TIME_T;
-				} else {
-					hdf_set_valuef(cgi->hdf, "err_msg=Unknown request: %s", requesturi);
-					cgiwrap_writef("Status: 404\n");
-					type = CBLOG_ERR;
-				}
-			}
+	if (method == EVHTTP_REQ_POST) {
+		/* parse the post and set everything into the hdf */
+		struct evbuffer *postbuf = evhttp_request_get_input_buffer(req);
+		size_t sz, a;
+		if (evbuffer_get_length(postbuf) > 0) {
+			int len = evbuffer_get_length(postbuf);
+			char *tmp = malloc(len+1);
+			memcpy(tmp, evbuffer_pullup(postbuf, -1), len);
+			tmp[len] = '\0';
+			evhttp_parse_query_str(tmp, h);
+			if ((var = evhttp_find_header(h, "submit")) != NULL)
+				hdf_set_valuef(out, "Query.submit=%s", var);
+			if ((var = evhttp_find_header(h, "name")) != NULL)
+				hdf_set_valuef(out, "Query.name=%s", var);
+			if ((var = evhttp_find_header(h, "url")) != NULL)
+				hdf_set_valuef(out, "Query.url=%s", var);
+			if ((var = evhttp_find_header(h, "comment")) != NULL)
+				hdf_set_valuef(out, "Query.comment=%s", var);
+			if ((var = evhttp_find_header(h, "antispam")) != NULL)
+				hdf_set_valuef(out, "Query.antispam=%s", var);
+			if ((var = evhttp_find_header(h, "test1")) != NULL)
+				hdf_set_valuef(out, "Query.test1=%s", var);
+			if ((var = evhttp_find_header(h, "test2")) != NULL)
+				hdf_set_valuef(out, "Query.test2=%s", var);
+			free(tmp);
 		}
 	}
 
+	if (q != NULL) {
+		typefeed = evhttp_find_header(h, "feed");
+		if (typefeed != NULL && (
+					EQUALS(typefeed, "rss") ||
+					EQUALS(typefeed, "atom")))
+			criteria.feed=true;
+	}
+
+	for (i=0; page[i].name != NULL; i++) {
+		if (STARTS_WITH(reqpath, page[i].name)) {
+			type = page[i].type;
+			break;
+		}
+	}
+
+	if (type == CBLOG_ROOT) {
+		if (sscanf(reqpath, "/%4d/%02d/%02d", &yyyy, &mm, &dd) == 3) {
+			type = CBLOG_YYYY_MM_DD;
+			criteria.type = CRITERIA_TIME_T;
+		} else if (sscanf(reqpath, "/%4d/%02d", &yyyy, &mm) == 2) {
+			type = CBLOG_YYYY_MM;
+			criteria.type = CRITERIA_TIME_T;
+		} else if (sscanf(reqpath, "/%4d", &yyyy) == 1) {
+			type = CBLOG_YYYY;
+			criteria.type = CRITERIA_TIME_T;
+		}
+	}
+
+	sqlite3_initialize();
+	sqlite3_open(get_cblog_db(out), &sqlite);
 	switch (type) {
 		case CBLOG_POST:
-			requesturi++;
-			while (requesturi[0] != '/')
-				requesturi++;
-			requesturi++;
+			reqpath++;
+			while (reqpath[0] != '/')
+				reqpath++;
+			reqpath++;
 
-			nb_posts = build_post(cgi->hdf, requesturi, sqlite);
+			nb_posts = build_post(out, reqpath, sqlite);
 			if (nb_posts == 0) {
-				hdf_set_valuef(cgi->hdf, "err_msg=Unknown post: %s", requesturi);
-				cgiwrap_writef("Status: 404\n");
+				hdf_set_valuef(out, "err_msg=Unknown post: %s", requesturi);
 				type = CBLOG_ERR;
 			}
 			break;
 		case CBLOG_TAG:
-			requesturi++;
-			while (requesturi[0] != '/')
-				requesturi++;
-			requesturi++;
+			reqpath++;
+			while (reqpath[0] != '/')
+				reqpath++;
+			reqpath++;
 			criteria.type = CRITERIA_TAGNAME;
-			criteria.tagname = requesturi;
-			nb_posts = build_index(cgi->hdf, &criteria, sqlite);
+			criteria.tagname = reqpath;
+			nb_posts = build_index(out, &criteria, sqlite);
 			if (nb_posts == 0) {
-				hdf_set_valuef(cgi->hdf, "err_msg=Unknown tag: %s", requesturi);
+				hdf_set_valuef(out, "err_msg=Unknown tag: %s", requesturi);
 				type = CBLOG_ERR;
 			}
 			break;
 		case CBLOG_ATOM:
 			criteria.feed = true;
-			build_index(cgi->hdf, &criteria, sqlite);
+			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_ROOT:
-			build_index(cgi->hdf, &criteria, sqlite);
+			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY:
 			calc_time.tm_year = yyyy - 1900;
@@ -352,7 +399,7 @@ cblogcgi(HDF *conf, sqlite3 *sqlite)
 			calc_time.tm_min = 59;
 			calc_time.tm_sec = 59;
 			criteria.end = mktime(&calc_time);
-			build_index(cgi->hdf, &criteria, sqlite);
+			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY_MM:
 			calc_time.tm_year = yyyy - 1900;
@@ -365,7 +412,7 @@ cblogcgi(HDF *conf, sqlite3 *sqlite)
 			calc_time.tm_sec = 59;
 			criteria.end = mktime(&calc_time);
 			criteria.end -= 60 * 60 * 24;
-			build_index(cgi->hdf, &criteria, sqlite);
+			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY_MM_DD:
 			calc_time.tm_year = yyyy - 1900;
@@ -376,17 +423,20 @@ cblogcgi(HDF *conf, sqlite3 *sqlite)
 			calc_time.tm_min = 59;
 			calc_time.tm_sec = 59;
 			criteria.end = mktime(&calc_time);
-			build_index(cgi->hdf, &criteria, sqlite);
+			build_index(out, &criteria, sqlite);
 			break;
 	}
 
 	if (type != CBLOG_ATOM && criteria.feed)
 			type = CBLOG_ATOM;
 
+	cs_init(&parse, out);
+	string_init(&str);
+	cgi_register_strfuncs(parse);
 	/* work set the good date format and display everything */
 	switch (type) {
 		case CBLOG_ATOM:
-			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
+			HDF_FOREACH(hdf, out, "Posts") {
 
 				posttime = hdf_get_int_value(hdf, "date", time(NULL));
 				date = gmtime(&posttime);
@@ -399,40 +449,55 @@ cblogcgi(HDF *conf, sqlite3 *sqlite)
 			gentime = time(NULL);
 			date = gmtime(&gentime);
 
-			hdf_set_valuef(cgi->hdf, "gendate=%04d-%02d-%02dT%02d:%02d:%02dZ",
+			hdf_set_valuef(out, "gendate=%04d-%02d-%02dT%02d:%02d:%02dZ",
 					date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
 					date->tm_hour, date->tm_min, date->tm_sec);
 
-			hdf_set_valuef(cgi->hdf, "cgiout.ContentType=application/atom+xml");
-			neoerr = cgi_display(cgi, hdf_get_value(cgi->hdf, "feed.atom", "atom.cs"));
+			evhttp_add_header(req->output_headers, "Content-Type", "application/atom+xml");
+
+			strlcat(cspath, "/atom.cs", MAXPATHLEN);
+			neoerr = cs_parse_file(parse, cspath);
+			/* XXX test errors*/
+			neoerr = cs_render(parse, &str, cblog_output);
+
+			evbuffer_add_printf(evb, "%s", str.buf);
+			evhttp_send_reply(req, HTTP_OK, "OK", evb);
 			break;
 		case CBLOG_ERR:
-			cgiwrap_writef("Status: 404\n");
-			set_tags(cgi->hdf, sqlite);
-			neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
+			set_tags(out, sqlite);
+			strlcat(cspath, "/default.cs", MAXPATHLEN);
+			neoerr = cs_parse_file(parse, cspath);
+			neoerr = cs_render(parse, &str, cblog_output);
+			evbuffer_add_printf(evb, "%s", str.buf);
+			evhttp_send_reply(req, HTTP_NOTFOUND, "Not found", evb);
 			break;
 		default:
 			if (type == CBLOG_POST)
-				set_tags(cgi->hdf, sqlite);
+				set_tags(out, sqlite);
 
-			date_format = get_dateformat(cgi->hdf);
+			date_format = get_dateformat(out);
 
-			HDF_FOREACH(hdf, cgi->hdf, "Posts") {
+			HDF_FOREACH(hdf, out, "Posts") {
 				datenum = hdf_get_int_value(hdf, "date", time(NULL));
 				time_to_str(datenum, date_format, buf, BUFSIZ);
 
 				hdf_set_valuef(hdf, "date=%s", buf);
 			}
-			neoerr = cgi_display(cgi, get_cgi_theme(cgi->hdf));
+			strlcat(cspath, "/default.cs", MAXPATHLEN);
+			neoerr = cs_parse_file(parse, cspath);
+			neoerr = cs_render(parse, &str, cblog_output);
+			evbuffer_add_printf(evb, "%s", str.buf);
+			evhttp_send_reply(req, HTTP_OK, "OK", evb);
 			break;
 	}
+	string_clear(&str);
+	cs_destroy(&parse);
 
-	if (neoerr != STATUS_OK && EQUALS(method, "HEAD") ) {
+	if (neoerr != STATUS_OK && method == EVHTTP_REQ_HEAD) {
 		nerr_error_string(neoerr, &neoerr_str);
 		cblog_log(neoerr_str.buf);
 		string_clear(&neoerr_str);
 	}
 	nerr_ignore(&neoerr);
-	cgi_destroy(&cgi);
 }
 /* vim: set sw=4 sts=4 ts=4 : */

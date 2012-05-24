@@ -13,7 +13,7 @@
 #include <syslog.h>
 
 int
-get_comments_count(char *postname, sqlite3 *sqlite)
+get_comments_count(const char *postname, sqlite3 *sqlite)
 {
 	sqlite3_stmt *stmt;
 	int nb;
@@ -34,7 +34,7 @@ get_comments_count(char *postname, sqlite3 *sqlite)
 }
 
 void
-get_comments(HDF *hdf, char *postname, sqlite3 *sqlite)
+get_comments(HDF *hdf, const char *postname, sqlite3 *sqlite)
 {
 	sqlite3_stmt *stmt;
 	int icol;
@@ -67,7 +67,7 @@ get_comments(HDF *hdf, char *postname, sqlite3 *sqlite)
 }
 
 void
-set_comment(HDF *hdf, char *postname, sqlite3 *sqlite)
+set_comment(HDF *hdf, const char *postname, sqlite3 *sqlite)
 {
 	char    *nospam, *url;
 	char	*from, *to;

@@ -1,8 +1,10 @@
 #ifndef	CBLOG_CGI_CBLOG_CGI_H
 #define	CBLOG_CGI_CBLOG_CGI_H
 
-#include <fcgi_stdio.h>
+/*#include <fcgi_stdio.h>*/
 #include <ClearSilver.h>
+#include <event2/event.h>
+#include <event2/http.h>
 #include <sqlite3.h>
 
 #define CBLOG_POST 0
@@ -42,10 +44,10 @@
 	    (var);				    \
 	    (var) = hdf_obj_next((var)))
 
-void cblogcgi(HDF *conf, sqlite3 *sqlite);
-int get_comments_count(char *postname, sqlite3 *sqlite);
-void get_comments(HDF *hdf, char *postname, sqlite3 *sqlite);
-void set_comment(HDF *hdf, char *postname, sqlite3 *sqlite);
+int get_comments_count(const char *postname, sqlite3 *sqlite);
+void get_comments(HDF *hdf, const char *postname, sqlite3 *sqlite);
+void set_comment(HDF *hdf, const char *postname, sqlite3 *sqlite);
 void cblog_log(const char * message, ...);
+void cblog(struct evhttp_request* request, void* args);
 
 #endif	/* ndef CBLOG_CGI_CBLOG_CGI_H */
