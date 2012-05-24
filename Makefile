@@ -40,7 +40,7 @@ ${CONVERT}: ${LIB} ${CONVERTOBJS}
 	${CC} ${LDFLAGS} ${CFLAGS} ${LIBDIR} -L. ${CONVERTOBJS} -o $@ ${CONVERTLIBS}
 
 clean:
-	rm -f ${WEB} ${CLI} ${LIB} cli/*.o lib/*.o web/*.o
+	rm -f ${WEB} ${CLI} ${LIB} ${CONVERT} cli/*.o lib/*.o web/*.o
 
 install: all
 	install -d ${DESTDIR}${WEBDIR}
