@@ -126,8 +126,6 @@ build_post(HDF *hdf, const char *postname, sqlite3 *sqlite)
 	char *submit;
 
 	submit = get_query_str(hdf, "submit");
-	if (submit)
-		printf("%s\n", submit);
 	if (submit != NULL && EQUALS(submit, "Post"))
 			set_comment(hdf, postname, sqlite);
 
