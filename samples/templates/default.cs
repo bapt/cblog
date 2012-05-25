@@ -54,12 +54,12 @@
 <p id="comments" class="separator-story" />
 <?cs each:comment = post.comments ?>
 <?cs if:comment.url ?><a href="<?cs var:comment.url ?>"><?cs /if ?><?cs var:comment.author ?><?cs if:comment.url ?></a><?cs /if ?> a écrit le <?cs var:comment.date ?> : <br />
-<p class="comment"><?cs var:html_strip(html_escape(text_html(comment.content))) ?></p>
+<p class="comment"><pre><?cs var:html_text(comment.content) ?></pre></p>
 <br />
 <?cs /each ?>
 <?cs if:( Query.submit == "Preview") ?>
 <?cs if:Query.url ?><a href="<?cs var:Query.url ?>"><?cs /if ?><?cs var:Query.name ?><?cs if:Query.url ?></a><?cs /if ?> a écrit le <?cs var:Query.date ?> : <br />
-<p class="comment"><?cs var:html_strip(Query.comment) ?></p>
+<p class="comment"><?cs var:html_text(Query.comment) ?></p>
 <?cs /if ?>
 <?cs if:( post.allow_comments != "false") ?>
 <form method="post" action="<?cs var:CGI.RequestURI ?>" >
