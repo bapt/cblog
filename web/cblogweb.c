@@ -32,6 +32,7 @@ static struct pages {
 struct criteria {
 	int  type;
 	bool feed;
+	const char *timefmt;
 	const char *tagname;
 	time_t start;
 	time_t end;
@@ -130,7 +131,7 @@ build_post(HDF *hdf, const char *postname, sqlite3 *sqlite)
 			set_comment(hdf, postname, sqlite);
 
 	if (sqlite3_prepare_v2(sqlite, 
-		"SELECT link as filename, title, source, html, date from posts "
+		"SELECT link as filename, title, source, html, strftime(?2, datetime(date, 'unixepoch')) as date from posts "
 		"WHERE link=?1 ;",
 		-1, &stmt, NULL) != SQLITE_OK) {
 		cblog_log("%s", sqlite3_errmsg(sqlite));
@@ -138,6 +139,7 @@ build_post(HDF *hdf, const char *postname, sqlite3 *sqlite)
 	}
 
 	sqlite3_bind_text(stmt, 1, postname, -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 2, get_dateformat(hdf), -1, SQLITE_STATIC);
 
 	ret = add_posts_to_hdf(hdf, stmt, sqlite);
 	sqlite3_finalize(stmt);
@@ -164,21 +166,21 @@ build_index(HDF *hdf, struct criteria *criteria, sqlite3 *sqlite)
 	switch (criteria->type) {
 	case CRITERIA_TAGNAME:
 		baseurl = 
-	    "SELECT link as filename, title, source, html, date from posts, tags_posts, tags "
-		"WHERE posts.id=post_id and tag_id=tags.id and tag=?3 "
+	    "SELECT link as filename, title, source, html, strftime(?3, datetime(date, 'unixepoch')) as date from posts, tags_posts, tags "
+		"WHERE posts.id=post_id and tag_id=tags.id and tag=?4 "
 		"ORDER BY DATE DESC LIMIT ?1 OFFSET ?2 ";
 		counturl =
 	    "SELECT count(*) from posts, tags_posts, tags "
 		"WHERE posts.id=post_id and tag_id=tags.id and tag=?1;";
 		break;
 	case CRITERIA_TIME_T:
-		baseurl = "SELECT link as filename, title, source, html, date from posts "
-			"WHERE date BETWEEN ?3 and ?4 "
+		baseurl = "SELECT link as filename, title, source, html, strftime(?3, datetime(date, 'unixepoch')) as date from posts "
+			"WHERE date BETWEEN ?4 and ?5 "
 			"ORDER BY date DESC LIMIT ?1 OFFSET ?2;";
 		counturl = "SELECT count(*) from posts WHERE date BETWEEN ?1 and ?2 ";
 		break;
 	default:
-		baseurl = "SELECT link as filename, title, source, html, date from posts ORDER BY DATE DESC LIMIT ?1 OFFSET ?2;";
+		baseurl = "SELECT link as filename, title, source, html, strftime(?3, datetime(date, 'unixepoch')) as date from posts ORDER BY DATE DESC LIMIT ?1 OFFSET ?2;";
 		counturl = "SELECT count(*) from posts;";
 		break;
 	}
@@ -197,14 +199,15 @@ build_index(HDF *hdf, struct criteria *criteria, sqlite3 *sqlite)
 	first_post = (page * max_post) - max_post;
 	sqlite3_bind_int(stmt, 1, max_post);
 	sqlite3_bind_int(stmt, 2, first_post);
+	sqlite3_bind_text(stmt, 3, criteria->timefmt, -1, SQLITE_STATIC);
 	switch (criteria->type) {
 	case CRITERIA_TAGNAME:
-		sqlite3_bind_text(stmt, 3, criteria->tagname, -1, SQLITE_STATIC);
+		sqlite3_bind_text(stmt, 4, criteria->tagname, -1, SQLITE_STATIC);
 		sqlite3_bind_text(stmtcnt, 1, criteria->tagname, -1, SQLITE_STATIC);
 		break;
 	case CRITERIA_TIME_T:
-		sqlite3_bind_int64(stmt, 3, criteria->start);
-		sqlite3_bind_int64(stmt, 4, criteria->end);
+		sqlite3_bind_int64(stmt, 4, criteria->start);
+		sqlite3_bind_int64(stmt, 5, criteria->end);
 		sqlite3_bind_int64(stmtcnt, 1, criteria->start);
 		sqlite3_bind_int64(stmtcnt, 2, criteria->end);
 		break;
@@ -246,9 +249,8 @@ void
 cblog(struct evhttp_request* req, void* args)
 {
 	NEOERR				*neoerr;
-	HDF *hdf, *out;
+	HDF *out;
 	STRING str, neoerr_str;
-	char *date_format;
 	const char *reqpath, *requesturi, *tplpath;
 	const struct evhttp_uri *uri;
 	const char *q;
@@ -257,11 +259,10 @@ cblog(struct evhttp_request* req, void* args)
 	CSPARSE *parse;
 	int method;
 	int type, i, nb_posts;
-	time_t gentime, posttime;
-	int yyyy, mm, dd, datenum;
+	time_t gentime;
+	int yyyy, mm, dd;
 	struct criteria criteria;
 	struct tm calc_time, *date;
-	char buf[BUFSIZ];
 	const char *typefeed;
 	const char *var;
 	struct evbuffer *evb = NULL;
@@ -321,12 +322,15 @@ cblog(struct evhttp_request* req, void* args)
 		}
 	}
 
+	criteria.timefmt = NULL;
 	if (q != NULL) {
 		typefeed = evhttp_find_header(&h, "feed");
 		if (typefeed != NULL && (
 					EQUALS(typefeed, "rss") ||
-					EQUALS(typefeed, "atom")))
+					EQUALS(typefeed, "atom"))) {
 			criteria.feed=true;
+			criteria.timefmt = "%Y-%m-%dT%H:%M:%S2";
+		}
 
 		if ((var = evhttp_find_header(&h, "source")) != NULL)
 			hdf_set_valuef(out, "Query.source=%s", var);
@@ -353,6 +357,9 @@ cblog(struct evhttp_request* req, void* args)
 	}
 
 	sqlite3_open(get_cblog_db(out), &sqlite);
+	if (criteria.timefmt == NULL)
+		criteria.timefmt = get_dateformat(out);
+
 	switch (type) {
 		case CBLOG_POST:
 			reqpath++;
@@ -435,16 +442,6 @@ cblog(struct evhttp_request* req, void* args)
 	/* work set the good date format and display everything */
 	switch (type) {
 		case CBLOG_ATOM:
-			HDF_FOREACH(hdf, out, "Posts") {
-
-				posttime = hdf_get_int_value(hdf, "date", time(NULL));
-				date = gmtime(&posttime);
-
-				hdf_set_valuef(hdf, "date=%04d-%02d-%02dT%02d:%02d:%02dZ",
-						date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
-						date->tm_hour, date->tm_min, date->tm_sec);
-			}
-
 			gentime = time(NULL);
 			date = gmtime(&gentime);
 
@@ -474,14 +471,6 @@ cblog(struct evhttp_request* req, void* args)
 			if (type == CBLOG_POST)
 				set_tags(out, sqlite);
 
-			date_format = get_dateformat(out);
-
-			HDF_FOREACH(hdf, out, "Posts") {
-				datenum = hdf_get_int_value(hdf, "date", time(NULL));
-				time_to_str(datenum, date_format, buf, BUFSIZ);
-
-				hdf_set_valuef(hdf, "date=%s", buf);
-			}
 			strlcat(cspath, "/default.cs", MAXPATHLEN);
 			neoerr = cs_parse_file(parse, cspath);
 			neoerr = cs_render(parse, &str, cblog_output);
