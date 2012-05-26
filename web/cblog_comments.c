@@ -33,7 +33,7 @@ get_comments(HDF *hdf, const char *postname, sqlite3 *sqlite)
 	int i = 0;
 
 	if (sqlite3_prepare_v2(sqlite,
-	    "SELECT author, url, strftime(?1, date(comments.date, 'unixepoch')) as date, comment as content FROM comments, posts where post_id=posts.id and link=?2 ORDER by comments.date ASC;",
+	    "SELECT author, url, strftime(?1, date(comments.date, 'unixepoch')) as date, comments.date as timestamp, comment as content FROM comments, posts where post_id=posts.id and link=?2 ORDER by timestamp ASC;",
 	    -1, &stmt, NULL) != SQLITE_OK) {
 		cblog_log("%s", sqlite3_errmsg(sqlite));
 		return;

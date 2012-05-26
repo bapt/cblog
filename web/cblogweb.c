@@ -166,21 +166,21 @@ build_index(HDF *hdf, struct criteria *criteria, sqlite3 *sqlite)
 	switch (criteria->type) {
 	case CRITERIA_TAGNAME:
 		baseurl = 
-	    "SELECT link as filename, title, source, html, strftime(?3, datetime(date, 'unixepoch')) as date from posts, tags_posts, tags "
+	    "SELECT link as filename, title, source, html, strftime(?3, datetime(date, 'unixepoch')) as date, date as timestamp from posts, tags_posts, tags "
 		"WHERE posts.id=post_id and tag_id=tags.id and tag=?4 "
-		"ORDER BY DATE DESC LIMIT ?1 OFFSET ?2 ";
+		"ORDER BY timestamp DESC LIMIT ?1 OFFSET ?2 ";
 		counturl =
 	    "SELECT count(*) from posts, tags_posts, tags "
 		"WHERE posts.id=post_id and tag_id=tags.id and tag=?1;";
 		break;
 	case CRITERIA_TIME_T:
-		baseurl = "SELECT link as filename, title, source, html, strftime(?3, datetime(date, 'unixepoch')) as date from posts "
+		baseurl = "SELECT link as filename, title, source, html, strftime(?3, datetime(date, 'unixepoch')) as date, date as timestamp from posts "
 			"WHERE date BETWEEN ?4 and ?5 "
-			"ORDER BY date DESC LIMIT ?1 OFFSET ?2;";
+			"ORDER BY timestamp DESC LIMIT ?1 OFFSET ?2;";
 		counturl = "SELECT count(*) from posts WHERE date BETWEEN ?1 and ?2 ";
 		break;
 	default:
-		baseurl = "SELECT link as filename, title, source, html, strftime(?3, datetime(date, 'unixepoch')) as date from posts ORDER BY DATE DESC LIMIT ?1 OFFSET ?2;";
+		baseurl = "SELECT link as filename, title, source, html, strftime(?3, datetime(date, 'unixepoch')) as date, date as timestamp from posts ORDER BY timestamp DESC LIMIT ?1 OFFSET ?2;";
 		counturl = "SELECT count(*) from posts;";
 		break;
 	}
