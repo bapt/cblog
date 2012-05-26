@@ -1,7 +1,6 @@
 #ifndef	CBLOG_LIB_CBLOG_UTILS_H
 #define	CBLOG_LIB_CBLOG_UTILS_H
 
-#include <time.h>
 #include <sqlite3.h>
 
 #define EQUALS(string, needle) (strcasecmp(string, needle) == 0)
