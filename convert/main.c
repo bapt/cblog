@@ -11,12 +11,22 @@
 #include <ClearSilver.h>
 
 #include "cblog_utils.h"
-#include "cblog_common.h"
+
+static char *field[] = {
+	"title",
+	"tags",
+	"source",
+	"html",
+	"ctime",
+	"published",
+	"comments",
+	NULL
+};
 
 char *
 db_get(struct cdb *cdb) {
-	int		vpos, vlen;
-	char	*val;
+	int vpos, vlen;
+	char *val;
 
 	vpos = cdb_datapos(cdb);
 	vlen = cdb_datalen(cdb);
@@ -83,7 +93,6 @@ main(int argc, char *argv[])
 	struct cdb cdb;
 	struct cdb_find cdbf;
 	struct stat st;
-	char *link, *title;
 	char key[BUFSIZ];
 	char comment_file[MAXPATHLEN];
 	sqlite3 *sqlite;
