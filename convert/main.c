@@ -118,7 +118,7 @@ main(int argc, char *argv[])
 		errx(1, "%s", sqlite3_errmsg(sqlite));
 	if (sqlite3_prepare_v2(sqlite, "INSERT INTO tags_posts (tag_id, post_id) values ((select id from tags where tag=?1), ?2);", -1, &stmt_tags, NULL) != SQLITE_OK)
 		errx(1, "%s", sqlite3_errmsg(sqlite));
-	if (sqlite3_prepare_v2(sqlite, "INSERT INTO comments (post_id, author, url, comment, date) values(?1, ?2, ?3, ?4, ?5);", -1, &stmt_comments, NULL) != SQLITE_OK)
+	if (sqlite3_prepare_v2(sqlite, "INSERT INTO comments (post_id, author, url, comment, date) values(trim(?1), ?2, ?3, ?4, ?5);", -1, &stmt_comments, NULL) != SQLITE_OK)
 		errx(1, "%s", sqlite3_errmsg(sqlite));
 
 	sql_exec(sqlite, "BEGIN;");
@@ -154,13 +154,10 @@ main(int argc, char *argv[])
 			char *nval = val2;
 			for (j = 0; j <= nbel; j++) {
 				next = strlen(nval);
-				char *valtrimed = trimspace(nval);
-				while (isspace(*valtrimed))
-					valtrimed++;
-				sqlite3_bind_text(stmt_tag, 1, valtrimed, -1, SQLITE_TRANSIENT);
+				sqlite3_bind_text(stmt_tag, 1, nval, -1, SQLITE_TRANSIENT);
 				sqlite3_step(stmt_tag);
 				sqlite3_reset(stmt_tag);
-				sqlite3_bind_text(stmt_tags, 1, valtrimed, -1, SQLITE_TRANSIENT);
+				sqlite3_bind_text(stmt_tags, 1, nval, -1, SQLITE_TRANSIENT);
 				sqlite3_bind_int64(stmt_tags, 2, id);
 				sqlite3_step(stmt_tags);
 				sqlite3_reset(stmt_tags);
