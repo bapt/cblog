@@ -253,7 +253,7 @@ cblog(struct evhttp_request* req, void* args)
 	const struct evhttp_uri *uri;
 	const char *q;
 	char cspath[MAXPATHLEN];
-	struct evkeyvalq *h;
+	struct evkeyvalq h;
 	CSPARSE *parse;
 	int method;
 	int type, i, nb_posts;
@@ -274,7 +274,6 @@ cblog(struct evhttp_request* req, void* args)
 	criteria.feed = false;
 
 	memset(&calc_time, 0, sizeof(struct tm));
-	h = malloc(sizeof(struct evkeyvalq));
 
 	method = evhttp_request_get_command(req);
 	uri = evhttp_request_get_evhttp_uri(req);
@@ -293,7 +292,7 @@ cblog(struct evhttp_request* req, void* args)
 	reqpath = evhttp_uri_get_path(uri);
 	evb = evbuffer_new();
 	if ((q = evhttp_uri_get_query(uri)) != NULL)
-		evhttp_parse_query_str(q, h);
+		evhttp_parse_query_str(q, &h);
 
 	if (method == EVHTTP_REQ_POST) {
 		/* parse the post and set everything into the hdf */
@@ -303,33 +302,33 @@ cblog(struct evhttp_request* req, void* args)
 			char *tmp = malloc(len+1);
 			memcpy(tmp, evbuffer_pullup(postbuf, -1), len);
 			tmp[len] = '\0';
-			evhttp_parse_query_str(tmp, h);
-			if ((var = evhttp_find_header(h, "submit")) != NULL)
+			evhttp_parse_query_str(tmp, &h);
+			if ((var = evhttp_find_header(&h, "submit")) != NULL)
 				hdf_set_valuef(out, "Query.submit=%s", var);
-			if ((var = evhttp_find_header(h, "name")) != NULL)
+			if ((var = evhttp_find_header(&h, "name")) != NULL)
 				hdf_set_valuef(out, "Query.name=%s", var);
-			if ((var = evhttp_find_header(h, "url")) != NULL)
+			if ((var = evhttp_find_header(&h, "url")) != NULL)
 				hdf_set_valuef(out, "Query.url=%s", var);
-			if ((var = evhttp_find_header(h, "comment")) != NULL)
+			if ((var = evhttp_find_header(&h, "comment")) != NULL)
 				hdf_set_valuef(out, "Query.comment=%s", var);
-			if ((var = evhttp_find_header(h, "antispam")) != NULL)
+			if ((var = evhttp_find_header(&h, "antispam")) != NULL)
 				hdf_set_valuef(out, "Query.antispam=%s", var);
-			if ((var = evhttp_find_header(h, "test1")) != NULL)
+			if ((var = evhttp_find_header(&h, "test1")) != NULL)
 				hdf_set_valuef(out, "Query.test1=%s", var);
-			if ((var = evhttp_find_header(h, "test2")) != NULL)
+			if ((var = evhttp_find_header(&h, "test2")) != NULL)
 				hdf_set_valuef(out, "Query.test2=%s", var);
 			free(tmp);
 		}
 	}
 
 	if (q != NULL) {
-		typefeed = evhttp_find_header(h, "feed");
+		typefeed = evhttp_find_header(&h, "feed");
 		if (typefeed != NULL && (
 					EQUALS(typefeed, "rss") ||
 					EQUALS(typefeed, "atom")))
 			criteria.feed=true;
 
-		if ((var = evhttp_find_header(h, "source")) != NULL)
+		if ((var = evhttp_find_header(&h, "source")) != NULL)
 			hdf_set_valuef(out, "Query.source=%s", var);
 	}
 
@@ -492,6 +491,7 @@ cblog(struct evhttp_request* req, void* args)
 	}
 	string_clear(&str);
 	cs_destroy(&parse);
+	evbuffer_free(evb);
 
 	if (neoerr != STATUS_OK && method == EVHTTP_REQ_HEAD) {
 		nerr_error_string(neoerr, &neoerr_str);
@@ -499,5 +499,6 @@ cblog(struct evhttp_request* req, void* args)
 		string_clear(&neoerr_str);
 	}
 	nerr_ignore(&neoerr);
+	hdf_destroy(&out);
 }
 /* vim: set sw=4 sts=4 ts=4 : */
