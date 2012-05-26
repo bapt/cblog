@@ -492,6 +492,7 @@ cblog(struct evhttp_request* req, void* args)
 	string_clear(&str);
 	cs_destroy(&parse);
 	evbuffer_free(evb);
+	sqlite3_close(sqlite);
 
 	if (neoerr != STATUS_OK && method == EVHTTP_REQ_HEAD) {
 		nerr_error_string(neoerr, &neoerr_str);

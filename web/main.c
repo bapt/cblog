@@ -140,8 +140,10 @@ main(int argc, char **argv, char **envp)
 	}
 
 	event_base_dispatch(eb);
+
 	evhttp_free(eh);
 	event_base_free(eb);
+	hdf_destroy(&conf);
 
 	sqlite3_shutdown();
 	closelog();
