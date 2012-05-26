@@ -1,6 +1,5 @@
 #include <unistd.h>
 #include <err.h>
-/*#include <fcgi_stdio.h>*/
 #include <syslog.h>
 #include <signal.h>
 #include <string.h>
@@ -31,10 +30,12 @@ static char *mandatory_config[] = {
 	"title",
 	"url",
 	"dateformat",
-	"hdf.loadpaths.tpl",
 	"db_path",
 	"theme",
 	"posts_per_pages",
+	"templates",
+	"interface",
+	"port",
 	NULL,
 };
 

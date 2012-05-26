@@ -1,16 +1,8 @@
-#include <time.h>
-#include <sys/types.h>
-#include <sys/uio.h>
-#include <unistd.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/param.h>
-#include <sys/stat.h>
 #include <sqlite3.h>
 
 #include "cblogweb.h"
 #include "cblog_utils.h"
-#include <syslog.h>
 
 int
 get_comments_count(const char *postname, sqlite3 *sqlite)

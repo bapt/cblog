@@ -1,9 +1,9 @@
+#include <sys/param.h>
+
 #include <stdbool.h>
 #include <string.h>
 #include <sqlite3.h>
 #include <syslog.h>
-#include <sys/queue.h>
-#include <sys/param.h>
 
 #include "cblog_utils.h"
 #include "cblog_common.h"
