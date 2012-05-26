@@ -14,7 +14,7 @@
 #include "cblog_utils.h"
 
 /* path the the CDB database file */
-char	cblog_cdb[PATH_MAX];
+char cblog_cdb[PATH_MAX];
 
 void
 cblogctl_list(void)
