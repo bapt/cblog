@@ -35,22 +35,6 @@ cblogctl_list(void)
 	sqlite3_shutdown();
 }
 
-int
-trimcr(char *str)
-{
-	size_t len;
-
-	if (str == NULL)
-		return -1;
-
-	len = strlen(str);
-	while (len--)
-		if ((str[len] == '\r') || (str[len] == '\n'))
-			str[len] = '\0';
-
-	return 0;
-}
-
 static void
 print_stmt(sqlite3_stmt *stmt)
 {
@@ -182,10 +166,10 @@ cblogctl_add(const char *post_path)
 		errx(1, "Unable to open %s", post_path);
 
 	if (sqlite3_prepare_v2(sqlite, "INSERT INTO posts (link, title, source, html, date) "
-	    "values (?1, trim(?2), ?3, ?4, strftime('%s', 'now'));",
+	    "values (?1, trim(?2, ' \t\r\n'), ?3, ?4, strftime('%s', 'now'));",
 	    -1, &stmt, NULL) != SQLITE_OK)
 		errx(1, "%s", sqlite3_errmsg(sqlite));
-	if (sqlite3_prepare_v2(sqlite, "UPDATE posts set title=?2, source=?3, html=?4 where link=?1;",
+	if (sqlite3_prepare_v2(sqlite, "UPDATE posts set title=trim(?2, ' \t\r\n'), source=?3, html=?4 where link=?1;",
 	    -1, &stmtu, NULL) != SQLITE_OK)
 		errx(1, "%s", sqlite3_errmsg(sqlite));
 
@@ -200,7 +184,6 @@ cblogctl_add(const char *post_path)
 		}
 
 		if (headers) {
-			trimcr(filebuf);
 			if (STARTS_WITH(filebuf, "Title: ")) {
 				val = filebuf + strlen("Title: ");
 				sqlite3_bind_text(stmt, 2, val, -1, SQLITE_TRANSIENT);
