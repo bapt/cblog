@@ -329,7 +329,7 @@ cblog(struct evhttp_request* req, void* args)
 					EQUALS(typefeed, "rss") ||
 					EQUALS(typefeed, "atom"))) {
 			criteria.feed=true;
-			criteria.timefmt = "%Y-%m-%dT%H:%M:%S2";
+			criteria.timefmt = "%Y-%m-%dT%H:%M:%SZ";
 		}
 
 		if ((var = evhttp_find_header(&h, "source")) != NULL)
@@ -342,6 +342,8 @@ cblog(struct evhttp_request* req, void* args)
 			break;
 		}
 	}
+	if (type == CBLOG_ATOM)
+		criteria.timefmt = "%Y-%m-%dT%H:%M:%SZ";
 
 	if (type == CBLOG_ROOT) {
 		if (sscanf(reqpath, "/%4d/%02d/%02d", &yyyy, &mm, &dd) == 3) {
