@@ -324,6 +324,9 @@ cblog(struct evhttp_request* req, void* args)
 
 		if ((var = evhttp_find_header(&h, "source")) != NULL)
 			hdf_set_valuef(out, "Query.source=%s", var);
+
+		if ((var = evhttp_find_header(&h, "page")) != NULL)
+			hdf_set_valuef(out, "Query.page=%s", var);
 	}
 
 	for (i=0; page[i].name != NULL; i++) {
