@@ -47,7 +47,6 @@
 int get_comments_count(const char *postname, sqlite3 *sqlite);
 void get_comments(HDF *hdf, const char *postname, sqlite3 *sqlite);
 void set_comment(HDF *hdf, const char *postname, sqlite3 *sqlite);
-void cblog_log(const char * message, ...);
 void cblog(struct evhttp_request* request, void* args);
 
 #endif	/* ndef CBLOG_CGI_CBLOG_CGI_H */

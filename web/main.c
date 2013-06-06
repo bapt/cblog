@@ -59,29 +59,29 @@ read_conf(int signal /* unused */)
 	int ret;
 
 	if (access(CONFFILE, R_OK) != 0) {
-		cblog_log("%s: can't access file", CONFFILE);
+		syslog(LOG_ERR, "%s: can't access file", CONFFILE);
 		return;
 	}
 	neoerr = hdf_init(&hdf);
 	if (neoerr != STATUS_OK) {
-		cblog_log("%s: hdf_init hdf", CONFFILE);
+		syslog(LOG_ERR, "%s: hdf_init hdf", CONFFILE);
 	}
 	nerr_ignore(&neoerr);
 
 	neoerr = hdf_read_file(hdf, CONFFILE);
 	if (neoerr != STATUS_OK) {
-		cblog_log("%s: hdf_read_file error", CONFFILE);
+		syslog(LOG_ERR, "%s: hdf_read_file error", CONFFILE);
 		return;
 	}
 	nerr_ignore(&neoerr);
 
 	if ((ret = check_conf(hdf)) != -1) {
-		cblog_log("%s: %s is mandatory", CONFFILE, mandatory_config[ret]);
+		syslog(LOG_ERR, "%s: %s is mandatory", CONFFILE, mandatory_config[ret]);
 		return;
 	}
 	neoerr = hdf_copy(conf, "", hdf);
 	if (neoerr != STATUS_OK) {
-		cblog_log("%s: hdf_copy error", CONFFILE);
+		syslog(LOG_ERR, "%s: hdf_copy error", CONFFILE);
 		return;
 	}
 }

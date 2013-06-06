@@ -1,5 +1,6 @@
 #include <string.h>
 #include <sqlite3.h>
+#include <syslog.h>
 
 #include "cblogweb.h"
 #include "cblog_utils.h"
@@ -13,7 +14,7 @@ get_comments_count(const char *postname, sqlite3 *sqlite)
 	if (sqlite3_prepare_v2(sqlite,
 	    "SELECT count(comment) FROM comments, posts where posts.id = post_id and link=?1;",
 	    -1 , &stmt, NULL) != SQLITE_OK) {
-		cblog_log("%s", sqlite3_errmsg(sqlite));
+		syslog(LOG_ERR, "%s", sqlite3_errmsg(sqlite));
 		return (0);
 	}
 
@@ -35,7 +36,7 @@ get_comments(HDF *hdf, const char *postname, sqlite3 *sqlite)
 	if (sqlite3_prepare_v2(sqlite,
 	    "SELECT author, url, strftime(?1, date(comments.date, 'unixepoch')) as date, comments.date as timestamp, comment as content FROM comments, posts where post_id=posts.id and link=?2 ORDER by timestamp ASC;",
 	    -1, &stmt, NULL) != SQLITE_OK) {
-		cblog_log("%s", sqlite3_errmsg(sqlite));
+		syslog(LOG_ERR, "%s", sqlite3_errmsg(sqlite));
 		return;
 	}
 
@@ -87,7 +88,7 @@ set_comment(HDF *hdf, const char *postname, sqlite3 *sqlite)
 
 	/* TODO Log here */
 	if (sqlite3_prepare_v2(sqlite, "INSERT INTO comments (post_id, author, url, comment, date) values((select id from posts where link=?1), ?2, ?3, ?4, strftime('%s', 'now'));", -1, &stmt, NULL) != SQLITE_OK) {
-		cblog_log("%s", sqlite3_errmsg(sqlite));
+		syslog(LOG_ERR, "%s", sqlite3_errmsg(sqlite));
 		return;
 	}
 

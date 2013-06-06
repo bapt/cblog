@@ -38,16 +38,6 @@ struct criteria {
 	time_t end;
 };
 
-void
-cblog_log(const char * message, ...)
-{
-	va_list		args;
-
-	va_start(args, message);
-	vsyslog(LOG_ERR, message, args);
-	va_end(args);
-}
-
 int
 add_posts_to_hdf(HDF *hdf, sqlite3_stmt *stmt, sqlite3 *sqlite)
 {
@@ -60,7 +50,7 @@ add_posts_to_hdf(HDF *hdf, sqlite3_stmt *stmt, sqlite3 *sqlite)
 	if (sqlite3_prepare_v2(sqlite,
 	    "SELECT tag FROM tags, tags_posts, posts WHERE link=?1 AND posts.id=post_id and tag_id=tags.id;",
 	    -1, &stmt2, NULL) != SQLITE_OK) {
-		cblog_log("%s", sqlite3_errmsg(sqlite));
+		syslog(LOG_ERR, "%s", sqlite3_errmsg(sqlite));
 		return 0;
 	}
 
@@ -104,7 +94,7 @@ set_tags(HDF *hdf, sqlite3 *sqlite)
 
 	if (sqlite3_prepare_v2(sqlite, "select count(*), tag from tags, tags_posts where id=tag_id group by tag order by tag;",
 				-1, &stmt, NULL) != SQLITE_OK) {
-		cblog_log("%s", sqlite3_errmsg(sqlite));
+		syslog(LOG_ERR, "%s", sqlite3_errmsg(sqlite));
 		return;
 	}
 
@@ -134,7 +124,7 @@ build_post(HDF *hdf, const char *postname, sqlite3 *sqlite)
 		"SELECT link as filename, title, source, html, strftime(?2, datetime(date, 'unixepoch')) as date from posts "
 		"WHERE link=?1 ;",
 		-1, &stmt, NULL) != SQLITE_OK) {
-		cblog_log("%s", sqlite3_errmsg(sqlite));
+		syslog(LOG_ERR, "%s", sqlite3_errmsg(sqlite));
 		return 0;
 	}
 
@@ -187,12 +177,12 @@ build_index(HDF *hdf, struct criteria *criteria, sqlite3 *sqlite)
 	if (sqlite3_prepare_v2(sqlite,
 		baseurl,
 	    -1, &stmt, NULL) != SQLITE_OK) {
-		cblog_log("%s", sqlite3_errmsg(sqlite));
+		syslog(LOG_ERR, "%s", sqlite3_errmsg(sqlite));
 		return 0;
 	}
 
 	if (sqlite3_prepare_v2(sqlite, counturl, -1, &stmtcnt, NULL) != SQLITE_OK) {
-		cblog_log("%s", sqlite3_errmsg(sqlite));
+		syslog(LOG_ERR, "%s", sqlite3_errmsg(sqlite));
 		return 0;
 	}
 
@@ -487,7 +477,7 @@ cblog(struct evhttp_request* req, void* args)
 
 	if (neoerr != STATUS_OK && method == EVHTTP_REQ_HEAD) {
 		nerr_error_string(neoerr, &neoerr_str);
-		cblog_log(neoerr_str.buf);
+		syslog(LOG_ERR, neoerr_str.buf);
 		string_clear(&neoerr_str);
 	}
 	nerr_ignore(&neoerr);
