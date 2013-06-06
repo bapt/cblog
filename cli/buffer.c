@@ -20,23 +20,12 @@
  * COMPILE TIME OPTIONS
  *
  * BUFFER_STATS • if defined, stats are kept about memory usage
- * TRACK_BUFFERS • if defined, buffers are tracked in a struct parray
  */
 #define BUFFER_STATS
-
-
 
 #define BUFFER_STDARG
 
 #include "buffer.h"
-
-#ifdef TRACK_BUFFER_DEBUG
-#undef TRACK_BUFFERS
-#endif
-
-#if (defined TRACK_BUFFERS) || (defined TRACK_BUFFER_DEBUG)
-#include "array.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,12 +39,6 @@
 #ifdef BUFFER_STATS
 long buffer_stat_nb = 0;
 size_t buffer_stat_alloc_bytes = 0;
-#endif
-#ifdef TRACK_BUFFERS
-struct parray all_buffers = { 0, 0, 0 };
-#endif
-#ifdef TRACK_BUFFER_DEBUG
-struct array all_buffers = { 0, 0, 0, sizeof (struct buf_debug_data) };
 #endif
 
 
@@ -123,12 +106,7 @@ bufcmps(const struct buf *a, const char *b) {
 
 /* bufdup • buffer duplication */
 struct buf *
-#ifndef TRACK_BUFFER_DEBUG
 bufdup(const struct buf *src, size_t dupunit) {
-#else
-bufdup_(const struct buf *src, size_t dupunit, const char *file, int line) {
-	struct buf_debug_data *bdd;
-#endif
 	size_t blocks;
 	struct buf *ret;
 	if (src == 0) return 0;
@@ -138,9 +116,6 @@ bufdup_(const struct buf *src, size_t dupunit, const char *file, int line) {
 	ret->size = src->size;
 	ret->ref = 1;
 	if (!src->size) {
-#ifdef BUFFER_STATS
-		buffer_stat_nb += 1;
-#endif
 		ret->asize = 0;
 		ret->data = 0;
 		return ret; }
@@ -155,20 +130,7 @@ bufdup_(const struct buf *src, size_t dupunit, const char *file, int line) {
 	buffer_stat_nb += 1;
 	buffer_stat_alloc_bytes += ret->asize;
 #endif
-#ifdef TRACK_BUFFERS
-	parr_push(&all_buffers, ret);
-#endif
-#ifdef TRACK_BUFFER_DEBUG
-	bdd = arr_item(&all_buffers, arr_newitem(&all_buffers));
-	bdd->buf = ret;
-	bdd->dupped = 1;
-	bdd->ctime = time(0);
-	bdd->file = file;
-	bdd->line = line;
 	return ret; }
-#else
-	return ret; }
-#endif
 
 
 /* bufgrow • increasing the allocated size to the given value */
@@ -192,37 +154,18 @@ bufgrow(struct buf *buf, size_t neosz) {
 
 /* bufnew • allocation of a new buffer */
 struct buf *
-#ifndef TRACK_BUFFER_DEBUG
 bufnew(size_t unit) {
-#else
-bufnew_(size_t unit, const char *file, int line) {
-	struct buf_debug_data *bdd;
-#endif
 	struct buf *ret;
 	ret = malloc(sizeof (struct buf));
 	if (ret) {
 #ifdef BUFFER_STATS
 		buffer_stat_nb += 1;
 #endif
-#ifdef TRACK_BUFFERS
-		parr_push(&all_buffers, ret);
-#endif
 		ret->data = 0;
 		ret->size = ret->asize = 0;
 		ret->ref = 1;
 		ret->unit = unit; }
-#ifdef TRACK_BUFFER_DEBUG
-	if (ret) {
-		bdd = arr_item(&all_buffers, arr_newitem(&all_buffers));
-		bdd->buf = ret;
-		bdd->dupped = 0;
-		bdd->ctime = time(0);
-		bdd->file = file;
-		bdd->line = line; }
 	return ret; }
-#else
-	return ret; }
-#endif
 
 
 /* bufnullterm • NUL-termination of the string array (making a C-string) */
@@ -230,7 +173,7 @@ void
 bufnullterm(struct buf *buf) {
 	if (!buf || !buf->unit) return;
 	if (buf->size < buf->asize && buf->data[buf->size] == 0) return;
-	if (bufgrow(buf, buf->size + 1))
+	if (buf->size + 1 <= buf->asize || bufgrow(buf, buf->size + 1))
 		buf->data[buf->size] = 0; }
 
 
@@ -247,7 +190,9 @@ bufprintf(struct buf *buf, const char *fmt, ...) {
 /* bufput • appends raw data to a buffer */
 void
 bufput(struct buf *buf, const void *data, size_t len) {
-	if (!buf || !bufgrow(buf, buf->size + len)) return;
+	if (!buf) return;
+	if (buf->size + len > buf->asize && !bufgrow(buf, buf->size + len))
+		return;
 	memcpy(buf->data + buf->size, data, len);
 	buf->size += len; }
 
@@ -261,7 +206,9 @@ bufputs(struct buf *buf, const char *str) {
 /* bufputc • appends a single char to a buffer */
 void
 bufputc(struct buf *buf, char c) {
-	if (!buf || !bufgrow(buf, buf->size + 1)) return;
+	if (!buf) return;
+	if (buf->size + 1 > buf->asize && !bufgrow(buf, buf->size + 1))
+		return;
 	buf->data[buf->size] = c;
 	buf->size += 1; }
 
@@ -272,21 +219,6 @@ bufrelease(struct buf *buf) {
 	if (!buf || !buf->unit) return;
 	buf->ref -= 1;
 	if (buf->ref == 0) {
-#ifdef TRACK_BUFFERS
-		int i = 0;
-		while (i < all_buffers.size)
-			if (all_buffers.item[i] == buf)
-				parr_remove(&all_buffers, i);
-			else i += 1;
-#endif
-#ifdef TRACK_BUFFER_DEBUG
-		int i = 0;
-		struct buf_debug_data *bdd = all_buffers.base;
-		while (i < all_buffers.size)
-			if (bdd[i].buf == buf)
-				arr_remove(&all_buffers, i);
-			else i += 1;
-#endif
 #ifdef BUFFER_STATS
 		buffer_stat_nb -= 1;
 		buffer_stat_alloc_bytes -= buf->asize;
@@ -311,7 +243,7 @@ bufreset(struct buf *buf) {
 void
 bufset(struct buf **dest, struct buf *src) {
 	if (src) {
-		if (src->data && !src->asize) src = bufdup(src, 1);
+		if (!src->asize) src = bufdup(src, 1);
 		else src->ref += 1; }
 	bufrelease(*dest);
 	*dest = src; }
@@ -357,7 +289,9 @@ vbufprintf(struct buf *buf, const char *fmt, va_list ap) {
 	va_copy(ap_save, ap);
 	n = vsnprintf(buf->data + buf->size, buf->asize - buf->size, fmt, ap);
 	if (n >= buf->asize - buf->size) {
-		if (!bufgrow (buf, buf->size + n + 1)) return;
+		if (buf->size + n + 1 > buf->asize
+		&& !bufgrow (buf, buf->size + n + 1))
+			return;
 		n = vsnprintf (buf->data + buf->size,
 				buf->asize - buf->size, fmt, ap_save); }
 	va_end(ap_save);

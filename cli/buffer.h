@@ -16,23 +16,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/*
- * PREPROCESSOR OPTIONS
- *
- * BUFFER_STDARG
- *	includes <stdarg.h> and declareds vbufprintf()
- * TRACK_BUFFER_DEBUG
- *	activates additional debug information into buffers
- */
-
 #ifndef LITHIUM_BUFFER_H
 #define LITHIUM_BUFFER_H
 
 #include <stddef.h>
-
-#ifdef TRACK_BUFFER_DEBUG
-#include <time.h>
-#endif
 
 
 /********************
@@ -46,17 +33,6 @@ struct buf {
 	size_t	asize;	/* allocated size (0 = volatile buffer) */
 	size_t	unit;	/* reallocation unit size (0 = read-only buffer) */
 	int	ref; };	/* reference count */
-
-
-/* struct buf_debug_data • extra data for debug */
-#ifdef TRACK_BUFFER_DEBUG
-struct buf_debug_data {
-	struct buf *	buf;
-	int		dupped;
-	time_t		ctime;
-	const char *	file;
-	int		line; };
-#endif
 
 
 
@@ -79,16 +55,26 @@ struct buf_debug_data {
 	bufput(output, litteral, sizeof litteral - 1)
 
 
-#ifdef TRACK_BUFFER_DEBUG
-#define bufnew(size) \
-	bufnew_(size, __FILE__, __LINE__)
-#define bufdup(src, size) \
-	bufdup_(src, size, __FILE__, __LINE__)
-struct buf *bufnew_(size_t, const char *, int) __attribute__ ((malloc));
-struct buf *bufdup_(const struct buf *, size_t, const char *, int)
-						__attribute__ ((malloc));
+/***********************
+ * FUNCTION ATTRIBUTES *
+ ***********************/
+
+/* BUF_ALLOCATOR • the function returns a completely new ponter */
+#ifdef __GNUC__
+#define BUF_ALLOCATOR \
+	__attribute__ ((malloc))
+#else
+#define BUF_ALLOCATOR
 #endif
 
+
+/* BUF_PRINTF_LIKE • marks the function as behaving like printf */
+#ifdef __GNUC__
+#define BUF_PRINTF_LIKE(format_index, first_variadic_index) \
+	__attribute__ ((format (printf, format_index, first_variadic_index)));
+#else
+#define BUF_PRINTF_LIKE(format_index, first_variadic_index)
+#endif
 
 
 /********************
@@ -108,22 +94,18 @@ int
 bufcmps(const struct buf *, const char *);
 
 /* bufdup • buffer duplication */
-#ifndef TRACK_BUFFER_DEBUG
 struct buf *
 bufdup(const struct buf *, size_t)
-	__attribute__ ((malloc));
-#endif
+	BUF_ALLOCATOR;
 
 /* bufgrow • increasing the allocated size to the given value */
 int
 bufgrow(struct buf *, size_t);
 
 /* bufnew • allocation of a new buffer */
-#ifndef TRACK_BUFFER_DEBUG
 struct buf *
 bufnew(size_t)
-	__attribute__ ((malloc));
-#endif
+	BUF_ALLOCATOR;
 
 /* bufnullterm • NUL-termination of the string array (making a C-string) */
 void
@@ -132,7 +114,7 @@ bufnullterm(struct buf *);
 /* bufprintf • formatted printing to a buffer */
 void
 bufprintf(struct buf *, const char *, ...)
-	__attribute__ ((format (printf, 2, 3)));
+	BUF_PRINTF_LIKE(2, 3);
 
 /* bufput • appends raw data to a buffer */
 void
