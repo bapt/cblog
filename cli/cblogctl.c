@@ -5,9 +5,9 @@
 #include <limits.h>
 #include <unistd.h>
 
-#include "buffer.h"
-#include "markdown.h"
-#include "renderers.h"
+#include <soldout/buffer.h>
+#include <soldout/markdown.h>
+#include <soldout/renderers.h>
 
 #include "cblogctl.h"
 #include "cblog_common.h"

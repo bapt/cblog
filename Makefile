@@ -4,7 +4,7 @@ include config.mk
 
 WEBSRCS=	web/main.c web/cblogweb.c web/cblog_comments.c
 LIBSRCS=	lib/db.c lib/utils.c
-CLISRCS=	cli/main.c cli/cblogctl.c cli/buffer.c cli/markdown.c cli/renderers.c cli/array.c
+CLISRCS=	cli/main.c cli/cblogctl.c
 CONVERTSRCS=	convert/main.c
 
 WEBOBJS=	${WEBSRCS:.c=.o}
@@ -18,7 +18,7 @@ CONVERT=	cblogconvert
 LIB=	libcblog_utils.a
 
 WEBLIBS=	-lcblog_utils -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3 -levent-2.0
-CLILIBS=	-lcblog_utils -lsqlite3
+CLILIBS=	-lcblog_utils -lsqlite3 -lsoldout
 CONVERTLIBS=	-lcblog_utils -lcdb -lsqlite3 -lneo_cgi -lneo_utl -lneo_cs -lz
 
 all:	${CLI} ${WEB} ${CONVERT}
