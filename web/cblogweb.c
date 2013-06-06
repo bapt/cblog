@@ -114,13 +114,8 @@ build_post(HDF *hdf, const char *postname, sqlite3 *sqlite)
 {
 	sqlite3_stmt *stmt;
 	int ret=0;
-	char *submit;
 
-	submit = get_query_str(hdf, "submit");
-	if (submit != NULL && EQUALS(submit, "Post"))
-			set_comment(hdf, postname, sqlite);
-
-	if (sqlite3_prepare_v2(sqlite, 
+	if (sqlite3_prepare_v2(sqlite,
 		"SELECT link as filename, title, source, html, strftime(?2, datetime(date, 'unixepoch')) as date from posts "
 		"WHERE link=?1 ;",
 		-1, &stmt, NULL) != SQLITE_OK) {
@@ -235,6 +230,34 @@ cblog_output(void *ctx, char *s)
 	return neoerr;
 }
 
+static int
+parse_post(HDF *hdf, struct evkeyvalq *h)
+{
+	const char *var;
+	int ret = CBLOG_COMMENT_NONE;
+
+	if ((var = evhttp_find_header(h, "submit")) == NULL)
+		return (ret);
+
+	if (strcmp(var, "Post") == 0)
+		ret = CBLOG_COMMENT_POST;
+	else if (strcmp(var, "Preview") == 0)
+		ret = CBLOG_COMMENT_PREVIEW;
+
+	if (ret != CBLOG_COMMENT_PREVIEW)
+		return (ret);
+
+	hdf_set_valuef(hdf, "Query.submit=Preview");
+	if ((var = evhttp_find_header(h, "name")) != NULL)
+		hdf_set_valuef(hdf, "Query.name=%s", var);
+	if ((var = evhttp_find_header(h, "url")) != NULL)
+		hdf_set_valuef(hdf, "Query.url=%s", var);
+	if ((var = evhttp_find_header(h, "comment")) != NULL)
+		hdf_set_valuef(hdf, "Query.comment=%s", var);
+
+	return (ret);
+}
+
 void
 cblog(struct evhttp_request* req, void* args)
 {
@@ -257,6 +280,7 @@ cblog(struct evhttp_request* req, void* args)
 	const char *var;
 	struct evbuffer *evb = NULL;
 	sqlite3 *sqlite;
+	int comment = CBLOG_COMMENT_NONE;
 
 	/* read the configuration file */
 
@@ -294,21 +318,8 @@ cblog(struct evhttp_request* req, void* args)
 			memcpy(tmp, evbuffer_pullup(postbuf, -1), len);
 			tmp[len] = '\0';
 			evhttp_parse_query_str(tmp, &h);
-			if ((var = evhttp_find_header(&h, "submit")) != NULL)
-				hdf_set_valuef(out, "Query.submit=%s", var);
-			if ((var = evhttp_find_header(&h, "name")) != NULL)
-				hdf_set_valuef(out, "Query.name=%s", var);
-			if ((var = evhttp_find_header(&h, "url")) != NULL)
-				hdf_set_valuef(out, "Query.url=%s", var);
-			if ((var = evhttp_find_header(&h, "comment")) != NULL)
-				hdf_set_valuef(out, "Query.comment=%s", var);
-			if ((var = evhttp_find_header(&h, "antispam")) != NULL)
-				hdf_set_valuef(out, "Query.antispam=%s", var);
-			if ((var = evhttp_find_header(&h, "test1")) != NULL)
-				hdf_set_valuef(out, "Query.test1=%s", var);
-			if ((var = evhttp_find_header(&h, "test2")) != NULL)
-				hdf_set_valuef(out, "Query.test2=%s", var);
 			free(tmp);
+			comment = parse_post(out, &h);
 		}
 	}
 
@@ -362,6 +373,8 @@ cblog(struct evhttp_request* req, void* args)
 				reqpath++;
 			reqpath++;
 
+			if (comment == CBLOG_COMMENT_POST)
+				set_comment(&h, reqpath, hdf_get_value(out, "antispamres", NULL), sqlite);
 			nb_posts = build_post(out, reqpath, sqlite);
 			if (nb_posts == 0) {
 				hdf_set_valuef(out, "err_msg=Unknown post: %s", requesturi);

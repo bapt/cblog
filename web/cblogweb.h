@@ -20,6 +20,10 @@
 #define CRITERIA_TIME_T 2
 #define CRITERIA_FEEDS 3
 
+#define CBLOG_COMMENT_NONE 0
+#define CBLOG_COMMENT_POST 1
+#define CBLOG_COMMENT_PREVIEW 2
+
 #define DEFAULT_POSTS_PER_PAGES 10
 #define DEFAULT_THEME "default"
 #define DEFAULT_DB CDB_PATH"/cblog.sqlite"
@@ -46,7 +50,7 @@
 
 int get_comments_count(const char *postname, sqlite3 *sqlite);
 void get_comments(HDF *hdf, const char *postname, sqlite3 *sqlite);
-void set_comment(HDF *hdf, const char *postname, sqlite3 *sqlite);
-void cblog(struct evhttp_request* request, void* args);
+void set_comment(struct evkeyvalq *h, const char *postname, const char *nospam, sqlite3 *sqlite);
+void cblog(struct evhttp_request *req, void *args);
 
 #endif	/* ndef CBLOG_CGI_CBLOG_CGI_H */
