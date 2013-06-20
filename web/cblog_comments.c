@@ -64,8 +64,8 @@ set_comment(struct evkeyvalq *h, const char *postname, const char *nospam, sqlit
 {
 	char *var;
 	const char *v;
-	char *from, *to;
-	char subject[LINE_MAX];
+/*	char *from, *to;
+	char subject[LINE_MAX];*/
 	sqlite3_stmt *stmt;
 
 	/* very simple antispam */

@@ -41,7 +41,7 @@ struct criteria {
 int
 add_posts_to_hdf(HDF *hdf, sqlite3_stmt *stmt, sqlite3 *sqlite)
 {
-	char *filename;
+	char *filename = NULL;
 	int icol;
 	int nb_post, nb_tags;
 	nb_post = 0;
@@ -492,7 +492,7 @@ cblog(struct evhttp_request* req, void* args)
 
 	if (neoerr != STATUS_OK && method == EVHTTP_REQ_HEAD) {
 		nerr_error_string(neoerr, &neoerr_str);
-		syslog(LOG_ERR, neoerr_str.buf);
+		syslog(LOG_ERR, "%s", neoerr_str.buf);
 		string_clear(&neoerr_str);
 	}
 	nerr_ignore(&neoerr);

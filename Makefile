@@ -24,7 +24,7 @@ CONVERTLIBS=	-lcblog_utils -lcdb -lsqlite3 -lneo_cgi -lneo_utl -lneo_cs -lz
 all:	${CLI} ${WEB} ${CONVERT}
 
 .c.o:
-	${CC} ${CFLAGS} -DETCDIR=\"${SYSCONFDIR}\" -DCDB_PATH=\"${CDB_PATH}\" -Ilib ${INCLUDES} ${CSINCLUDES} -o $@ -c $< ${CFLAGS}
+	${CC} ${CFLAGS} -Werror -Wall -DETCDIR=\"${SYSCONFDIR}\" -DCDB_PATH=\"${CDB_PATH}\" -Ilib ${INCLUDES} ${CSINCLUDES} -o $@ -c $< ${CFLAGS}
 
 ${LIB}: ${LIBOBJS}
 	${AR} cr ${LIB} ${LIBOBJS}
