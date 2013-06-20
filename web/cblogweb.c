@@ -34,8 +34,8 @@ struct criteria {
 	bool feed;
 	const char *timefmt;
 	const char *tagname;
-	time_t start;
-	time_t end;
+	int64_t start;
+	int64_t end;
 };
 
 int
@@ -274,7 +274,6 @@ cblog(struct evhttp_request* req, void* args)
 	int type, i, nb_posts;
 	int yyyy, mm, dd;
 	struct criteria criteria;
-	struct tm calc_time;
 	char *date;
 	const char *var;
 	struct evbuffer *evb = NULL;
@@ -286,8 +285,6 @@ cblog(struct evhttp_request* req, void* args)
 	type = CBLOG_ROOT;
 	criteria.type = 0;
 	criteria.feed = false;
-
-	memset(&calc_time, 0, sizeof(struct tm));
 
 	method = evhttp_request_get_command(req);
 	uri = evhttp_request_get_evhttp_uri(req);
@@ -401,40 +398,18 @@ cblog(struct evhttp_request* req, void* args)
 			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY:
-			calc_time.tm_year = yyyy - 1900;
-			calc_time.tm_mon = 0;
-			calc_time.tm_mday = 1;
-			criteria.start = mktime(&calc_time);
-			calc_time.tm_mon = 11;
-			calc_time.tm_mday = 31;
-			calc_time.tm_hour = 23;
-			calc_time.tm_min = 59;
-			calc_time.tm_sec = 59;
-			criteria.end = mktime(&calc_time);
+			criteria.start = sql_int(sqlite, "select strftime('%%s','%d-01-01');", yyyy);
+			criteria.end = sql_int(sqlite, "select strftime('%%s','%d-01-01');", yyyy + 1);
 			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY_MM:
-			calc_time.tm_year = yyyy - 1900;
-			calc_time.tm_mon = mm - 1;
-			calc_time.tm_mday = 1;
-			criteria.start = mktime(&calc_time);
-			calc_time.tm_mon = mm;
-			calc_time.tm_hour = 23;
-			calc_time.tm_min = 59;
-			calc_time.tm_sec = 59;
-			criteria.end = mktime(&calc_time);
-			criteria.end -= 60 * 60 * 24;
+			criteria.start = sql_int(sqlite, "select strftime('%%s','%d-%d-01');", yyyy, mm);
+			criteria.end = sql_int(sqlite, "select strftime('%%s','%d-%d-01');", yyyy, mm + 1);
 			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY_MM_DD:
-			calc_time.tm_year = yyyy - 1900;
-			calc_time.tm_mon = mm - 1;
-			calc_time.tm_mday = dd;
-			criteria.start = mktime(&calc_time);
-			calc_time.tm_hour = 23;
-			calc_time.tm_min = 59;
-			calc_time.tm_sec = 59;
-			criteria.end = mktime(&calc_time);
+			criteria.start = sql_int(sqlite, "select strftime('%%s','%d-%d-%d');", yyyy, mm, dd);
+			criteria.end = sql_int(sqlite, "select strftime('%%s','%d-%d-%d');", yyyy, mm, dd + 1);
 			build_index(out, &criteria, sqlite);
 			break;
 	}
