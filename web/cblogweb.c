@@ -276,7 +276,6 @@ cblog(struct evhttp_request* req, void* args)
 	int yyyy, mm, dd;
 	struct criteria criteria;
 	struct tm calc_time, *date;
-	const char *typefeed;
 	const char *var;
 	struct evbuffer *evb = NULL;
 	sqlite3 *sqlite;
@@ -325,10 +324,10 @@ cblog(struct evhttp_request* req, void* args)
 
 	criteria.timefmt = NULL;
 	if (q != NULL) {
-		typefeed = evhttp_find_header(&h, "feed");
-		if (typefeed != NULL && (
-					EQUALS(typefeed, "rss") ||
-					EQUALS(typefeed, "atom"))) {
+		var = evhttp_find_header(&h, "feed");
+		if (var != NULL && (
+		    EQUALS(var, "rss") ||
+		    EQUALS(var, "atom"))) {
 			criteria.feed=true;
 			criteria.timefmt = "%Y-%m-%dT%H:%M:%SZ";
 		}
