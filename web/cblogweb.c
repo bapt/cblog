@@ -272,10 +272,10 @@ cblog(struct evhttp_request* req, void* args)
 	CSPARSE *parse;
 	int method;
 	int type, i, nb_posts;
-	time_t gentime;
 	int yyyy, mm, dd;
 	struct criteria criteria;
-	struct tm calc_time, *date;
+	struct tm calc_time;
+	char *date;
 	const char *var;
 	struct evbuffer *evb = NULL;
 	sqlite3 *sqlite;
@@ -449,12 +449,10 @@ cblog(struct evhttp_request* req, void* args)
 	/* work set the good date format and display everything */
 	switch (type) {
 		case CBLOG_ATOM:
-			gentime = time(NULL);
-			date = gmtime(&gentime);
+			date = sql_text(sqlite, "select strftime('gendate=%%Y-%%m-%%dT%%H:%%M:%%SZ','now');");
 
-			hdf_set_valuef(out, "gendate=%04d-%02d-%02dT%02d:%02d:%02dZ",
-					date->tm_year + 1900, date->tm_mon + 1, date->tm_mday, 
-					date->tm_hour, date->tm_min, date->tm_sec);
+			hdf_set_valuef(out, "%s", date);
+			free(date);
 
 			evhttp_add_header(req->output_headers, "Content-Type", "application/atom+xml");
 

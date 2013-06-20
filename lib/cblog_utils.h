@@ -10,5 +10,6 @@ int splitchr(char *, char);
 void send_mail(const char *, const char *, const char *, 
     const char *, const char *, const char *, const char *);
 int sql_exec(sqlite3 *s, const char *, ...);
+char *sql_text(sqlite3 *s, const char *, ...);
 
 #endif	/* ndef CBLOG_LIB_CBLOG_UTILS_H */
