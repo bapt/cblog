@@ -43,15 +43,15 @@ print_stmt(sqlite3_stmt *stmt)
 	while (sqlite3_step(stmt) == SQLITE_ROW) {
 		for (icol = 0; icol < sqlite3_column_count(stmt); icol++) {
 			switch (sqlite3_column_type(stmt, icol)) {
-				case SQLITE_TEXT:
-					printf("%s: %s\n", sqlite3_column_name(stmt, icol), sqlite3_column_text(stmt, icol));
-					break;
-				case SQLITE_INTEGER:
-					printf("%s: %lld\n", sqlite3_column_name(stmt, icol), sqlite3_column_int64(stmt, icol));
-					break;
-				default:
-					/* do nothing */
-					break;
+			case SQLITE_TEXT:
+				printf("%s: %s\n", sqlite3_column_name(stmt, icol), sqlite3_column_text(stmt, icol));
+				break;
+			case SQLITE_INTEGER:
+				printf("%s: %lld\n", sqlite3_column_name(stmt, icol), sqlite3_column_int64(stmt, icol));
+				break;
+			default:
+				/* do nothing */
+				break;
 			}
 		}
 	}
