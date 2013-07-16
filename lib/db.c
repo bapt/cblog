@@ -52,7 +52,6 @@ sql_text(sqlite3 *s, char *dest, const char *sql, ...)
 
 	assert(s != NULL);
 	assert(sql != NULL);
-	assert(dest != NULL);
 
 	if (strchr(sql, '%') != NULL) {
 		va_start(ap, sql);
