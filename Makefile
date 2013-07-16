@@ -1,4 +1,5 @@
 PREFIX?=	/usr/local
+WEBDIR?=	${PREFIX}/www
 
 include config.mk
 
