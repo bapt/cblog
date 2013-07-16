@@ -41,14 +41,14 @@ cleanup:
 	return (ret);
 }
 
-char *
-sql_text(sqlite3 *s, const char *sql, ...)
+int
+sql_text(sqlite3 *s, char *dest, const char *sql, ...)
 {
 	va_list ap;
 	sqlite3_stmt *stmt = NULL;
 	const char *sql_to_exec;
 	char *sqlbuf = NULL;
-	char *ret;
+	int ret = 0;
 
 	assert(s != NULL);
 	assert(sql != NULL);
@@ -64,11 +64,12 @@ sql_text(sqlite3 *s, const char *sql, ...)
 
 	if (sqlite3_prepare_v2(s, sql_to_exec, -1, &stmt, 0) != SQLITE_OK) {
 		warnx("sqlite: %s", sqlite3_errmsg(s));
+		ret = 1;
 		goto cleanup;
 	}
 
 	if (sqlite3_step(stmt) == SQLITE_ROW)
-		asprintf(&ret, "%s", sqlite3_column_text(stmt, 0));
+		asprintf(&dest, "%s", sqlite3_column_text(stmt, 0));
 
 cleanup:
 	if (sqlbuf != NULL)
@@ -79,14 +80,14 @@ cleanup:
 	return (ret);
 }
 
-int64_t
-sql_int(sqlite3 *s, const char *sql, ...)
+int
+sql_int(sqlite3 *s, int64_t *dest, const char *sql, ...)
 {
 	va_list ap;
 	sqlite3_stmt *stmt = NULL;
 	const char *sql_to_exec;
 	char *sqlbuf = NULL;
-	int64_t ret;
+	int ret = 0;
 
 	assert(s != NULL);
 	assert(sql != NULL);
@@ -102,11 +103,12 @@ sql_int(sqlite3 *s, const char *sql, ...)
 
 	if (sqlite3_prepare_v2(s, sql_to_exec, -1, &stmt, 0) != SQLITE_OK) {
 		warnx("sqlite: %s", sqlite3_errmsg(s));
+		ret = 1;
 		goto cleanup;
 	}
 
 	if (sqlite3_step(stmt) == SQLITE_ROW)
-		ret = sqlite3_column_int64(stmt, 0);
+		*dest = sqlite3_column_int64(stmt, 0);
 
 cleanup:
 	if (sqlbuf != NULL)

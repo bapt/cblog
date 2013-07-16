@@ -274,7 +274,7 @@ cblog(struct evhttp_request* req, void* args)
 	int type, i, nb_posts;
 	int yyyy, mm, dd;
 	struct criteria criteria;
-	char *date;
+	char *date = NULL;
 	const char *var;
 	struct evbuffer *evb = NULL;
 	sqlite3 *sqlite;
@@ -398,18 +398,18 @@ cblog(struct evhttp_request* req, void* args)
 			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY:
-			criteria.start = sql_int(sqlite, "select strftime('%%s','%d-01-01');", yyyy);
-			criteria.end = sql_int(sqlite, "select strftime('%%s','%d-01-01');", yyyy + 1);
+			sql_int(sqlite, &criteria.start, "select strftime('%%s','%d-01-01');", yyyy);
+			sql_int(sqlite, &criteria.end, "select strftime('%%s','%d-01-01');", yyyy + 1);
 			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY_MM:
-			criteria.start = sql_int(sqlite, "select strftime('%%s','%d-%d-01');", yyyy, mm);
-			criteria.end = sql_int(sqlite, "select strftime('%%s','%d-%d-01');", yyyy, mm + 1);
+			sql_int(sqlite, &criteria.start, "select strftime('%%s','%d-%d-01');", yyyy, mm);
+			sql_int(sqlite, &criteria.end, "select strftime('%%s','%d-%d-01');", yyyy, mm + 1);
 			build_index(out, &criteria, sqlite);
 			break;
 		case CBLOG_YYYY_MM_DD:
-			criteria.start = sql_int(sqlite, "select strftime('%%s','%d-%d-%d');", yyyy, mm, dd);
-			criteria.end = sql_int(sqlite, "select strftime('%%s','%d-%d-%d');", yyyy, mm, dd + 1);
+			sql_int(sqlite, &criteria.start, "select strftime('%%s','%d-%d-%d');", yyyy, mm, dd);
+			sql_int(sqlite, &criteria.end, "select strftime('%%s','%d-%d-%d');", yyyy, mm, dd + 1);
 			build_index(out, &criteria, sqlite);
 			break;
 	}
@@ -424,7 +424,7 @@ cblog(struct evhttp_request* req, void* args)
 	/* work set the good date format and display everything */
 	switch (type) {
 		case CBLOG_ATOM:
-			date = sql_text(sqlite, "select strftime('gendate=%%Y-%%m-%%dT%%H:%%M:%%SZ','now');");
+			sql_text(sqlite, date, "select strftime('gendate=%%Y-%%m-%%dT%%H:%%M:%%SZ','now');");
 
 			hdf_set_valuef(out, "%s", date);
 			free(date);
