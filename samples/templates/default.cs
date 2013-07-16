@@ -8,10 +8,8 @@
 		<link rel="icon" href="/favicon.ico" type="image/x-icon" />
 		<?cs if:Query.tag ?>
 		<link href="<?cs var:root ?>/tag/<?cs var:Query.tag ?>?feed=atom" rel="alternate" title="Atom 1.0 pour le tag <?cs var:Query.tag ?>" type="application/atom+xml" />
-		<link href="<?cs var:root ?>/tag/<?cs var:Query.tag ?>?feed=rss" rel="alternate" title="RSS 2.0 pour le tag <?cs var:Query.tag ?>" type="application/rss+xml" />
 		<?cs else ?>
 		<link href="/index.atom" rel="alternate" title="Atom 1.0" type="application/atom+xml" />
-		<link href="/index.rss" rel="alternate" title="RSS 2.0" type="application/rss+xml" />
 		<?cs /if ?>
 	</head>
 	<body>
@@ -24,22 +22,22 @@
 				<p class="tagcloud"><?cs each:tag = Tags ?><a href="<?cs var:root ?>/tag/<?cs var:tag.name ?>" rel="tag" style="white-space: nowrap;font-size: <?cs set:num = #79 + #5 * #tag.count ?><?cs var:num ?>%;"> <?cs var:tag.name ?></a> <?cs /each ?></p>
 				<div class="menutitle">flux</div>
 				<ul>
-					<li class="syndicate"><a class="feed" href="<?cs var:CGI.ScriptName ?>?feed=rss">RSS 2.0</a></li>
 					<li class="syndicate"><a class="feed" href="<?cs var:CGI.ScriptName ?>?feed=atom">ATOM 1.0</a></li>
 				</ul>
 				<div class="menutitle">Links</div>
 				<ul>
-					<li><a href="http://www.freshports.org/search.php?stype=maintainer&amp;method=exact&amp;query=baptiste.daroussin@gmail.com">Mes ports FreeBSD</a></li>
-					<li><a href="http://baptux.free.fr/wiki">Completion ZSH pour FreeBSD</a></li>
-					<li><a href="http://www.zshwiki.org/home/zen">ZSH Extended Network</a></li>
+					<li><a href="http://www.freshports.org/search.php?stype=maintainer&amp;method=exact&amp;query=bapt@FreeBSD.org">My ports</a></li>
 					<li><a href="http://fossil.etoilebsd.net/cplanet">CPlanet</a></li>
 					<li><a href="http://fossil.etoilebsd.net/cblog">CBlog</a></li>
+					<li><a href="http://fossil.etoilebsd.net/mohawk">mohawk</a></li>
+					<li><a href="http://fossil.etoilebsd.net/poudriere">poudriere</a></li>
+					<li><a href="http://github.com/pkgng/pkgng">pkgng</a></li>
 				</ul>
 				<div class="menutitle">Meta</div>
 				<p>
-					<a href="http://validator.w3.org/check?uri=referer"><img src="/resources/xhtml-valid.png" alt="Valid XHTML 1.0 Strict" /></a>
-					<a href="http://jigsaw.w3.org/css-validator/check/referer"> <img src="/resources/css-valid.png" alt="Valid CSS!" /></a>
-					<a href="http://www.freebsd.org/"><img src="/resources/freebsd.png" alt="FreeBSD Logo" /></a>
+					<a href="http://validator.w3.org/check?uri=referer"><img src="/resources/xhtml-valid.png" alt="Valid XHTML 1.0 Strict" width="80" height="15"/></a>
+					<a href="http://jigsaw.w3.org/css-validator/check/referer"> <img src="/resources/css-valid.png" alt="Valid CSS!" width="80" height="15" /></a>
+					<a href="http://www.freebsd.org/"><img src="/resources/freebsd.png" alt="FreeBSD Logo" width="80" height="15" /></a>
 				</p>
 			</div>
 			<!-- div id menu -->
@@ -56,37 +54,35 @@
 				<?cs if:Query.source ?>
 				<pre><?cs var:post.source ?></pre>
 				<?cs else ?><?cs var:post.html ?><?cs /if ?>
-				<div class="comments"><a href="<?cs var:root ?>/post/<?cs var:post.filename ?>#comments"><?cs alt:post.nb_comments ?>0<?cs /alt ?> commentaire(s)</a></div>
+				<div class="comments"><a href="<?cs var:root ?>/post/<?cs var:post.filename ?>#comments"><?cs alt:post.nb_comments ?>0<?cs /alt ?> Comment(s)</a></div>
 				<?cs if:subcount(Posts) == 1 ?>
 				<p id="comments" class="separator-story" />
 					<?cs each:comment = post.comments ?>
-					<?cs if:comment.url ?><a href="<?cs var:comment.url ?>"><?cs /if ?><?cs var:comment.author ?><?cs if:comment.url ?></a><?cs /if ?> a écrit le <?cs var:comment.date ?> : <br />
-				<p class="comment">
-				<pre><?cs var:html_text(comment.content) ?></pre>
-				</p>
+					<?cs if:comment.url ?><a href="<?cs var:comment.url ?>"><?cs /if ?><?cs var:comment.author ?><?cs if:comment.url ?></a><?cs /if ?> wrote on <?cs var:comment.date ?> : <br />
+				<p class="comment"><?cs var:html_strip(html_escape(text_html(comment.content))) ?></p>
 				<br />
 				<?cs /each ?>
 				<?cs if:( Query.submit == "Preview") ?>
 				<?cs if:Query.url ?><a href="<?cs var:Query.url ?>"><?cs /if ?><?cs var:Query.name ?><?cs if:Query.url ?></a><?cs /if ?> a écrit le <?cs var:Query.date ?> : <br />
-				<p class="comment"><?cs var:html_text(Query.comment) ?></p>
+				<p class="comment"><?cs var:html_strip(Query.comment) ?></p>
 				<?cs /if ?>
 				<?cs if:( post.allow_comments != "false") ?>
 				<form method="post" action="<?cs var:CGI.RequestURI ?>" >
 					<table>
 						<tr>
-							<td>Nom :</td>
+							<td>Name :</td>
 							<td><input name="name" size="35" value="<?cs var:Query.name ?>" /></td>
 						</tr>
 						<tr>
-							<td>URL (optionel) :</td>
+							<td>URL (optional) :</td>
 							<td><input name="url" size="35" value="<?cs var:Query.url ?>" /></td>
 						</tr>
 						<tr>
-							<td>Écrire ici: "<?cs var:antispamres ?>"</td>
+							<td>Write here: "<?cs var:antispamres ?>"</td>
 							<td><input name="antispam" size="35" value="" /></td>
 						</tr>
 						<tr>
-							<td>Commentaires :</td>
+							<td>Comments :</td>
 							<td><textarea name="comment" rows="5" cols="60"><?cs var:Query.comment ?></textarea></td>
 						</tr>
 						<tr>
