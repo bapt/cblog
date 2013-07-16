@@ -27,15 +27,19 @@ static void
 usage(const char *s)
 {
 	printf("Usage: %s cmd [option]\n\n\
-			Example:\n\
-			create\n\
-			add file_post\n\
-			del file_post\n\
-			get file_post1 file_post2 ... file_postN\n\
-			info file_post1 file_post2 ... file_postN\n\
-			list\n\
-			path\n\
-			version\n", s);
+Commands Supported:\n\
+	create\t\t-- Create a new database.\n\
+	add <file_post>\n\
+	\t\t-- Add or modify a post\n\
+	del <file_post>\n\
+	\t\t-- Delete a post\n\
+	get <file_post1> [file_post2 ...]\n\
+	\t\t-- Get a post in text format\n\
+	info <file_post1> [file_post2 ...]\n\
+	\t\t-- Retrieve information about the post\n\
+	list\t\t-- List published posts\n\
+	path\t\t-- Print cblog.cdb path\n\
+	version\t\t-- Print cblog version\n", s);
 
 	exit(1);
 }
