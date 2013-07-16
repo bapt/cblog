@@ -373,7 +373,7 @@ cblog(struct evhttp_request* req, void* args)
 				set_comment(&h, reqpath, hdf_get_value(out, "antispamres", NULL), sqlite);
 			nb_posts = build_post(out, reqpath, sqlite);
 			if (nb_posts == 0) {
-				hdf_set_valuef(out, "err_msg=Unknown post: %s", requesturi);
+				hdf_set_valuef(out, "err_msg=Unknown post: %s", requestpath);
 				type = CBLOG_ERR;
 			}
 			break;
