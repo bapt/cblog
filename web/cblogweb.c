@@ -386,7 +386,7 @@ cblog(struct evhttp_request* req, void* args)
 			criteria.tagname = reqpath;
 			nb_posts = build_index(out, &criteria, sqlite);
 			if (nb_posts == 0) {
-				hdf_set_valuef(out, "err_msg=Unknown tag: %s", requesturi);
+				hdf_set_valuef(out, "err_msg=Unknown tag: %s", reqpath);
 				type = CBLOG_ERR;
 			}
 			break;
