@@ -31,8 +31,8 @@
 <li><a href="http://www.freshports.org/search.php?stype=maintainer&amp;method=exact&amp;query=baptiste.daroussin@gmail.com">Mes ports FreeBSD</a></li>
 <li><a href="http://baptux.free.fr/wiki">Completion ZSH pour FreeBSD</a></li>
 <li><a href="http://www.zshwiki.org/home/zen">ZSH Extended Network</a></li>
-<li><a href="http://brokk.etoilebsd.net/projects/show/cplanet">CPlanet</a></li>
-<li><a href="http://brokk.etoilebsd.net/projects/show/cblog">CBlog</a></li>
+<li><a href="http://fossil.etoilebsd.net/cplanet">CPlanet</a></li>
+<li><a href="http://fossil.etoilebsd.net/cblog">CBlog</a></li>
 </ul>
 <div class="menutitle">Meta</div>
 <p>
