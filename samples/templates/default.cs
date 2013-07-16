@@ -94,6 +94,7 @@
 				<?cs else ?>
 				No comments allowed
 				<?cs /if ?>
+				</p>
 				<?cs /if ?>
 				<p class="separator-story" />
 					<?cs /each ?>
