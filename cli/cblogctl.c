@@ -236,6 +236,8 @@ cblogctl_add(const char *post_path)
 	val = tagbuf;
 	for (i = 0; i <= nbel; i++) {
 		next = strlen(val);
+		if (val[next - 1] == '\n')
+			val[next - 1] = '\0';
 		sqlite3_bind_text(stmt, 1, val, -1, SQLITE_STATIC);
 		sqlite3_step(stmt);
 		sqlite3_reset(stmt);
