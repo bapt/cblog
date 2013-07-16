@@ -57,44 +57,43 @@
 				<div class="comments"><a href="<?cs var:root ?>/post/<?cs var:post.filename ?>#comments"><?cs alt:post.nb_comments ?>0<?cs /alt ?> Comment(s)</a></div>
 				<?cs if:subcount(Posts) == 1 ?>
 				<p id="comments" class="separator-story" />
-					<?cs each:comment = post.comments ?>
-					<?cs if:comment.url ?><a href="<?cs var:comment.url ?>"><?cs /if ?><?cs var:comment.author ?><?cs if:comment.url ?></a><?cs /if ?> wrote on <?cs var:comment.date ?> : <br />
-					<p class="comment"><?cs var:html_strip(html_escape(text_html(comment.content))) ?></p>
-					<br />
-					<?cs /each ?>
-					<?cs if:( Query.submit == "Preview") ?>
-					<?cs if:Query.url ?><a href="<?cs var:Query.url ?>"><?cs /if ?><?cs var:Query.name ?><?cs if:Query.url ?></a><?cs /if ?> a écrit le <?cs var:Query.date ?> : <br />
-					<p class="comment"><?cs var:html_strip(Query.comment) ?></p>
-					<?cs /if ?>
-					<?cs if:( post.allow_comments != "false") ?>
-					<form method="post" action="<?cs var:CGI.RequestURI ?>" >
-						<table>
-							<tr>
-								<td>Name :</td>
-								<td><input name="name" size="35" value="<?cs var:Query.name ?>" /></td>
-							</tr>
-							<tr>
-								<td>URL (optional) :</td>
-								<td><input name="url" size="35" value="<?cs var:Query.url ?>" /></td>
-							</tr>
-							<tr>
-								<td>Write here: "<?cs var:antispamres ?>"</td>
-								<td><input name="antispam" size="35" value="" /></td>
-							</tr>
-							<tr>
-								<td>Comments :</td>
-								<td><textarea name="comment" rows="5" cols="60"><?cs var:Query.comment ?></textarea></td>
-							</tr>
-							<tr>
-								<td><input type="hidden" name="test1" value="" /><input type="hidden" name="test2" value="cblog!powa" /><input type="submit" name="submit" value="Preview" /></td>
-								<td><input type="submit" name="submit" value="Post" /></td>
-							</tr>
-						</table>
-					</form>
-					<?cs else ?>
-					No comments allowed
-					<?cs /if ?>
-				</p>
+				<?cs each:comment = post.comments ?>
+				<?cs if:comment.url ?><a href="<?cs var:comment.url ?>"><?cs /if ?><?cs var:comment.author ?><?cs if:comment.url ?></a><?cs /if ?> wrote on <?cs var:comment.date ?> : <br />
+				<p class="comment"><?cs var:html_strip(html_escape(text_html(comment.content))) ?></p>
+				<br />
+				<?cs /each ?>
+				<?cs if:( Query.submit == "Preview") ?>
+				<?cs if:Query.url ?><a href="<?cs var:Query.url ?>"><?cs /if ?><?cs var:Query.name ?><?cs if:Query.url ?></a><?cs /if ?> a écrit le <?cs var:Query.date ?> : <br />
+				<p class="comment"><?cs var:html_strip(Query.comment) ?></p>
+				<?cs /if ?>
+				<?cs if:( post.allow_comments != "false") ?>
+				<form method="post" action="<?cs var:CGI.RequestURI ?>" >
+					<table>
+						<tr>
+							<td>Name :</td>
+							<td><input name="name" size="35" value="<?cs var:Query.name ?>" /></td>
+						</tr>
+						<tr>
+							<td>URL (optional) :</td>
+							<td><input name="url" size="35" value="<?cs var:Query.url ?>" /></td>
+						</tr>
+						<tr>
+							<td>Write here: "<?cs var:antispamres ?>"</td>
+							<td><input name="antispam" size="35" value="" /></td>
+						</tr>
+						<tr>
+							<td>Comments :</td>
+							<td><textarea name="comment" rows="5" cols="60"><?cs var:Query.comment ?></textarea></td>
+						</tr>
+						<tr>
+							<td><input type="hidden" name="test1" value="" /><input type="hidden" name="test2" value="cblog!powa" /><input type="submit" name="submit" value="Preview" /></td>
+							<td><input type="submit" name="submit" value="Post" /></td>
+						</tr>
+					</table>
+				</form>
+				<?cs else ?>
+				No comments allowed
+				<?cs /if ?>
 				<?cs /if ?>
 				<p class="separator-story" />
 					<?cs /each ?>
