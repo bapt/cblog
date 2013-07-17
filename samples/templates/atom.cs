@@ -11,7 +11,7 @@
 	<?cs each:post = Posts ?>
 	<entry>
 		<title type="text"><?cs var:post.title ?></title>
-		<author><name>Bapt</name></author>
+		<author><name><?cs var:author ?></name></author>
 		<content type="html"><?cs var:html_escape(post.html) ?></content>
 		<?cs each:tag = post.tags ?><category term="<?cs var:tag.name ?>" /><?cs /each ?>
 		<id><?cs var:url ?>post/<?cs var:post.filename ?></id>
