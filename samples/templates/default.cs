@@ -55,7 +55,7 @@
 				<pre><?cs var:post.source ?></pre>
 				<?cs else ?><?cs var:post.html ?><?cs /if ?>
 				<div class="comments"><a href="<?cs var:root ?>/post/<?cs var:post.filename ?>#comments"><?cs alt:post.nb_comments ?>0<?cs /alt ?> Comment(s)</a></div>
-				<?cs if:subcount(Posts) == 1 ?>
+				<?cs if:subcount(Posts) == 1 && string.slice(CGI.RequestURI, 0, 5) == "/post" ?>
 				<p id="comments" class="separator-story" />
 				<?cs each:comment = post.comments ?>
 				<?cs if:comment.url ?><a href="<?cs var:comment.url ?>"><?cs /if ?><?cs var:comment.author ?><?cs if:comment.url ?></a><?cs /if ?> wrote on <?cs var:comment.date ?> : <br />
