@@ -27,6 +27,7 @@ int fd;
 char *unix_sock_path = NULL;
 
 static char *mandatory_config[] = {
+	"author",
 	"title",
 	"url",
 	"dateformat",

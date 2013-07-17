@@ -6,7 +6,7 @@
 	<link rel="self" href="<?cs var:url ?><?cs var:CGI.RequestURI ?>" />
 	<link rel="alternate" type="text/html" href="<?cs var:url ?>" />
 	<updated><?cs var:gendate ?></updated>
-	<author><name>Bapt</name></author>
+	<author><name><?cs var:author ?></name></author>
 	<generator uri="<?cs var:CBlog.url ?>" version="<?cs var:CBlog.version ?>"><?cs var:CBlog.version ?></generator>
 	<?cs each:post = Posts ?>
 	<entry>
