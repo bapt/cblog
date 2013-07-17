@@ -15,6 +15,7 @@
 #define CBLOG_YYYY 5
 #define CBLOG_YYYY_MM 6
 #define CBLOG_YYYY_MM_DD 7
+#define CBLOG_POST_REDIRECT 8
 
 #define CRITERIA_TAGNAME 1
 #define CRITERIA_TIME_T 2

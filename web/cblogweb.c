@@ -371,8 +371,11 @@ cblog(struct evhttp_request* req, void* args)
 				reqpath++;
 			reqpath++;
 
-			if (comment == CBLOG_COMMENT_POST)
+			if (comment == CBLOG_COMMENT_POST) {
 				set_comment(&h, reqpath, hdf_get_value(out, "antispamres", NULL), sqlite);
+				type = CBLOG_POST_REDIRECT;
+				break;
+			}
 			nb_posts = build_post(out, reqpath, sqlite);
 			if (nb_posts == 0) {
 				hdf_set_valuef(out, "err_msg=Unknown post: %s", reqpath);
@@ -448,6 +451,10 @@ cblog(struct evhttp_request* req, void* args)
 			neoerr = cs_render(parse, &str, cblog_output);
 			evbuffer_add_printf(evb, "%s", str.buf);
 			evhttp_send_reply(req, HTTP_NOTFOUND, "Not found", evb);
+			break;
+		case CBLOG_POST_REDIRECT:
+			evhttp_add_header(req->output_headers, "Location", reqpath);
+			evhttp_send_reply(req, HTTP_MOVETEMP, "Redirect", evb);
 			break;
 		default:
 			if (type == CBLOG_POST)
