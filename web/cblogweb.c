@@ -424,7 +424,7 @@ cblog(struct evhttp_request* req, void* args)
 	/* work set the good date format and display everything */
 	switch (type) {
 		case CBLOG_ATOM:
-			sql_text(sqlite, date, "select strftime('gendate=%%Y-%%m-%%dT%%H:%%M:%%SZ','now');");
+			sql_text(sqlite, &date, "select strftime('gendate=%%Y-%%m-%%dT%%H:%%M:%%SZ','now');");
 
 			hdf_set_valuef(out, "%s", date);
 			free(date);

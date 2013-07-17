@@ -42,7 +42,7 @@ cleanup:
 }
 
 int
-sql_text(sqlite3 *s, char *dest, const char *sql, ...)
+sql_text(sqlite3 *s, char **dest, const char *sql, ...)
 {
 	va_list ap;
 	sqlite3_stmt *stmt = NULL;
@@ -52,6 +52,7 @@ sql_text(sqlite3 *s, char *dest, const char *sql, ...)
 
 	assert(s != NULL);
 	assert(sql != NULL);
+	assert(dest != NULL);
 
 	if (strchr(sql, '%') != NULL) {
 		va_start(ap, sql);
@@ -69,7 +70,7 @@ sql_text(sqlite3 *s, char *dest, const char *sql, ...)
 	}
 
 	if (sqlite3_step(stmt) == SQLITE_ROW)
-		asprintf(&dest, "%s", sqlite3_column_text(stmt, 0));
+		asprintf(dest, "%s", sqlite3_column_text(stmt, 0));
 
 cleanup:
 	if (sqlbuf != NULL)

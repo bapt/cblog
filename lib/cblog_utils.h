@@ -12,7 +12,7 @@ void send_mail(const char *, const char *, const char *,
     const char *, const char *, const char *, const char *);
 int sql_exec(sqlite3 *s, const char *, ...);
 
-int sql_text(sqlite3 *s, char *, const char *, ...);
+int sql_text(sqlite3 *s, char **, const char *, ...);
 int sql_int(sqlite3 *s, int64_t *, const char *, ...);
 
 #endif	/* ndef CBLOG_LIB_CBLOG_UTILS_H */
