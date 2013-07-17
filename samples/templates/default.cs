@@ -7,7 +7,7 @@
 		<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
 		<link rel="icon" href="/favicon.ico" type="image/x-icon" />
 		<?cs if:Query.tag ?>
-		<link href="<?cs var:root ?>/tag/<?cs var:Query.tag ?>?feed=atom" rel="alternate" title="Atom 1.0 pour le tag <?cs var:Query.tag ?>" type="application/atom+xml" />
+		<link href="<?cs var:root ?>/tag/<?cs var:Query.tag ?>?feed=atom" rel="alternate" title="Atom 1.0 for tag <?cs var:Query.tag ?>" type="application/atom+xml" />
 		<?cs else ?>
 		<link href="/index.atom" rel="alternate" title="Atom 1.0" type="application/atom+xml" />
 		<?cs /if ?>
@@ -63,7 +63,7 @@
 				<br />
 				<?cs /each ?>
 				<?cs if:( Query.submit == "Preview") ?>
-				<?cs if:Query.url ?><a href="<?cs var:Query.url ?>"><?cs /if ?><?cs var:Query.name ?><?cs if:Query.url ?></a><?cs /if ?> a écrit le <?cs var:Query.date ?> : <br />
+				<?cs if:Query.url ?><a href="<?cs var:Query.url ?>"><?cs /if ?><?cs var:Query.name ?><?cs if:Query.url ?></a><?cs /if ?> wrote <?cs var:Query.date ?> : <br />
 				<p class="comment"><?cs var:html_strip(Query.comment) ?></p>
 				<?cs /if ?>
 				<?cs if:( post.allow_comments != "false") ?>
