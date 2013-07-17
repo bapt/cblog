@@ -305,6 +305,8 @@ cblog(struct evhttp_request* req, void* args)
 	if ((q = evhttp_uri_get_query(uri)) != NULL)
 		evhttp_parse_query_str(q, &h);
 
+	hdf_set_value(out, "CGI.RequestURI", requesturi);
+
 	if (method == EVHTTP_REQ_POST) {
 		/* parse the post and set everything into the hdf */
 		struct evbuffer *postbuf = evhttp_request_get_input_buffer(req);
