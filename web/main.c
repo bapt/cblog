@@ -4,17 +4,14 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/event.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netdb.h>
-
-#include <event2/event.h>
-#include <event2/http.h>
-#include <event2/http_struct.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-#include <event2/util.h>
-#include <event2/keyvalq_struct.h>
+#include <sys/sbuf.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include "cblogweb.h"
 
@@ -23,8 +20,10 @@
 #endif
 
 HDF *conf;
-int fd;
-char *unix_sock_path = NULL;
+int fd, kq;
+static int nbevq = 0;
+static struct kevent ke;
+const char *unix_sock_path = NULL;
 
 static char *mandatory_config[] = {
 	"author",
@@ -34,11 +33,107 @@ static char *mandatory_config[] = {
 	"db_path",
 	"theme",
 	"posts_per_pages",
-	"templates",
+	"stemplates",
 	"interface",
 	"port",
 	NULL,
 };
+
+struct client {
+	int fd;
+	struct sockaddr_storage ss;
+	struct sbuf *req;
+	struct kv **headers;
+	uid_t uid;
+	gid_t gid;
+};
+
+static void
+client_free(struct client *cl)
+{
+
+	int i;
+
+	if (cl->fd != -1)
+		close(cl->fd);
+	sbuf_delete(cl->req);
+
+	if (cl->headers) {
+		for (i = 0; cl->headers[i] != NULL; i++) {
+			free(cl->headers[i]);
+		}
+		free(cl->headers);
+	}
+
+	free(cl);
+}
+
+static struct client *
+client_new(int cfd)
+{
+	socklen_t sz;
+	struct client *cl;
+	int flags;
+
+	if ((cl = malloc(sizeof(struct client))) == NULL)
+		return (NULL);
+
+	sz = sizeof(cl->ss);
+	cl->fd = accept(fd, (struct sockaddr *)&(cl->ss), &sz);
+
+	if (cl->fd < 0) {
+		client_free(cl);
+		return (NULL);
+	}
+
+	if (getpeereid(cl->fd, &cl->uid, &cl->gid) != 0) {
+		client_free(cl);
+		return (NULL);
+	}
+
+	if (-1 == (flags = fcntl(cl->fd, F_GETFL, 0)))
+		flags = 0;
+
+	fcntl(cl->fd, F_SETFL, flags | O_NONBLOCK);
+
+	cl->req = sbuf_new_auto();
+	cl->headers = NULL;
+
+	return (cl);
+}
+
+static void
+client_read(struct client *cl, long len)
+{
+	int r;
+	char buf[BUFSIZ];
+
+	r = read(cl->fd, buf, sizeof(buf));
+	if (r < 0 && (errno == EINTR || errno == EAGAIN))
+		return ;
+
+	sbuf_bcat(cl->req, buf, r);
+
+	if ((long)r == len) {
+		sbuf_finish(cl->req);
+		cl->headers = scgi_parse(sbuf_data(cl->req));
+	}
+}
+
+static void
+close_socket(int dummy)
+{
+	if (fd != -1)
+		close(fd);
+
+	if (unix_sock_path)
+		unlink(unix_sock_path);
+
+	sqlite3_shutdown();
+	hdf_destroy(&conf);
+
+	exit(dummy);
+}
 
 int
 check_conf(HDF *conf)
@@ -87,13 +182,69 @@ read_conf(int signal /* unused */)
 	}
 }
 
-/* end of fcgi wrappers */
+static void
+serve(void) {
+	struct kevent *evlist = NULL;
+	struct client *cl;
+
+	int nev, i;
+	int max_queues = 0;
+
+	if ((kq = kqueue()) == -1) {
+		warn("kqueue()");
+		close_socket(EXIT_FAILURE);
+	}
+
+	EV_SET(&ke, fd,  EVFILT_READ, EV_ADD, 0, 0, NULL);
+	kevent(kq, &ke, 1, NULL, 0, NULL);
+	nbevq++;
+
+	for (;;) {
+		if (nbevq > max_queues) {
+			max_queues += 1024;
+			free(evlist);
+			if ((evlist = malloc(max_queues *sizeof(struct kevent))) == NULL) {
+				warnx("Unable to allocate memory");
+				close_socket(EXIT_FAILURE);
+			}
+
+			nev = kevent(kq, NULL, 0, evlist, max_queues, NULL);
+			for (i = 0; i < nev; i++) {
+				/* new client */
+				if (evlist[i].udata == NULL && evlist[i].filter == EVFILT_READ) {
+					if ((cl = client_new(evlist[i].ident)) == NULL)
+						continue;
+					EV_SET(&ke, cl->fd, EVFILT_READ, EV_ADD, 0, 0, cl);
+					kevent(kq, &ke, 1, NULL, 0, NULL);
+					nbevq++;
+					continue;
+				}
+				/* Reading from client */
+				if (evlist[i].filter == EVFILT_READ) {
+					if (evlist[i].flags & (EV_ERROR | EV_EOF)) {
+						/* Do an extra read on EOF as kqueue
+						 * will send this even if there is
+						 * data still available. */
+						if (evlist[i].flags & EV_EOF)
+							client_read(evlist[i].udata, evlist[i].data);
+						client_free(evlist[i].udata);
+						nbevq--;
+						continue;
+					}
+					client_read(evlist[i].udata, evlist[i].data);
+					continue;
+				}
+			}
+
+		}
+	}
+}
 
 int
 main(int argc, char **argv, char **envp)
 {
-	struct event_base *eb;
-	struct evhttp *eh;
+	struct sockaddr_un un;
+
 	NEOERR *neoerr;
 	int ret;
 
@@ -120,17 +271,30 @@ main(int argc, char **argv, char **envp)
 	}
 
 	openlog("CBlog", LOG_CONS|LOG_ERR, LOG_DAEMON);
-	if ((eb = event_base_new()) == NULL)
-		err(EXIT_FAILURE, "event_base_new return NULL");
-	if ((eh = evhttp_new(eb)) == NULL)
-		err(EXIT_FAILURE, "evhttp_new return NULL");
+	memset(&un, 0, sizeof(struct sockaddr_un));
+	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+		err(EXIT_FAILURE, "socket()");
 
-	evhttp_set_gencb(eh, cblog, conf);
+	unix_sock_path = hdf_get_valuef(conf, "listen");
+	unlink(unix_sock_path);
+	un.sun_family = AF_UNIX;
+	strlcpy(un.sun_path, unix_sock_path, sizeof(un.sun_path));
 
-	sqlite3_initialize();
-	const char *interface = hdf_get_valuef(conf, "interface");
-	int port = hdf_get_int_value(conf, "port", 8080);
-	evhttp_bind_socket(eh, interface, port);
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (int[]){1}, sizeof(int)) < 0)
+		err(EXIT_FAILURE, "setsockopt()");
+
+	if (bind(fd, (struct sockaddr *) &un, sizeof(struct sockaddr_un)) == -1)
+		err(EXIT_FAILURE, "bind()");
+
+	signal(SIGINT, close_socket);
+	signal(SIGKILL, close_socket);
+	signal(SIGQUIT, close_socket);
+	signal(SIGTERM, close_socket);
+
+	if (listen(fd, 1024) <0) {
+		warn("listen()");
+		close_socket(EXIT_FAILURE);
+	}
 
 	if (argc == 2) {
 		if (strcmp(argv[1], "-d") == 0)
@@ -141,14 +305,9 @@ main(int argc, char **argv, char **envp)
 			err(EXIT_FAILURE, "Too many options");
 	}
 
-	event_base_dispatch(eb);
+	serve();
 
-	evhttp_free(eh);
-	event_base_free(eb);
-	hdf_destroy(&conf);
-
-	sqlite3_shutdown();
-	closelog();
-	return EXIT_SUCCESS;
+	close_socket(EXIT_SUCCESS);
+	return (0); /* NOT REACHED */
 }
 /* vim: set sw=4 sts=4 ts=4 : */

@@ -3,7 +3,7 @@ WEBDIR?=	${PREFIX}/www
 
 include config.mk
 
-WEBSRCS=	web/main.c web/cblogweb.c web/cblog_comments.c
+WEBSRCS=	web/main.c web/cblogweb.c web/cblog_comments.c web/scgi.c
 LIBSRCS=	lib/db.c lib/utils.c
 CLISRCS=	cli/main.c cli/cblogctl.c
 CONVERTSRCS=	convert/main.c
@@ -18,7 +18,7 @@ CLI=	cblogctl
 CONVERT=	cblogconvert
 LIB=	libcblog_utils.a
 
-WEBLIBS=	-lcblog_utils -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3 -levent-2.0
+WEBLIBS=	-lcblog_utils -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3
 CLILIBS=	-lcblog_utils -lsqlite3 -lsoldout
 CONVERTLIBS=	-lcblog_utils -lcdb -lsqlite3 -lneo_cgi -lneo_utl -lneo_cs -lz
 

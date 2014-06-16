@@ -7,6 +7,13 @@
 #include <event2/http.h>
 #include <sqlite3.h>
 
+struct kv {
+	const char *key;
+	const char *value;
+};
+
+struct kv **scgi_parse(char *raw);
+
 #define CBLOG_POST 0
 #define CBLOG_TAG 1
 #define CBLOG_ATOM 2
