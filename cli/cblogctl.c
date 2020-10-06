@@ -144,11 +144,68 @@ cblogctl_version(void)
 {
 	fprintf(stderr, "%s (%s)\n", cblog_version, cblog_url);
 }
+struct article {
+	char *title;
+	char *tags;
+	struct buf *content;
+};
+
+struct article *
+parse_article(int dfd, const char *name)
+{
+	int fd;
+	FILE *f;
+	char *line = NULL;
+	char *val;
+	size_t linecap = 0;
+	ssize_t linelen;
+	bool headers = true;
+	struct article *ar = NULL;
+
+	fd = openat(dfd, name, O_RDONLY);
+	if (fd == -1)
+		err(1, "Impossible to open: '%s'", name);
+
+	f = fdopen(fd, "r");
+	ar = calloc(1, sizeof(*ar));
+	if (ar == NULL)
+		err(1, "malloc");
+	while ((linelen = getline(&line, &linecap, f)) > 0) {
+		if (line[0] == '\n' && headers) {
+			headers = false;
+			ar->content = bufnew(BUFSIZ);
+			continue;
+		}
+		if (!headers) {
+			bufputs(ar->content, line);
+			continue;
+		}
+
+		/* headers */
+		if (line[linelen -1 ] == '\n')
+			line[linelen - 1] = '\0';
+		if (STARTS_WITH(line, "Title: ")) {
+			val = line + strlen("Title: ");
+			ar->title = strdup(val);
+		} else if (STARTS_WITH(line, "Tags: ")) {
+			val = line + strlen("Tags: ");
+			ar->tags = strdup(val);
+		}
+	}
+	if (ar->content != NULL)
+		bufnullterm(ar->content);
+
+	free(line);
+
+	fclose(f);
+	return (ar);
+}
 
 void
 cblogctl_gen(HDF *conf)
 {
 	struct dirent *dp;
+	struct article *ar;
 	DIR *dir;
 	int dbfd;
 	const char *dbpath = get_cblog_db(conf);
@@ -164,6 +221,8 @@ cblogctl_gen(HDF *conf)
 		if (dp->d_namlen == 2 && strcmp(dp->d_name, "..") == 0)
 			continue;
 		/* THIS IS WHERE THE CODE WILL BE */
+		ar = parse_article(dbfd, dp->d_name);
+		printf("%s, %s\n", dp->d_name, ar->title);
 	}
 	closedir(dir);
 }
