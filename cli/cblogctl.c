@@ -154,6 +154,7 @@ cblogctl_version(void)
 	fprintf(stderr, "%s (%s)\n", cblog_version, cblog_url);
 }
 struct article {
+	char *filename;
 	char *title;
 	char *tags;
 	time_t creation;
@@ -223,6 +224,7 @@ parse_article(int dfd, const char *name)
 		err(1, "malloc");
 	ar->creation = st.st_birthtime;
 	ar->modification = st.st_mtime;
+	ar->filename = xstrdup(name);
 	while ((linelen = getline(&line, &linecap, f)) > 0) {
 		if (line[0] == '\n' && headers) {
 			headers = false;
@@ -250,6 +252,12 @@ parse_article(int dfd, const char *name)
 
 	free(line);
 	fclose(f);
+	if (ar->title == NULL || ar->content == NULL) {
+		warnx("invalid file '%s', ignoring", ar->filename);
+		free(ar->filename);
+		free(ar);
+		return (NULL);
+	}
 	return (ar);
 }
 
