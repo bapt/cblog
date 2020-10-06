@@ -208,6 +208,7 @@ cblogctl_gen(HDF *conf)
 	struct dirent *dp;
 	struct article *articles = NULL;
 	struct article *ar;
+	int nb = 0;
 	DIR *dir;
 	int dbfd;
 	const char *dbpath = get_cblog_db(conf);
@@ -224,7 +225,10 @@ cblogctl_gen(HDF *conf)
 			continue;
 		/* THIS IS WHERE THE CODE WILL BE */
 		ar = parse_article(dbfd, dp->d_name);
-		DL_APPEND(articles, ar);
+		if (ar != NULL) {
+			DL_APPEND(articles, ar);
+			nb++;
+		}
 	}
 	closedir(dir);
 }
