@@ -173,8 +173,10 @@ mkdirat_p(int fd, const char *path)
 	pathdone[0] = '\0';
 
 	while ((next = strsep(&walk, "/")) != NULL) {
-		if (*next == '\0')
+		if (*next == '\0') {
+			strlcat(pathdone, "/", sizeof(pathdone));
 			continue;
+		}
 		strlcat(pathdone, next, sizeof(pathdone));
 		/* skip the final file */
 		if (strcmp(pathdone, path) == 0)
@@ -300,7 +302,7 @@ cblog_render(HDF *hdf, int tplfd, int outputfd, const char *type, const char *ou
 		err(1, "mkdirat");
 	fd = openat(outputfd, output, O_CREAT|O_WRONLY|O_TRUNC, 0644);
 	if (fd == -1)
-		err(1, "open");
+		err(1, "open('%s')", output);
 	neoerr = cs_render(parse, &fd, cblog_write);
 	cs_destroy(&parse);
 	close(fd);
@@ -311,34 +313,36 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 {
 	struct article *ar;
 	int i = 0;
-	HDF *idx;
+	HDF *idx, *post;
 	NEOERR *neoerr;
 	int page = 0;
 	int max_post = hdf_get_int_value(conf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
 	char buf[BUFSIZ];
 	char *walk;
 	struct buf *ob;
+	char *output;
 
 	ob = bufnew(BUFSIZ);
 	int nb_pages = nbarticles / max_post;
 	if (nbarticles % max_post > 0)
 		nb_pages++;
+	hdf_set_valuef(conf, "CBlog.version=%s", cblog_version);
+	hdf_set_valuef(conf, "CBlog.url=%s", cblog_url);
 	LL_FOREACH(articles, ar) {
 		if ((i % max_post) == 0) {
 			page++; /* pages starts with */
 			hdf_init(&idx);
 			neoerr = hdf_copy(idx, "", conf);
 			nerr_ignore(&neoerr);
-			hdf_set_valuef(idx, "CBlog.version=%s", cblog_version);
-			hdf_set_valuef(idx, "CBlog.url=%s", cblog_url);
 			hdf_set_valuef(idx, "nbpages=%i", nb_pages);
 			hdf_set_valuef(idx, "page=%i", page);
 		}
 
 		/* Add to index */
+		hdf_set_valuef(idx, "Posts.%i.filename=%s", i, ar->filename);
 		hdf_set_valuef(idx, "Posts.%i.title=%s", i, ar->title);
-		strftime(buf, sizeof(buf), "%Y-%m-%d", localtime(&ar->modification));
-		hdf_set_valuef(idx, "Posts.%i.link=/%s/%s", i, buf, ar->title);
+		strftime(buf, sizeof(buf), "%Y/%m/%d", localtime(&ar->modification));
+		hdf_set_valuef(idx, "Posts.%i.link=%s/%s", i, buf, ar->title);
 		hdf_set_valuef(idx, "Posts.%i.date=%s", i, buf);
 		bufreset(ob);
 		markdown(ob, ar->content, &mkd_xhtml);
@@ -347,9 +351,22 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		walk += 4;
 		hdf_set_valuef(idx, "Posts.%i.html=%.*s", i, (int)(walk - ob->data), ob->data);
 
+		/* Create post page */
+		hdf_init(&post);
+		neoerr = hdf_copy(post, "", conf);
+		hdf_set_valuef(post, "Post.filename=%s", ar->filename);
+		hdf_set_valuef(post, "Post.title=%s", ar->title);
+		hdf_set_valuef(post, "Post.date=%s", buf);
+		hdf_set_valuef(post, "Post.html=%s", ob->data);
+		xasprintf(&output, "%s/%s/index.html", buf, ar->title);
+		cblog_render(post, tplfd, outputfd, "post.cs", output);
+		free(output);
+		xasprintf(&output, "post/%s/index.html", ar->filename);
+		cblog_render(post, tplfd, outputfd, "post.cs", output);
+		free(output);
+
 		if ((i % max_post) + 1 == max_post) {
 			/* render */
-			char *output;
 			if (page == 1)
 				output = xstrdup("index.html");
 			else
