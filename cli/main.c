@@ -13,7 +13,6 @@ static struct command {
 	const char *descr;
 	const int cmdtype;
 } cmd[] = {
-	{ "list", "l", "Lists published posts", CBLOG_LIST_CMD},
 	{ "add", "a", "Add or modify a post", CBLOG_ADD_CMD},
 	{ "del", "d", "Delete a post", CBLOG_DEL_CMD},
 	{ "get", "g", "Get a post in text format", CBLOG_GET_CMD},
@@ -64,7 +63,6 @@ Commands Supported:\n\
 	\t\t-- Get a post in text format\n\
 	info <file_post1> [file_post2 ...]\n\
 	\t\t-- Retrieve information about the post\n\
-	list\t\t-- List published posts\n\
 	path\t\t-- Print cblog.cdb path\n\
 	version\t\t-- Print cblog version\n", s);
 
@@ -124,9 +122,6 @@ main(int argc, char *argv[])
 	switch(type) {
 		case CBLOG_CREATE_CMD:
 			cblogctl_create();
-			break;
-		case CBLOG_LIST_CMD:
-			cblogctl_list();
 			break;
 		case CBLOG_ADD_CMD:
 			if (argc != 3)

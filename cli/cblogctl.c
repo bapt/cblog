@@ -19,25 +19,6 @@
 /* path the the CDB database file */
 char cblog_cdb[PATH_MAX];
 
-void
-cblogctl_list(void)
-{
-	sqlite3 *sqlite;
-	sqlite3_stmt *stmt;
-
-	sqlite3_initialize();
-	sqlite3_open(cblog_cdb, &sqlite);
-
-	sqlite3_prepare_v2(sqlite, "SELECT link FROM posts ORDER BY DATE;", -1, &stmt, NULL);
-
-	while (sqlite3_step(stmt) == SQLITE_ROW)
-		printf("%s\n", sqlite3_column_text(stmt, 0));
-
-	sqlite3_finalize(stmt);
-	sqlite3_close(sqlite);
-	sqlite3_shutdown();
-}
-
 static void
 print_stmt(sqlite3_stmt *stmt)
 {
