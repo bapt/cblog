@@ -175,6 +175,9 @@ mkdirat_p(int fd, const char *path)
 		if (*next == '\0')
 			continue;
 		strlcat(pathdone, next, sizeof(pathdone));
+		/* skip the final file */
+		if (strcmp(pathdone, path) == 0)
+			break;
 		if (mkdirat(fd, pathdone, 0755) == -1) {
 			if (errno == EEXIST) {
 				strlcat(pathdone, "/", sizeof(pathdone));
@@ -285,6 +288,8 @@ cblog_render(HDF *hdf, int tplfd, int outputfd, const char *type, const char *ou
 	close(fd);
 	neoerr = cs_parse_string(parse, toto, strlen(toto));
 	/* end of not capsicum friendly */
+	if (!mkdirat_p(outputfd, output))
+		err(1, "mkdirat");
 	fd = openat(outputfd, output, O_CREAT|O_WRONLY|O_TRUNC, 0644);
 	if (fd == -1)
 		err(1, "open");
@@ -299,21 +304,35 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 	int i = 0;
 	HDF *idx;
 	NEOERR *neoerr;
+	int page = 0;
 	int max_post = hdf_get_int_value(conf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
 
+	int nb_pages = nbarticles / max_post;
+	if (nbarticles % max_post > 0)
+		nb_pages++;
 	LL_FOREACH(articles, ar) {
 		if ((i % max_post) == 0) {
+			page++; /* pages starts with */
 			hdf_init(&idx);
 			neoerr = hdf_copy(idx, "", conf);
 			nerr_ignore(&neoerr);
+			hdf_set_valuef(idx, "CBlog.version=%s", cblog_version);
+			hdf_set_valuef(idx, "CBlog.url=%s", cblog_url);
+			hdf_set_valuef(idx, "nbpages=%i", nb_pages);
+			hdf_set_valuef(idx, "page=%i", page);
 		}
 
-		hdf_set_valuef(idx, "CBlog.version=%s", cblog_version);
-		hdf_set_valuef(idx, "CBlog.url=%s", cblog_url);
+
 
 		if ((i % max_post) + 1 == max_post) {
 			/* render */
-			cblog_render(idx, tplfd, outputfd, "index.cs", "index.html");
+			char *output;
+			if (page == 1)
+				output = xstrdup("index.html");
+			else
+				xasprintf(&output, "page/%d/index.html", page);
+			cblog_render(idx, tplfd, outputfd, "index.cs", output);
+			free(output);
 		}
 		i++;
 	}
@@ -355,7 +374,6 @@ cblogctl_gen(HDF *conf)
 		err(1, "cap_right_limits");
 	if (caph_rights_limit(tplfd, &rights_read)< 0 )
 		err(1, "cap_right_limits");
-
 
 	dir = fdopendir(dbfd);
 	while ((dp = readdir(dir)) != NULL) {
