@@ -18,7 +18,7 @@ CLI=	cblogctl
 CONVERT=	cblogconvert
 LIB=	libcblog_utils.a
 
-WEBLIBS=	-lcblog_utils -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3 -levent-2.0
+WEBLIBS=	-lcblog_utils -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3 -levent
 CLILIBS=	-lcblog_utils -lsqlite3 -lsoldout
 CONVERTLIBS=	-lcblog_utils -lcdb -lsqlite3 -lneo_cgi -lneo_utl -lneo_cs -lz
 
@@ -32,7 +32,7 @@ ${LIB}: ${LIBOBJS}
 	${RANLIB} ${LIB}
 
 ${WEB}: ${LIB} ${WEBOBJS}
-	${CC} ${LDFLAGS} ${CFLAGS} ${LIBDIR} ${LIBDIR}/event2 -L. ${WEBOBJS} -o $@ ${WEBLIBS}
+	${CC} ${LDFLAGS} ${CFLAGS} ${LIBDIR} ${LIBDIR} -L. ${WEBOBJS} -o $@ ${WEBLIBS}
 
 ${CLI}: ${LIB} ${CLIOBJS}
 	${CC} ${LDFLAGS} ${CFLAGS} ${LIBDIR} -L. ${CLIOBJS} -o $@ ${CLILIBS}

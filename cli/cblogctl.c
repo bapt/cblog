@@ -153,7 +153,7 @@ cblogctl_add(const char *post_path)
 	size_t next;
 
 	tagbuf = NULL;
-	ppath = basename(post_path);
+	ppath = basename(__DECONST(char *,post_path));
 
 	sqlite3_initialize();
 	sqlite3_open(cblog_cdb, &sqlite);
