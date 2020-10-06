@@ -16,7 +16,6 @@ static struct command {
 	{ "add", "a", "Add or modify a post", CBLOG_ADD_CMD},
 	{ "del", "d", "Delete a post", CBLOG_DEL_CMD},
 	{ "get", "g", "Get a post in text format", CBLOG_GET_CMD},
-	{ "info", "i", "Retrieve information about the post", CBLOG_INFO_CMD},
 	{ "create", "c", "Create database", CBLOG_CREATE_CMD},
 	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
 	{ "path", "p", "Print cblog.cdb path", CBLOG_PATH_CMD},
@@ -61,8 +60,6 @@ Commands Supported:\n\
 	\t\t-- Delete a post\n\
 	get <file_post1> [file_post2 ...]\n\
 	\t\t-- Get a post in text format\n\
-	info <file_post1> [file_post2 ...]\n\
-	\t\t-- Retrieve information about the post\n\
 	path\t\t-- Print cblog.cdb path\n\
 	version\t\t-- Print cblog version\n", s);
 
@@ -141,14 +138,6 @@ main(int argc, char *argv[])
 
 			for (i=2; i < argc; i++)
 				cblogctl_get(argv[i]);
-
-			break;
-		case CBLOG_INFO_CMD:
-			if (argc <= 2 )
-				usage(argv[0]);
-
-			for (i=2; i < argc; i++)
-				cblogctl_info(argv[i]);
 
 			break;
 		case CBLOG_VERSION_CMD:
