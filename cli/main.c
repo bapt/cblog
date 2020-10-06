@@ -14,7 +14,6 @@ static struct command {
 	const int cmdtype;
 } cmd[] = {
 	{ "add", "a", "Add or modify a post", CBLOG_ADD_CMD},
-	{ "get", "g", "Get a post in text format", CBLOG_GET_CMD},
 	{ "create", "c", "Create database", CBLOG_CREATE_CMD},
 	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
 	{ "path", "p", "Print cblog.cdb path", CBLOG_PATH_CMD},
@@ -122,14 +121,6 @@ main(int argc, char *argv[])
 				usage(argv[0]);
 
 			cblogctl_add(argv[2]);
-			break;
-		case CBLOG_GET_CMD:
-			if (argc <= 2 )
-				usage(argv[0]);
-
-			for (i=2; i < argc; i++)
-				cblogctl_get(argv[i]);
-
 			break;
 		case CBLOG_VERSION_CMD:
 			cblogctl_version();

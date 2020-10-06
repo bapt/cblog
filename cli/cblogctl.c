@@ -20,50 +20,6 @@
 char cblog_cdb[PATH_MAX];
 
 void
-cblogctl_get(const char *post_name)
-{
-	sqlite3 *sqlite;
-	sqlite3_stmt *stmt;
-	int icol;
-	FILE *out;
-
-	sqlite3_initialize();
-	sqlite3_open(cblog_cdb, &sqlite);
-
-	out = fopen(post_name, "w");
-
-	if (sqlite3_prepare_v2(sqlite, "SELECT title as Title, "
-	    "group_concat(tag, ', ') as Tags, source "
-	    "FROM posts, tags_posts, tags "
-	    "WHERE link=?1 and posts.id=tags_posts.post_id and tags_posts.tag_id=tags.id;", -1, &stmt, NULL) != SQLITE_OK)
-		errx(1, "%s", sqlite3_errmsg(sqlite));
-
-	sqlite3_bind_text(stmt, 1, post_name, -1, SQLITE_STATIC);
-	while (sqlite3_step(stmt) == SQLITE_ROW) {
-		for (icol = 0; icol < sqlite3_column_count(stmt); icol++) {
-			switch (sqlite3_column_type(stmt, icol)) {
-				case SQLITE_TEXT:
-					if (strcmp(sqlite3_column_name(stmt, icol),"source") == 0)
-							fprintf(out, "\n%s\n",  sqlite3_column_text(stmt, icol));
-					else
-						fprintf(out, "%s: %s\n", sqlite3_column_name(stmt, icol), sqlite3_column_text(stmt, icol));
-					break;
-				case SQLITE_INTEGER:
-					fprintf(out, "%s: %lld\n", sqlite3_column_name(stmt, icol), sqlite3_column_int64(stmt, icol));
-					break;
-				default:
-					/* do nothing */
-					break;
-			}
-		}
-	}
-	sqlite3_finalize(stmt);
-	sqlite3_close(sqlite);
-	sqlite3_shutdown();
-	fclose(out);
-}
-
-void
 cblogctl_add(const char *post_path)
 {
 	sqlite3 *sqlite;
