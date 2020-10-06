@@ -6,6 +6,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #include <soldout/buffer.h>
 #include <soldout/markdown.h>
@@ -333,6 +334,8 @@ cblogctl_version(void)
 void
 cblogctl_gen(HDF *conf)
 {
+	struct dirent *dp;
+	DIR *dir;
 	int dbfd;
 	const char *dbpath = get_cblog_db(conf);
 
@@ -340,5 +343,13 @@ cblogctl_gen(HDF *conf)
 	if (dbfd == -1)
 		err(1, "Impossible to open the database directory '%s'", dbpath);
 
-	close(dbfd);
+	dir = fdopendir(dbfd);
+	while ((dp = readdir(dir)) != NULL) {
+		if (dp->d_namlen == 1 && strcmp(dp->d_name, ".") == 0)
+			continue;
+		if (dp->d_namlen == 2 && strcmp(dp->d_name, "..") == 0)
+			continue;
+		/* THIS IS WHERE THE CODE WILL BE */
+	}
+	closedir(dir);
 }
