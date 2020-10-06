@@ -221,7 +221,7 @@ parse_article(int dfd, const char *name)
 	ar = calloc(1, sizeof(*ar));
 	if (ar == NULL)
 		err(1, "malloc");
-	ar->creation = st.st_ctime;
+	ar->creation = st.st_birthtime;
 	ar->modification = st.st_mtime;
 	while ((linelen = getline(&line, &linecap, f)) > 0) {
 		if (line[0] == '\n' && headers) {
@@ -294,6 +294,7 @@ cblog_render(HDF *hdf, int tplfd, int outputfd, const char *type, const char *ou
 	if (fd == -1)
 		err(1, "open");
 	neoerr = cs_render(parse, &fd, cblog_write);
+	cs_destroy(&parse);
 	close(fd);
 }
 
@@ -306,7 +307,11 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 	NEOERR *neoerr;
 	int page = 0;
 	int max_post = hdf_get_int_value(conf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
+	char buf[BUFSIZ];
+	char *walk;
+	struct buf *ob;
 
+	ob = bufnew(BUFSIZ);
 	int nb_pages = nbarticles / max_post;
 	if (nbarticles % max_post > 0)
 		nb_pages++;
@@ -322,7 +327,17 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 			hdf_set_valuef(idx, "page=%i", page);
 		}
 
-
+		/* Add to index */
+		hdf_set_valuef(idx, "Posts.%i.title=%s", i, ar->title);
+		strftime(buf, sizeof(buf), "%Y-%m-%d", localtime(&ar->modification));
+		hdf_set_valuef(idx, "Posts.%i.link=/%s/%s", i, buf, ar->title);
+		hdf_set_valuef(idx, "Posts.%i.date=%s", i, buf);
+		bufreset(ob);
+		markdown(ob, ar->content, &mkd_xhtml);
+		bufnullterm(ob);
+		walk = strstr(ob->data, "</p>");
+		walk += 4;
+		hdf_set_valuef(idx, "Posts.%i.html=%.*s", i, (int)(walk - ob->data), ob->data);
 
 		if ((i % max_post) + 1 == max_post) {
 			/* render */
@@ -333,9 +348,17 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 				xasprintf(&output, "page/%d/index.html", page);
 			cblog_render(idx, tplfd, outputfd, "index.cs", output);
 			free(output);
+			hdf_destroy(&idx);
 		}
 		i++;
 	}
+	bufrelease(ob);
+}
+
+static int
+date_cmp(struct article *a1, struct article *a2)
+{
+	return (a1->creation < a2->creation);
 }
 
 void
@@ -388,6 +411,8 @@ cblogctl_gen(HDF *conf)
 		}
 	}
 	closedir(dir);
+
+	DL_SORT(articles, date_cmp);
 
 	cblog_generate(articles, tplfd, outputfd, conf, nb);
 }
