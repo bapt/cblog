@@ -25,6 +25,6 @@ DATADIR=	${PREFIX}/share/cblog
 # Config dir
 SYSCONFDIR=		${PREFIX}/etc
 
-CC?=	gcc
+CC?=	cc
 AR?=	ar
 RANLIB?=	ranlib
