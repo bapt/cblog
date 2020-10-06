@@ -19,7 +19,7 @@
 
 void cblogctl_add(const char *);
 void cblogctl_version(void);
-void cblogctl_path(void);
+void cblogctl_path(HDF *conf);
 void cblogctl_gen(HDF *conf);
 
 /* path the the CDB database file */

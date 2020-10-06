@@ -121,7 +121,7 @@ main(int argc, char *argv[])
 			cblogctl_version();
 			exit(0);
 		case CBLOG_PATH_CMD:
-			cblogctl_path();
+			cblogctl_path(conf);
 			exit(0);
 		case CBLOG_GEN_CMD:
 			cblogctl_gen(conf);

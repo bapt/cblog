@@ -134,9 +134,9 @@ cblogctl_add(const char *post_path)
 }
 
 void
-cblogctl_path(void)
+cblogctl_path(HDF *conf)
 {
-	printf("%s\n", cblog_cdb);
+	printf("%s\n", get_cblog_db(conf));
 }
 
 void
