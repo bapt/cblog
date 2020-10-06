@@ -16,7 +16,7 @@ CLI=	cblogctl
 LIB=	libcblog_utils.a
 
 WEBLIBS=	-lcblog_utils -lz -lneo_cgi -lneo_cs -lneo_utl -lsqlite3 -levent
-CLILIBS=	-lcblog_utils -lsqlite3 -lsoldout
+CLILIBS=	-lcblog_utils -lsqlite3 -lsoldout -lneo_cs -lneo_utl
 
 all:	${CLI} ${WEB}
 

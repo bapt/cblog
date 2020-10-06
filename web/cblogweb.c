@@ -480,4 +480,3 @@ cblog(struct evhttp_request* req, void* args)
 	nerr_ignore(&neoerr);
 	hdf_destroy(&out);
 }
-/* vim: set sw=4 sts=4 ts=4 : */

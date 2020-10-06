@@ -1,9 +1,11 @@
+#include <ClearSilver.h>
 #include <stdio.h>
 #include <libgen.h>
 #include <stdbool.h>
 #include <err.h>
 #include <limits.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <soldout/buffer.h>
 #include <soldout/markdown.h>
@@ -327,4 +329,16 @@ cblogctl_version(void)
 {
 	fprintf(stderr, "%s (%s)\n", cblog_version, cblog_url);
 }
-/* vim: set sw=4 sts=4 ts=4 : */
+
+void
+cblogctl_gen(HDF *conf)
+{
+	int dbfd;
+	const char *dbpath = get_cblog_db(conf);
+
+	dbfd = open(dbpath, O_DIRECTORY);
+	if (dbfd == -1)
+		err(1, "Impossible to open the database directory '%s'", dbpath);
+
+	close(dbfd);
+}

@@ -1,3 +1,4 @@
+#include <ClearSilver.h>
 #include <stdio.h>
 #include <err.h>
 #include <stdlib.h>
@@ -20,8 +21,34 @@ static struct command {
 	{ "create", "c", "Create database", CBLOG_CREATE_CMD},
 	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
 	{ "path", "p", "Print cblog.cdb path", CBLOG_PATH_CMD},
+	{ "gen", "g", "Generate the website", CBLOG_GEN_CMD},
 	{ NULL, NULL, NULL, 0},
 };
+
+static char *mandatory_config[] = {
+	"author",
+	"title",
+	"url",
+	"dateformat",
+	"db_path",
+	"theme",
+	"posts_per_pages",
+	"templates",
+	"interface",
+	"port",
+	NULL,
+};
+
+static int
+check_conf(HDF *conf)
+{
+
+	for (int i = 0; mandatory_config[i] != NULL; i++) {
+		if (! hdf_get_obj(conf, mandatory_config[i]))
+			return (i);
+	}
+	return (-1);
+}
 
 static void
 usage(const char *s)
@@ -47,11 +74,29 @@ Commands Supported:\n\
 int
 main(int argc, char *argv[])
 {
-	int i;
+	int i, ret;
 	int type = -1;
+	HDF *conf;
+	NEOERR *neoerr;
 
-	if (argc == 1) 
+	if (argc == 1)
 		usage(argv[0]);
+
+	if (access(CONFFILE, R_OK) != 0)
+		err(1, "%s: can't access file", CONFFILE);
+
+	neoerr = hdf_init(&conf);
+	if (neoerr != STATUS_OK)
+		errx(1, "%s: hdf_init hdf", CONFFILE);
+	nerr_ignore(&neoerr);
+
+	neoerr = hdf_read_file(conf, CONFFILE);
+	if (neoerr != STATUS_OK)
+		errx(1, "%s: hdf_read_file error", CONFFILE);
+	nerr_ignore(&neoerr);
+
+	if ((ret = check_conf(conf)) != -1)
+		errx(1, "check_conf %s: %s is mandatory", CONFFILE, mandatory_config[ret]);
 
 	/* find the type of the first command */
 	for (i=0; cmd[i].name != NULL; i++) {
@@ -75,11 +120,6 @@ main(int argc, char *argv[])
 		err(-1, "database path is too long.");
 	/* setup cblog_cdb and cblog_cdb_tmp variable */
 	(void)memcpy(cblog_cdb, s, slen + 1);
-
-	if (type != CBLOG_CREATE_CMD && type != CBLOG_VERSION_CMD && type != CBLOG_PATH_CMD) {
-	    if (access(cblog_cdb, F_OK) != 0)
-		    errx(1, "%s must exists. Make '%s create' first.", cblog_cdb, argv[0]);
-	}
 
 	switch(type) {
 		case CBLOG_CREATE_CMD:
@@ -122,10 +162,12 @@ main(int argc, char *argv[])
 		case CBLOG_PATH_CMD:
 			cblogctl_path();
 			exit(0);
+		case CBLOG_GEN_CMD:
+			cblogctl_gen(conf);
+			exit (0);
 		default:
 			usage(argv[0]);
 			/* NOT REACHED */
 	}
 	return EXIT_SUCCESS;
 }
-/* vim: set sw=4 sts=4 ts=4 : */
