@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <utlist.h>
 
 #include <soldout/buffer.h>
 #include <soldout/markdown.h>
@@ -148,6 +149,7 @@ struct article {
 	char *title;
 	char *tags;
 	struct buf *content;
+	struct article *next, *prev;
 };
 
 struct article *
@@ -196,7 +198,6 @@ parse_article(int dfd, const char *name)
 		bufnullterm(ar->content);
 
 	free(line);
-
 	fclose(f);
 	return (ar);
 }
@@ -205,6 +206,7 @@ void
 cblogctl_gen(HDF *conf)
 {
 	struct dirent *dp;
+	struct article *articles = NULL;
 	struct article *ar;
 	DIR *dir;
 	int dbfd;
@@ -222,7 +224,7 @@ cblogctl_gen(HDF *conf)
 			continue;
 		/* THIS IS WHERE THE CODE WILL BE */
 		ar = parse_article(dbfd, dp->d_name);
-		printf("%s, %s\n", dp->d_name, ar->title);
+		DL_APPEND(articles, ar);
 	}
 	closedir(dir);
 }
