@@ -134,47 +134,6 @@ cblogctl_add(const char *post_path)
 }
 
 void
-cblogctl_create(void)
-{
-	sqlite3 *sqlite;
-	int ret;
-
-	sqlite3_initialize();
-	if (sqlite3_open(cblog_cdb, &sqlite) != SQLITE_OK)
-		errx(1, "%s", sqlite3_errmsg(sqlite));
-
-	ret = sql_exec(sqlite,
-		"CREATE TABLE posts "
-		    "(id INTEGER PRIMARY KEY, "
-		    "link TEXT NOT NULL UNIQUE," 
-		    "title TEXT NOT NULL, "
-		    "source TEXT NOT NULL, "
-		    "html TEXT NOT NULL, "
-		    "date INTEGER, "
-		    "published INTEGER); "
-		"CREATE TABLE comments ("
-		    "id INTEGER PRIMARY KEY, "
-		    "post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE, "
-		    "author TEXT NOT NULL, "
-		    "url TEXT, "
-		    "date INTEGER, "
-		    "comment TEXT NOT NULL); "
-		"CREATE TABLE tags ("
-		    "id INTEGER PRIMARY KEY, "
-		    "tag TEXT NOT NULL UNIQUE); "
-		"CREATE TABLE tags_posts ("
-		    "tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE ON UPDATE CASCADE, "
-		    "post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE ON UPDATE CASCADE, "
-		    "PRIMARY KEY (tag_id, post_id));"
-		);
-	if (ret < 0)
-		errx(1, "%s", sqlite3_errmsg(sqlite));
-
-	sqlite3_close(sqlite);
-	sqlite3_shutdown();
-}
-
-void
 cblogctl_path(void)
 {
 	printf("%s\n", cblog_cdb);

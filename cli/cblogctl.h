@@ -15,11 +15,9 @@
 #define CBLOG_GEN_CMD 0
 #define CBLOG_ADD_CMD 1
 #define CBLOG_SET_CMD 2
-#define CBLOG_CREATE_CMD 3
-#define CBLOG_VERSION_CMD 4
-#define CBLOG_PATH_CMD 5
+#define CBLOG_VERSION_CMD 3
+#define CBLOG_PATH_CMD 4
 
-void cblogctl_create(void);
 void cblogctl_add(const char *);
 void cblogctl_version(void);
 void cblogctl_path(void);

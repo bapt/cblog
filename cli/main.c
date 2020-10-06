@@ -14,7 +14,6 @@ static struct command {
 	const int cmdtype;
 } cmd[] = {
 	{ "add", "a", "Add or modify a post", CBLOG_ADD_CMD},
-	{ "create", "c", "Create database", CBLOG_CREATE_CMD},
 	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
 	{ "path", "p", "Print cblog.cdb path", CBLOG_PATH_CMD},
 	{ "gen", "g", "Generate the website", CBLOG_GEN_CMD},
@@ -51,7 +50,6 @@ usage(const char *s)
 {
 	printf("Usage: %s cmd [option]\n\n\
 Commands Supported:\n\
-	create\t\t-- Create a new database.\n\
 	add <file_post>\n\
 	\t\t-- Add or modify a post\n\
 	get <file_post1> [file_post2 ...]\n\
@@ -113,9 +111,6 @@ main(int argc, char *argv[])
 	(void)memcpy(cblog_cdb, s, slen + 1);
 
 	switch(type) {
-		case CBLOG_CREATE_CMD:
-			cblogctl_create();
-			break;
 		case CBLOG_ADD_CMD:
 			if (argc != 3)
 				usage(argv[0]);
