@@ -178,29 +178,6 @@ cblogctl_add(const char *post_path)
 }
 
 void
-cblogctl_del(const char *post_name)
-{
-	sqlite3 *sqlite;
-	sqlite3_stmt *stmt;
-
-	sqlite3_initialize();
-	sqlite3_open(cblog_cdb, &sqlite);
-	sql_exec(sqlite, "PRAGMA foreign_key=on;");
-
-	if (sqlite3_prepare_v2(sqlite, "DELETE FROM posts WHERE link=?1;", -1, &stmt, NULL) != SQLITE_OK)
-		errx(1, "%s", sqlite3_errmsg(sqlite));
-
-	sqlite3_bind_text(stmt, 1, post_name, -1, SQLITE_STATIC);
-	sqlite3_step(stmt);
-	sqlite3_finalize(stmt);
-
-	sql_exec(sqlite, "DELETE from tags_posts where post_id not in (select id from posts)");
-
-	sqlite3_close(sqlite);
-	sqlite3_shutdown();
-}
-
-void
 cblogctl_create(void)
 {
 	sqlite3 *sqlite;
