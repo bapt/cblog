@@ -118,9 +118,7 @@ parse_article(int dfd, const char *name)
 	f = fdopen(fd, "r");
 	if (f == NULL)
 		err(1, "Impossible to open stream");
-	ar = calloc(1, sizeof(*ar));
-	if (ar == NULL)
-		err(1, "malloc");
+	ar = xcalloc(1, sizeof(*ar));
 	ar->creation = st.st_birthtime;
 	ar->modification = st.st_mtime;
 	ar->filename = xstrdup(name);
@@ -140,10 +138,10 @@ parse_article(int dfd, const char *name)
 			line[linelen - 1] = '\0';
 		if (STARTS_WITH(line, "Title: ")) {
 			val = line + strlen("Title: ");
-			ar->title = strdup(val);
+			ar->title = xstrdup(val);
 		} else if (STARTS_WITH(line, "Tags: ")) {
 			val = line + strlen("Tags: ");
-			ar->tags = strdup(val);
+			ar->tags = xstrdup(val);
 		}
 	}
 	if (ar->content != NULL)
