@@ -178,6 +178,7 @@ cblog_render(HDF *hdf, int tplfd, int outputfd, const char *type, const char *ou
 	char *cs = NULL;
 	struct stat st;
 	int fd;
+	STRING buf;
 
 	/* not capsicum friendly */
 	cs_init(&parse, hdf);
@@ -194,6 +195,11 @@ cblog_render(HDF *hdf, int tplfd, int outputfd, const char *type, const char *ou
 	munmap(cs, st.st_size);
 	close(fd);
 	neoerr = cs_parse_string(parse, toto, strlen(toto));
+	if (neoerr != STATUS_OK) {
+		string_init(&buf);
+		nerr_error_string(neoerr, &buf);
+		errx(1, "%s: %s", type, buf.buf);
+	}
 	/* end of not capsicum friendly */
 	if (!mkdirat_p(outputfd, output))
 		err(1, "mkdirat");
@@ -239,7 +245,7 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		hdf_set_valuef(idx, "Posts.%i.filename=%s", i, ar->filename);
 		hdf_set_valuef(idx, "Posts.%i.title=%s", i, ar->title);
 		strftime(buf, sizeof(buf), "%Y/%m/%d", localtime(&ar->modification));
-		hdf_set_valuef(idx, "Posts.%i.link=%s/%s", i, buf, ar->title);
+		hdf_set_valuef(idx, "Posts.%i.link=/%s/%s", i, buf, ar->filename);
 		hdf_set_valuef(idx, "Posts.%i.date=%s", i, buf);
 		bufreset(ob);
 		markdown(ob, ar->content, &mkd_xhtml);
@@ -255,14 +261,14 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		hdf_set_valuef(post, "Post.title=%s", ar->title);
 		hdf_set_valuef(post, "Post.date=%s", buf);
 		hdf_set_valuef(post, "Post.html=%s", ob->data);
-		xasprintf(&output, "%s/%s/index.html", buf, ar->title);
-		cblog_render(post, tplfd, outputfd, "post.cs", output);
+		xasprintf(&output, "%s/%s/index.html", buf, ar->filename);
+		cblog_render(post, tplfd, outputfd, "index.cs", output);
 		free(output);
 		xasprintf(&output, "post/%s/index.html", ar->filename);
-		cblog_render(post, tplfd, outputfd, "post.cs", output);
+		cblog_render(post, tplfd, outputfd, "index.cs", output);
 		free(output);
 
-		if ((i % max_post) + 1 == max_post) {
+		if (((i % max_post) + 1 == max_post) || ar->next == NULL) {
 			/* render */
 			if (page == 1)
 				output = xstrdup("index.html");
