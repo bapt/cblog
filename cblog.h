@@ -6,7 +6,9 @@
 static char *cblog_version = "CBlog 0.9.99";
 static char *cblog_url = "https://github.com/bapt/cblog/";
 
-#define CONFFILE ETCDIR"/cblog.conf"
+#define CONFFILENAME "./cblog.conf"
+
+#define CONFFILE ETCDIR"/"CONFFILENAME
 
 #define EQUALS(string, needle) (strcmp(string, needle) == 0)
 #define STARTS_WITH(string, needle) (strncasecmp(string, needle, strlen(needle)) == 0)

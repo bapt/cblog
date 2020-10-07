@@ -1,3 +1,5 @@
+#include <sys/param.h>
+
 #include <ClearSilver.h>
 #include <stdio.h>
 #include <err.h>
@@ -59,6 +61,7 @@ Commands Supported:\n\
 int
 main(int argc, char *argv[])
 {
+	char conffile[MAXPATHLEN];
 	int i, ret;
 	int type = -1;
 	HDF *conf;
@@ -67,21 +70,26 @@ main(int argc, char *argv[])
 	if (argc == 1)
 		usage(argv[0]);
 
-	if (access(CONFFILE, R_OK) != 0)
-		err(1, "%s: can't access file", CONFFILE);
+	if (access(CONFFILE, R_OK) != 0) {
+		if (access(CONFFILENAME, R_OK) != 0)
+			err(1, "%s: can't access file", CONFFILE);
+		strlcpy(conffile, CONFFILENAME, MAXPATHLEN);
+	} else {
+		strlcpy(conffile, CONFFILE, MAXPATHLEN);
+	}
 
 	neoerr = hdf_init(&conf);
 	if (neoerr != STATUS_OK)
-		errx(1, "%s: hdf_init hdf", CONFFILE);
+		errx(1, "%s: hdf_init hdf", conffile);
 	nerr_ignore(&neoerr);
 
-	neoerr = hdf_read_file(conf, CONFFILE);
+	neoerr = hdf_read_file(conf, conffile);
 	if (neoerr != STATUS_OK)
-		errx(1, "%s: hdf_read_file error", CONFFILE);
+		errx(1, "%s: hdf_read_file error", conffile);
 	nerr_ignore(&neoerr);
 
 	if ((ret = check_conf(conf)) != -1)
-		errx(1, "check_conf %s: %s is mandatory", CONFFILE, mandatory_config[ret]);
+		errx(1, "check_conf %s: %s is mandatory", conffile, mandatory_config[ret]);
 
 	/* find the type of the first command */
 	for (i=0; cmd[i].name != NULL; i++) {
