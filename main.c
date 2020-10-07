@@ -27,8 +27,6 @@ static char *mandatory_config[] = {
 	"theme",
 	"posts_per_pages",
 	"templates",
-	"interface",
-	"port",
 	NULL,
 };
 
