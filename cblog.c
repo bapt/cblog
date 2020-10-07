@@ -182,9 +182,11 @@ cblog_render(HDF *hdf, int tplfd, int outputfd, const char *type, const char *ou
 	cs_init(&parse, hdf);
 	fd = openat(tplfd, type, O_RDONLY);
 	if (fd == -1)
-		err(1, "Unable to open templace: '%s'", type);
+		err(1, "Unable to open template: '%s'", type);
 	if (fstat(fd, &st) == -1)
 		err(1, "fstat()");
+	if (st.st_size == 0)
+		errx(1, "index.cs is empty");
 	cs = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	if (cs == MAP_FAILED)
 		err(1, "mmap()");
