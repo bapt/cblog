@@ -317,6 +317,7 @@ cblogctl_gen(HDF *conf)
 		err(1, "Unable to open the template directory: '%s'", path);
 
 	caph_cache_catpages();
+	caph_cache_tzdata();
 	if (caph_enter() < 0)
 		err(1, "cap_enter");
 	if (caph_limit_stdout() < 0 || caph_limit_stderr() < 0 || caph_limit_stdin() < 0)
