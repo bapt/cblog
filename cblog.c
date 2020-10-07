@@ -178,7 +178,6 @@ cblog_render(HDF *hdf, int tplfd, int outputfd, const char *type, const char *ou
 	int fd;
 	STRING buf;
 
-	/* not capsicum friendly */
 	cs_init(&parse, hdf);
 	fd = openat(tplfd, type, O_RDONLY);
 	if (fd == -1)
