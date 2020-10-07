@@ -16,13 +16,9 @@ static char *cblog_url = "https://github.com/bapt/cblog/";
 #define DEFAULT_POSTS_PER_PAGES 5
 
 #define CBLOG_GEN_CMD 0
-#define CBLOG_ADD_CMD 1
-#define CBLOG_VERSION_CMD 2
-#define CBLOG_PATH_CMD 3
+#define CBLOG_VERSION_CMD 1
 
-void cblogctl_add(const char *);
 void cblogctl_version(void);
-void cblogctl_path(HDF *conf);
 void cblogctl_gen(HDF *conf);
 int splitchr(char *, char);
 
