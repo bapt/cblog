@@ -7,7 +7,13 @@ OBJS=	${SRCS:.c=.o}
 
 PROG=	cblog
 
-LIBS=	-lsoldout -lneo_cs -lneo_utl
+LOWDOWN_LIBS!=		pkg-config --libs lowdown
+LOWDOWN_CFLAGS!=	pkg-config --cflags lowdown
+
+LIBS=	-lneo_cs -lneo_utl -lmd
+LIBS+=	${LOWDOWN_LIBS}
+
+CFLAGS+=	${LOWDOWN_CFLAGS}
 
 all:	${PROG}
 

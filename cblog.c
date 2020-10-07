@@ -1,6 +1,7 @@
 #include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/capsicum.h>
+#include <sys/queue.h>
 
 #include <ClearSilver.h>
 #include <stdio.h>
@@ -16,11 +17,20 @@
 #include <xmalloc.h>
 #include <capsicum_helpers.h>
 
-#include <soldout/buffer.h>
-#include <soldout/markdown.h>
-#include <soldout/renderers.h>
+#include <lowdown.h>
 
 #include "cblog.h"
+
+struct article {
+	char *filename;
+	char *title;
+	char *tags;
+	time_t creation;
+	time_t modification;
+	char *content;
+	size_t content_len;
+	struct article *next, *prev;
+};
 
 int
 splitchr(char *str, char sep)
@@ -50,15 +60,6 @@ cblogctl_version(void)
 {
 	fprintf(stderr, "%s (%s)\n", cblog_version, cblog_url);
 }
-struct article {
-	char *filename;
-	char *title;
-	char *tags;
-	time_t creation;
-	time_t modification;
-	struct buf *content;
-	struct article *next, *prev;
-};
 
 bool
 mkdirat_p(int fd, const char *path)
@@ -102,6 +103,7 @@ parse_article(int dfd, const char *name)
 	char *val;
 	size_t linecap = 0;
 	ssize_t linelen;
+	size_t headerlen = 0;
 	bool headers = true;
 	struct article *ar = NULL;
 	struct stat st;
@@ -124,15 +126,19 @@ parse_article(int dfd, const char *name)
 	ar->filename = xstrdup(name);
 	while ((linelen = getline(&line, &linecap, f)) > 0) {
 		if (line[0] == '\n' && headers) {
+			headerlen += 1;
 			headers = false;
-			ar->content = bufnew(BUFSIZ);
 			continue;
 		}
 		if (!headers) {
-			bufputs(ar->content, line);
+			ar->content = realloc(ar->content, ar->content_len + linelen);
+			if (ar->content == NULL)
+				err(1, "Cannot allocate content memory");
+			memcpy(ar->content + ar->content_len, line, linelen);
+			ar->content_len += linelen;
 			continue;
 		}
-
+		headerlen += strlen(line);
 		/* headers */
 		if (line[linelen -1 ] == '\n')
 			line[linelen - 1] = '\0';
@@ -144,8 +150,6 @@ parse_article(int dfd, const char *name)
 			ar->tags = xstrdup(val);
 		}
 	}
-	if (ar->content != NULL)
-		bufnullterm(ar->content);
 
 	free(line);
 	fclose(f);
@@ -220,12 +224,31 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 	int page = 0;
 	int max_post = hdf_get_int_value(conf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
 	char datepath[BUFSIZ], dateformated[BUFSIZ], *datefmt;
-	char *walk;
-	struct buf *ob;
 	char *output;
-
-	ob = bufnew(BUFSIZ);
+	char *obuf;
+	size_t obufsz;
+	struct lowdown_opts opts;
+	char *walk;
 	int nb_pages = nbarticles / max_post;
+
+	memset(&opts, 0, sizeof(struct lowdown_opts));
+	opts.type = LOWDOWN_HTML;
+	opts.feat = LOWDOWN_FOOTNOTES |
+		LOWDOWN_AUTOLINK |
+		LOWDOWN_TABLES |
+		LOWDOWN_SUPER |
+		LOWDOWN_STRIKE |
+		LOWDOWN_FENCED |
+		LOWDOWN_COMMONMARK |
+		LOWDOWN_DEFLIST |
+		LOWDOWN_IMG_EXT |
+		LOWDOWN_METADATA;
+	opts.oflags = LOWDOWN_HTML_HEAD_IDS |
+		LOWDOWN_HTML_NUM_ENT |
+		LOWDOWN_HTML_OWASP |
+		LOWDOWN_SMARTY |
+		LOWDOWN_STANDALONE;
+
 	if (nbarticles % max_post > 0)
 		nb_pages++;
 	hdf_set_valuef(conf, "CBlog.version=%s", cblog_version);
@@ -248,12 +271,12 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		strftime(dateformated, sizeof(dateformated), datefmt, localtime(&ar->creation));
 		hdf_set_valuef(idx, "Posts.%i.link=/%s/%s", i, datepath, ar->filename);
 		hdf_set_valuef(idx, "Posts.%i.date=%s", i, dateformated);
-		bufreset(ob);
-		markdown(ob, ar->content, &mkd_xhtml);
-		bufnullterm(ob);
-		walk = strstr(ob->data, "</p>");
+
+		lowdown_buf(&opts, ar->content, ar->content_len, &obuf, &obufsz, NULL);
+
+		walk = strstr(obuf, "</p>");
 		walk += 4;
-		hdf_set_valuef(idx, "Posts.%i.html=%.*s", i, (int)(walk - ob->data), ob->data);
+		hdf_set_valuef(idx, "Posts.%i.html=%.*s", i, (int)(walk - obuf), obuf);
 
 		/* Create post page */
 		hdf_init(&post);
@@ -261,7 +284,7 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		hdf_set_valuef(post, "Post.filename=%s", ar->filename);
 		hdf_set_valuef(post, "Post.title=%s", ar->title);
 		hdf_set_valuef(post, "Post.date=%s", dateformated);
-		hdf_set_valuef(post, "Post.html=%s", ob->data);
+		hdf_set_valuef(post, "Post.html=%s", obuf);
 		xasprintf(&output, "%s/%s/index.html", datepath, ar->filename);
 		cblog_render(post, tplfd, outputfd, "index.cs", output);
 		free(output);
@@ -281,7 +304,6 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		}
 		i++;
 	}
-	bufrelease(ob);
 }
 
 static int
