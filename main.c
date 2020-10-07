@@ -15,7 +15,7 @@ static struct command {
 	const int cmdtype;
 } cmd[] = {
 	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
-	{ "path", "p", "Print cblog.cdb path", CBLOG_PATH_CMD},
+	{ "path", "p", "Print the path where the posts are located", CBLOG_PATH_CMD},
 	{ "gen", "g", "Generate the website", CBLOG_GEN_CMD},
 	{ NULL, NULL, NULL, 0},
 };
@@ -48,11 +48,8 @@ usage(const char *s)
 {
 	printf("Usage: %s cmd [option]\n\n\
 Commands Supported:\n\
-	add <file_post>\n\
-	\t\t-- Add or modify a post\n\
-	get <file_post1> [file_post2 ...]\n\
-	\t\t-- Get a post in text format\n\
-	path\t\t-- Print cblog.cdb path\n\
+	gen\t\t-- Generate the website
+	path\t\t-- Print the path where the posts are located\n\
 	version\t\t-- Print cblog version\n", s);
 
 	exit(1);
