@@ -218,7 +218,7 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 	NEOERR *neoerr;
 	int page = 0;
 	int max_post = hdf_get_int_value(conf, "posts_per_pages", DEFAULT_POSTS_PER_PAGES);
-	char buf[BUFSIZ];
+	char datepath[BUFSIZ], dateformated[BUFSIZ], *datefmt;
 	char *walk;
 	struct buf *ob;
 	char *output;
@@ -229,6 +229,7 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		nb_pages++;
 	hdf_set_valuef(conf, "CBlog.version=%s", cblog_version);
 	hdf_set_valuef(conf, "CBlog.url=%s", cblog_url);
+	datefmt = hdf_get_value(conf, "dateformat", "Y%/%m/%d");
 	LL_FOREACH(articles, ar) {
 		if ((i % max_post) == 0) {
 			page++; /* pages starts with */
@@ -242,9 +243,10 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		/* Add to index */
 		hdf_set_valuef(idx, "Posts.%i.filename=%s", i, ar->filename);
 		hdf_set_valuef(idx, "Posts.%i.title=%s", i, ar->title);
-		strftime(buf, sizeof(buf), "%Y/%m/%d", localtime(&ar->modification));
-		hdf_set_valuef(idx, "Posts.%i.link=/%s/%s", i, buf, ar->filename);
-		hdf_set_valuef(idx, "Posts.%i.date=%s", i, buf);
+		strftime(datepath, sizeof(datepath), "%Y/%m/%d", localtime(&ar->creation));
+		strftime(dateformated, sizeof(dateformated), datefmt, localtime(&ar->creation));
+		hdf_set_valuef(idx, "Posts.%i.link=/%s/%s", i, datepath, ar->filename);
+		hdf_set_valuef(idx, "Posts.%i.date=%s", i, dateformated);
 		bufreset(ob);
 		markdown(ob, ar->content, &mkd_xhtml);
 		bufnullterm(ob);
@@ -257,9 +259,9 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		neoerr = hdf_copy(post, "", conf);
 		hdf_set_valuef(post, "Post.filename=%s", ar->filename);
 		hdf_set_valuef(post, "Post.title=%s", ar->title);
-		hdf_set_valuef(post, "Post.date=%s", buf);
+		hdf_set_valuef(post, "Post.date=%s", dateformated);
 		hdf_set_valuef(post, "Post.html=%s", ob->data);
-		xasprintf(&output, "%s/%s/index.html", buf, ar->filename);
+		xasprintf(&output, "%s/%s/index.html", datepath, ar->filename);
 		cblog_render(post, tplfd, outputfd, "index.cs", output);
 		free(output);
 		xasprintf(&output, "post/%s/index.html", ar->filename);
