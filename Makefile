@@ -10,7 +10,7 @@ PROG=	cblog
 LOWDOWN_LIBS!=		pkg-config --libs lowdown
 LOWDOWN_CFLAGS!=	pkg-config --cflags lowdown
 
-LIBS=	-lneo_cs -lneo_utl
+LIBS=	-lneo_cs -lneo_utl -lmd
 LIBS+=	${LOWDOWN_LIBS}
 
 CFLAGS+=	${LOWDOWN_CFLAGS}
