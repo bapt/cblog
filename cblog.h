@@ -3,7 +3,13 @@
 
 #include <string.h>
 
+static char *cblog_version = "CBlog 0.9.99";
+static char *cblog_url = "https://github.com/bapt/cblog/";
+
 #define CONFFILE ETCDIR"/cblog.conf"
+
+#define EQUALS(string, needle) (strcmp(string, needle) == 0)
+#define STARTS_WITH(string, needle) (strncasecmp(string, needle, strlen(needle)) == 0)
 
 #define HDF_FOREACH(var, hdf, node)		    \
     for ((var) = hdf_get_child((hdf), node);	    \
@@ -23,8 +29,6 @@ void cblogctl_add(const char *);
 void cblogctl_version(void);
 void cblogctl_path(HDF *conf);
 void cblogctl_gen(HDF *conf);
-
-/* path the the CDB database file */
-extern char	cblog_cdb[];
+int splitchr(char *, char);
 
 #endif	/* ndef CBLOG_CLI_CBLOGCTL_H */
