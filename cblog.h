@@ -18,8 +18,6 @@ static char *cblog_url = "https://github.com/bapt/cblog/";
 	    (var);				    \
 	    (var) = hdf_obj_next((var)))
 
-#define get_cblog_db(hdf) hdf_get_value(hdf, "db_path", "/var/db/cblog")
-
 #define DEFAULT_POSTS_PER_PAGES 5
 
 #define CBLOG_GEN_CMD 0

@@ -15,7 +15,6 @@ static struct command {
 	const int cmdtype;
 } cmd[] = {
 	{ "version", "v", "Version of CBlog", CBLOG_VERSION_CMD},
-	{ "path", "p", "Print the path where the posts are located", CBLOG_PATH_CMD},
 	{ "gen", "g", "Generate the website", CBLOG_GEN_CMD},
 	{ NULL, NULL, NULL, 0},
 };
@@ -49,7 +48,6 @@ usage(const char *s)
 	printf("Usage: %s cmd [option]\n\n\
 Commands Supported:\n\
 	gen\t\t-- Generate the website\n\
-	path\t\t-- Print the path where the posts are located\n\
 	version\t\t-- Print cblog version\n", s);
 
 	exit(1);
@@ -99,9 +97,6 @@ main(int argc, char *argv[])
 	switch(type) {
 		case CBLOG_VERSION_CMD:
 			cblogctl_version();
-			exit(0);
-		case CBLOG_PATH_CMD:
-			cblogctl_path(conf);
 			exit(0);
 		case CBLOG_GEN_CMD:
 			cblogctl_gen(conf);

@@ -50,12 +50,6 @@ splitchr(char *str, char sep)
 }
 
 void
-cblogctl_path(HDF *conf)
-{
-	printf("%s\n", get_cblog_db(conf));
-}
-
-void
 cblogctl_version(void)
 {
 	fprintf(stderr, "%s (%s)\n", cblog_version, cblog_url);
@@ -321,7 +315,7 @@ cblogctl_gen(HDF *conf)
 	int nb = 0;
 	DIR *dir;
 	int dbfd, tplfd, outputfd;
-	const char *path = get_cblog_db(conf);
+	const char *path = hdf_get_value(conf, "db_path", ".");
 	cap_rights_t rights_read;
 
 	dbfd = open(path, O_DIRECTORY);
