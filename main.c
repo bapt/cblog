@@ -48,7 +48,7 @@ usage(const char *s)
 {
 	printf("Usage: %s cmd [option]\n\n\
 Commands Supported:\n\
-	gen\t\t-- Generate the website
+	gen\t\t-- Generate the website\n\
 	path\t\t-- Print the path where the posts are located\n\
 	version\t\t-- Print cblog version\n", s);
 
