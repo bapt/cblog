@@ -246,8 +246,7 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 	opts.oflags = LOWDOWN_HTML_HEAD_IDS |
 		LOWDOWN_HTML_NUM_ENT |
 		LOWDOWN_HTML_OWASP |
-		LOWDOWN_SMARTY |
-		LOWDOWN_STANDALONE;
+		LOWDOWN_SMARTY;
 
 	if (nbarticles % max_post > 0)
 		nb_pages++;
