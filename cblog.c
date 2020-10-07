@@ -291,6 +291,7 @@ cblog_generate(struct article *articles, int tplfd, int outputfd, HDF *conf, int
 		xasprintf(&output, "post/%s/index.html", ar->filename);
 		cblog_render(post, tplfd, outputfd, "index.cs", output);
 		free(output);
+		free(obuf);
 
 		if (((i % max_post) + 1 == max_post) || ar->next == NULL) {
 			/* render */
