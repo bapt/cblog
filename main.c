@@ -24,7 +24,6 @@ static char *mandatory_config[] = {
 	"title",
 	"url",
 	"dateformat",
-	"db_path",
 	"theme",
 	"posts_per_pages",
 	"templates",
