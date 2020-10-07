@@ -346,9 +346,7 @@ cblogctl_gen(HDF *conf)
 
 	dir = fdopendir(dbfd);
 	while ((dp = readdir(dir)) != NULL) {
-		if (dp->d_namlen == 1 && strcmp(dp->d_name, ".") == 0)
-			continue;
-		if (dp->d_namlen == 2 && strcmp(dp->d_name, "..") == 0)
+		if (*dp->d_name == '.')
 			continue;
 		ar = parse_article(dbfd, dp->d_name);
 		if (ar != NULL) {
