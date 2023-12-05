@@ -3,7 +3,7 @@ Unmaintained
 CBlog is a blog engine written in C
 
 it is licensed under the new BSD license.
-it features : 
+it features:
 	- clearsilver template engine,
 	- markdown text format for posts using libsoldout
 	- tags support,
